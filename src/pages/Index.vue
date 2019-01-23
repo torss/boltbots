@@ -1,6 +1,6 @@
 <template>
   <q-page class="flex flex-center">
-    <img alt="Quasar logo" src="~assets/quasar-logo-full.svg">
+    <img class="logo" alt="Bolt Bots logo" src="~assets/190123_BoltBots_Logo_0.svg">
   </q-page>
 </template>
 
@@ -12,3 +12,11 @@ export default {
   name: 'PageIndex'
 }
 </script>
+
+<style lang="stylus" scoped>
+@import "~variables"
+
+.logo
+  width 256px
+  height 256px
+</style>

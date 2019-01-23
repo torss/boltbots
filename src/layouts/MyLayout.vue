@@ -17,7 +17,7 @@
         </q-btn>
 
         <q-toolbar-title>
-          Quasar App
+          Bolt Bots
           <div slot="subtitle">Running on Quasar v{{ $q.version }}</div>
         </q-toolbar-title>
       </q-toolbar>
