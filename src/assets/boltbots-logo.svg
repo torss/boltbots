@@ -15,7 +15,7 @@
    version="1.1"
    id="svg8"
    inkscape:version="0.92.3 (2405546, 2018-03-11)"
-   sodipodi:docname="190123_BoltBots_Logo_0.svg"
+   sodipodi:docname="boltbots-logo.svg"
    inkscape:export-filename="A:\190123_BoltBots_Logo_0.png"
    inkscape:export-xdpi="768.00006"
    inkscape:export-ydpi="768.00006">
@@ -42,11 +42,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="15.839192"
-     inkscape:cx="14.480512"
-     inkscape:cy="17.250214"
+     inkscape:zoom="22.4"
+     inkscape:cx="12.702475"
+     inkscape:cy="16.004996"
      inkscape:document-units="mm"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer4"
      showgrid="false"
      inkscape:snap-global="false"
      inkscape:window-width="1802"
@@ -68,6 +68,33 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="Layer 0">
+    <g
+       transform="translate(0.05011304,-288.45817)"
+       style="stroke:#898989;stroke-opacity:1"
+       id="g845">
+      <g
+         id="g838"
+         style="fill:#e5e5e5;fill-opacity:1;stroke:#898989;stroke-opacity:1"
+         transform="matrix(0.0628154,0,0,0.0628154,-3.2389727,282.3195)">
+        <path
+           style="color:#000000;display:inline;overflow:visible;visibility:visible;fill:#e5e5e5;fill-opacity:1;fill-rule:nonzero;stroke:#898989;stroke-width:15.11811066;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;marker-start:none;marker-mid:none;marker-end:none"
+           d="m 499.33398,479.41602 -5.06054,29.08203 c -11.4564,-0.6637 -25.18803,-1.14081 -41.88282,-1.19141 -25.93454,-0.0786 -58.59592,0.83705 -99.27734,3.5332 -3.90367,4.86618 -4.85922,10.9356 -4.06445,17.40625 0.0969,4.68568 1.20298,9.02065 3.71289,13.5586 3.25376,8.2203 7.92313,16.21987 11.7793,22.47461 3.73103,6.05177 10.25281,14.9197 16.02539,22.51758 l -158.79297,36.29296 c -9.98468,4.0382 -22.9388,42.35938 -9.64453,42.35938 l 4.82812,0.01 -1.8125,13.73438 -3.31055,0.15039 c -9.5862,23.84655 -1.60184,45.66628 24.75,61.81836 29.69549,18.20149 65.37815,35.72886 75.7129,36 l 270.39843,-1.31641 c 10.33474,-0.27099 46.01745,-17.79847 75.71289,-36 26.35185,-16.15207 34.33617,-38.02841 24.75,-61.875 l -4.95117,-0.21093 -3.01562,-11.31055 12.88086,0.0273 -25.81055,-51.5625 -141.58399,-31.08594 h -0.52929 l 0.52929,-9.65039 c 0,0 11.39153,-8.8727 18.90625,-19.21875 9.84061,-13.54828 1.42969,-40.76562 1.42969,-40.76562 0,0 -10.74735,-3.1779 -39.14844,-5.2168 l 4.91602,-28.26758 z"
+           transform="scale(0.26458333)"
+           id="path836"
+           inkscape:connector-curvature="0" />
+      </g>
+      <path
+         sodipodi:nodetypes="cccccccccccc"
+         inkscape:connector-curvature="0"
+         id="path840"
+         d="M 5.225309,289.87595 H 3.4446047 l -0.8191238,2.97971 1.2464935,0.0475 -0.5698255,1.54328 0.9734518,0.0713 -0.2967845,1.13966 1.5195345,-1.65013 -0.9853232,0.0119 1.0209367,-2.01813 H 4.2162437 Z"
+         style="fill:none;fill-opacity:1;stroke:#898989;stroke-width:0.25126159;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    </g>
+  </g>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
