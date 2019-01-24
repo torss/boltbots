@@ -1,6 +1,7 @@
 <template>
   <q-page class="flex flex-center">
-    <img class="logo" alt="Bolt Bots logo" src="~assets/190123_BoltBots_Logo_0.svg">
+    <q-resize-observable @resize="onResize" />
+    <canvas ref="canvas" />
   </q-page>
 </template>
 
@@ -8,15 +9,23 @@
 </style>
 
 <script>
+import {init} from '../internal/Init'
+
 export default {
-  name: 'PageIndex'
+  name: 'PageIndex',
+  mounted () {
+    init(this)
+  },
+  beforeDestroy () {
+    this.$deinit()
+  },
+  methods: {
+    onResize (size) {
+      if (this.$resize) this.$resize(size)
+    }
+  }
 }
 </script>
 
 <style lang="stylus" scoped>
-@import "~variables"
-
-.logo
-  width 256px
-  height 256px
 </style>
