@@ -33,7 +33,7 @@
         inset-delimiter
       >
         <div class="flex flex-center">
-          <img class="logo" alt="Bolt Bots logo" src="~assets/190123_BoltBots_Logo_0.svg">
+          <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg">
         </div>
         <q-list-header>Essential Links</q-list-header>
         <q-item @click.native="openURL('http://quasar-framework.org')">
