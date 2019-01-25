@@ -20,6 +20,7 @@ export function init (vueInstance) {
   const controls = new OrbitControls(camera)
 
   const sky = new Sky()
+  sky.layers.enable(1)
   sky.scale.setScalar(10)
   const skyUniforms = sky.material.uniforms
   // skyUniforms.turbidity.value = 10
@@ -30,21 +31,27 @@ export function init (vueInstance) {
   skyUniforms.sunPosition.value.y = 10
   scene.add(sky)
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.2)
-  scene.add(directionalLight)
+  const envCubeCamera = new THREE.CubeCamera(1, 1000, 256)
+  envCubeCamera.layers.set(1)
+  envCubeCamera.renderTarget.texture.generateMipmaps = true
+  envCubeCamera.renderTarget.texture.minFilter = THREE.LinearMipMapLinearFilter
+  scene.add(envCubeCamera)
+
+  // const directionalLight = new THREE.DirectionalLight(0xffffff, 0.2)
+  // scene.add(directionalLight)
 
   const cubeTextureLoader = new THREE.CubeTextureLoader()
   cubeTextureLoader.setPath('../statics/textures/env/testenv0/')
-  const envMap = cubeTextureLoader.load([
-    'red.png', 'cyan.png', // x+ x-
-    'green.png', 'magenta.png', // y+ y-
-    'blue.png', 'yellow.png' // z+ z-
-  ])
+  // const envMap = cubeTextureLoader.load([
+  //   'red.png', 'cyan.png', // x+ x-
+  //   'green.png', 'magenta.png', // y+ y-
+  //   'blue.png', 'yellow.png' // z+ z-
+  // ])
   const material = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     metalness: 0.80,
     roughness: 0.20,
-    envMap
+    envMap: envCubeCamera.renderTarget.texture
   })
   let mesh
   const gltfLoader = new GLTFLoader()
@@ -70,11 +77,17 @@ export function init (vueInstance) {
 
     requestAnimationFrame(animate)
 
+    const sunPosTime = new Date().getTime() * 0.00025
+    const sunPosTime2 = new Date().getTime() * 0.00015
+    const sunPosFactor = 100 * Math.cos(sunPosTime2)
+    skyUniforms.sunPosition.value.x = sunPosFactor * Math.cos(sunPosTime)
+    skyUniforms.sunPosition.value.z = sunPosFactor * Math.sin(sunPosTime)
+    envCubeCamera.update(renderer, scene)
     controls.update()
-    if (mesh) {
-      mesh.rotation.x += 0.01
-      mesh.rotation.y += 0.02
-    }
+    // if (mesh) {
+    //   mesh.rotation.x += 0.01
+    //   mesh.rotation.y += 0.02
+    // }
 
     renderer.render(scene, camera)
   }
