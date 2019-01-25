@@ -1,12 +1,11 @@
 <template>
-  <q-page class="flex flex-center">
-    <q-resize-observable @resize="onResize" />
-    <canvas ref="canvas" />
+  <q-page class="page flex flex-row">
+    <div class="canvas-container">
+      <q-resize-observable @resize="onResize" />
+      <canvas ref="canvas" class="canvas" />
+    </div>
   </q-page>
 </template>
-
-<style>
-</style>
 
 <script>
 import {init} from '../internal/Init'
@@ -28,4 +27,12 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
+.page
+  overflow hidden
+
+.canvas
+  position absolute
+
+.canvas-container
+  flex-grow 1
 </style>

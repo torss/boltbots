@@ -1,21 +1,26 @@
 import * as THREE from 'three'
+import GLTFLoader from 'three-gltf-loader'
 
 export function init (vueInstance) {
   const canvas = vueInstance.$refs.canvas
 
-  const width = vueInstance.$el.clientWidth
-  const height = vueInstance.$el.clientHeight
+  const width = 1 // vueInstance.$el.clientWidth
+  const height = 1 // vueInstance.$el.clientHeight
 
   const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10)
   camera.position.z = 1
 
   const scene = new THREE.Scene()
 
-  const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2)
   const material = new THREE.MeshNormalMaterial()
-
-  const mesh = new THREE.Mesh(geometry, material)
-  scene.add(mesh)
+  let mesh
+  const loader = new GLTFLoader()
+  loader.load('../statics/DeltaArrow.glb', (gltf) => {
+    mesh = gltf.scene.children[0]
+    mesh.material = material
+    mesh.scale.multiplyScalar(0.2)
+    scene.add(mesh)
+  }, undefined, console.error)
 
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
   renderer.setSize(width, height)
@@ -32,8 +37,10 @@ export function init (vueInstance) {
 
     requestAnimationFrame(animate)
 
-    mesh.rotation.x += 0.01
-    mesh.rotation.y += 0.02
+    if (mesh) {
+      mesh.rotation.x += 0.01
+      mesh.rotation.y += 0.02
+    }
 
     renderer.render(scene, camera)
   }
@@ -41,8 +48,10 @@ export function init (vueInstance) {
 
   vueInstance.$deinit = () => {
     vueInstance.$isDestroyed = true
-    material.dispose()
-    geometry.dispose()
+    if (mesh) {
+      mesh.geometry.dispose()
+      mesh.material.dispose()
+    }
     renderer.dispose()
   }
 }
