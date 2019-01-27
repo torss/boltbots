@@ -2,6 +2,16 @@ import * as THREE from 'three'
 import GLTFLoader from 'three-gltf-loader'
 import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
+import {pcgTest} from './PcgTest'
+
+// https://github.com/mrdoob/three.js/issues/14804
+function fixCubeCameraLayers (cubeCamera) {
+  for (const childCamera of cubeCamera.children) {
+    // Assumes all children are actually the 6 cameras.
+    childCamera.layers = cubeCamera.layers
+  }
+  return cubeCamera
+}
 
 export function init (vueInstance) {
   const canvas = vueInstance.$refs.canvas
@@ -32,6 +42,7 @@ export function init (vueInstance) {
   scene.add(sky)
 
   const envCubeCamera = new THREE.CubeCamera(1, 1000, 256)
+  fixCubeCameraLayers(envCubeCamera)
   envCubeCamera.layers.set(1)
   envCubeCamera.renderTarget.texture.generateMipmaps = true
   envCubeCamera.renderTarget.texture.minFilter = THREE.LinearMipMapLinearFilter
@@ -59,8 +70,9 @@ export function init (vueInstance) {
     mesh = gltf.scene.children[0]
     mesh.material = material
     mesh.scale.multiplyScalar(0.2)
-    scene.add(mesh)
+    // scene.add(mesh)
   }, undefined, console.error)
+  mesh = pcgTest(scene, material)
 
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
   renderer.setSize(width, height)
