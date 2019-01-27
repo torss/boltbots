@@ -18,12 +18,11 @@ export function pcgTest (scene, material) {
     steps: 1,
     depth: 1,
     bevelEnabled: false,
-    bevelThickness: 0.1,
-    bevelSize: 0.1,
-    bevelSegments: 0.1
+    curveSegments: 64
   }
 
   const geometry = new THREE.ExtrudeBufferGeometry(shape, extrudeSettings)
   const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(-0.5, 0, -0.5)
   scene.add(mesh)
 }
