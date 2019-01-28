@@ -14,12 +14,14 @@ function adjustGeometryNormals (geometry) {
   return geometry
 }
 
-function genTrackCrossSection (path, x, y, width, height) {
+function genTrackCrossSection (path, x, y, width, height, radius) {
   x -= 0.5 * width; y -= 0.5 * height
   path.moveTo(x, y)
   path.lineTo(x + width, y)
-  path.lineTo(x + width, y + height)
+  path.bezierCurveTo(x + width + radius, y, x + width + radius, y + height, x + width, y + height)
+  // path.lineTo(x + width, y + height)
   path.lineTo(x, y + height)
+  path.bezierCurveTo(x - radius, y + height, x - radius, y, x, y)
   return path
 }
 
@@ -53,11 +55,11 @@ function genTrackExtrudePath (x, y, width, height, radius) {
 
 export function trackTest (scene, materialParam) {
   const material = new THREE.MeshStandardMaterial({
-    color: 0x20202,
+    color: 0x20202, // 0x20202,
     metalness: 0.10,
-    roughness: 0.80,
+    roughness: 0.90,
     envMap: materialParam.envMap,
-    envMapIntensity: 10
+    envMapIntensity: 20
   })
 
   /*eslint-disable */
@@ -67,11 +69,11 @@ export function trackTest (scene, materialParam) {
   /* eslint-enable */
 
   const shape = new THREE.Shape()
-  genTrackCrossSection(shape, 0, 0, depth, thickness)
+  genTrackCrossSection(shape, 0, 0, depth, thickness, 0.05)
 
   const extrudeSettings = {
     extrudePath: genTrackExtrudePath(0, 0, width, height, radius),
-    steps: 100,
+    steps: 200,
     depth,
     bevelEnabled: false,
     curveSegments: 64
