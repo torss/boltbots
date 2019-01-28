@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import GLTFLoader from 'three-gltf-loader'
 import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
-import {pcgTest} from './PcgTest'
+import {trackTest} from './TrackTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -72,7 +72,7 @@ export function init (vueInstance) {
     mesh.scale.multiplyScalar(0.2)
     // scene.add(mesh)
   }, undefined, console.error)
-  mesh = pcgTest(scene, material)
+  trackTest(scene, material)
 
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
   renderer.setSize(width, height)
