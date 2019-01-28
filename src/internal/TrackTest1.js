@@ -1,18 +1,18 @@
 import * as THREE from 'three'
 
 // https://github.com/mrdoob/three.js/issues/9862
-function adjustGeometryNormals (geometry) {
-  for (var i = 0; i < geometry.faces.length; i++) {
-    var face = geometry.faces[ i ]
-    if (face.materialIndex === 1) {
-      for (var j = 0; j < face.vertexNormals.length; j++) {
-        face.vertexNormals[ j ].z = 0
-        face.vertexNormals[ j ].normalize()
-      }
-    }
-  }
-  return geometry
-}
+// function adjustGeometryNormals (geometry) {
+//   for (var i = 0; i < geometry.faces.length; i++) {
+//     var face = geometry.faces[ i ]
+//     if (face.materialIndex === 1) {
+//       for (var j = 0; j < face.vertexNormals.length; j++) {
+//         face.vertexNormals[ j ].z = 0
+//         face.vertexNormals[ j ].normalize()
+//       }
+//     }
+//   }
+//   return geometry
+// }
 
 function genTrackCrossSection (path, x, y, width, height, radius) {
   x -= 0.5 * width; y -= 0.5 * height
@@ -80,7 +80,7 @@ export function trackTest (scene, materialParam) {
   }
 
   const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings)
-  adjustGeometryNormals(geometry)
+  // adjustGeometryNormals(geometry)
   const mesh = new THREE.Mesh(geometry, material)
   // mesh.position.set(-0.5 * width, 0, -0.5 * depth)
   scene.add(mesh)
