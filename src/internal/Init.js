@@ -24,8 +24,11 @@ export function init (vueInstance) {
 
   const scene = new THREE.Scene()
 
-  const helper = new THREE.GridHelper(10, 2, 0xffffff, 0xffffff)
-  scene.add(helper)
+  // const gridHelper = new THREE.GridHelper(10, 2, 0xffffff, 0xffffff)
+  // scene.add(gridHelper)
+
+  const axesHelper = new THREE.AxesHelper(1) // "The X axis is red. The Y axis is green. The Z axis is blue."
+  scene.add(axesHelper)
 
   const controls = new OrbitControls(camera)
 
