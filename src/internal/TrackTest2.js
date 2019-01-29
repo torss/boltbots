@@ -86,41 +86,49 @@ class TrackDrivePlan {
       curveSegments: 64
     }
     const geometry = new THREE.ExtrudeBufferGeometry(shape, extrudeSettings)
-    parent.add(new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material))
+    parent.add(new THREE.LineSegments(new THREE.WireframeGeometry(geometry), new THREE.MeshPhongMaterial({
+      emissive: 0x00ffff,
+      envMap: material.envMap
+    })))
+
+    const mesh = new THREE.Mesh(geometry, material)
+    parent.add(mesh)
   }
 
   genTrackExtrudePath () {
     const curvePath = new THREE.CurvePath()
     if (this.driveWheels.length < 2) {
-      console.warn('TrackDrivePlan.driveWheels.length < 2')
+      console.warn('TrackDrivePlan.driveWheels.length < 2') // TODO Should be able to handle a single "DriveWheelPlan", i.e. just generate a wheel.
       return curvePath
     }
-    for (let i = 1; i < this.driveWheels.length; ++i) {
+    let prevCurve
+    for (let i = 1; i <= this.driveWheels.length; ++i) {
       const prev = this.driveWheels[i - 1]
-      const cur = this.driveWheels[i]
+      const cur = this.driveWheels[i % this.driveWheels.length]
 
       for (const tangentLine of DriveWheelPlan.getTangentLines(prev, cur)) {
         if ((sideOfLine(tangentLine[0], prev.center, cur.center) < 0) !== prev.clockwise) continue
         if ((sideOfLine(tangentLine[1], prev.center, cur.center) < 0) !== cur.clockwise) continue
-        if (i >= 2) {
-          const prevCurve = curvePath.curves[i - 2]
-          const p1 = prevCurve.v2
-          const p2 = tangentLine[0]
-          const center = prev.center
-          const clockwise = prev.clockwise
-
-          const arcOffset = new THREE.Vector2().copy(p1).sub(center).angle()
-          let arcLength = new THREE.Vector2().copy(p2).sub(center).angle()
-          arcLength -= arcOffset
-          if ((arcLength < 0) !== clockwise) {
-            arcLength += 2 * Math.PI
-          }
-          curvePath.add(new ArcCurve(cur.radius, arcLength, arcOffset, center))
-        }
-        curvePath.add(new THREE.LineCurve3(tangentLine[0], tangentLine[1]))
+        if (i >= 2) TrackDrivePlan.genTrackExtrudeArc(curvePath, prevCurve.v2, tangentLine[0], prev)
+        prevCurve = new THREE.LineCurve3(tangentLine[0], tangentLine[1])
+        curvePath.add(prevCurve)
       }
     }
+    TrackDrivePlan.genTrackExtrudeArc(curvePath, prevCurve.v2, curvePath.curves[0].v1, this.driveWheels[0])
     return curvePath
+  }
+
+  static genTrackExtrudeArc (curvePath, p1, p2, driveWheel) {
+    const {center, clockwise, radius} = driveWheel
+    const arcOffset = new THREE.Vector2().copy(p1).sub(center).angle()
+    let arcLength = new THREE.Vector2().copy(p2).sub(center).angle()
+    arcLength -= arcOffset
+    if ((arcLength < 0) && !clockwise) {
+      arcLength += 2 * Math.PI
+    } else if ((arcLength > 0) && clockwise) {
+      arcLength -= 2 * Math.PI
+    }
+    curvePath.add(new ArcCurve(radius, arcLength, arcOffset, center))
   }
 }
 
@@ -200,7 +208,7 @@ function genTrackExtrudePath (x, y, width, height, radius) {
 
 export function trackTest (scene, materialParam) {
   const material = new THREE.MeshStandardMaterial({
-    color: 0x20202, // 0x20202,
+    color: 0x20202,
     metalness: 0.10,
     roughness: 0.90,
     envMap: materialParam.envMap,
@@ -224,7 +232,9 @@ export function trackTest (scene, materialParam) {
   const trackDrivePlan = new TrackDrivePlan(depth, thickness, roundedWidth)
   const driveWheelRadius = 0.1
   trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(0, 0, 0), driveWheelRadius, true))
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.5, width * 0.25, 0), driveWheelRadius, true))
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width, 0, 0), driveWheelRadius, true))
+  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.50, width * 0.25, 0), driveWheelRadius, true))
+  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.00, width * 0.25, 0), driveWheelRadius, false))
+  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.5, 0, 0), driveWheelRadius, true))
+  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.75, -width * 0.1, 0), driveWheelRadius, true))
   trackDrivePlan.generate(scene, material, material2)
 }
