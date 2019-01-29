@@ -236,10 +236,19 @@ export function trackTest (scene, materialParam) {
 
   const trackDrivePlan = new TrackDrivePlan(depth, thickness, roundedWidth)
   const driveWheelRadius = 0.1
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(0, 0, 0), driveWheelRadius, true))
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.50, width * 0.25, 0), driveWheelRadius, true))
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.00, width * 0.25, 0), driveWheelRadius, false))
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.5, 0, 0), driveWheelRadius, true))
-  trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.75, -width * 0.1, 0), driveWheelRadius, true))
+  if (true) { // eslint-disable-line no-constant-condition
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(0, 0, 0), driveWheelRadius, true))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.5, width * 0.15, 0), driveWheelRadius * 0.5, false))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.00, width * 0.15, 0), driveWheelRadius * 0.5, false))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.5, 0, 0), driveWheelRadius, true))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.1, -width * 0.1, 0), driveWheelRadius, true))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.4, -width * 0.1, 0), driveWheelRadius, true))
+  } else {
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(0, 0, 0), driveWheelRadius, true))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.50, width * 0.25, 0), driveWheelRadius, true))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.00, width * 0.25, 0), driveWheelRadius, false))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 1.5, 0, 0), driveWheelRadius, true))
+    trackDrivePlan.driveWheels.push(new DriveWheelPlan(new THREE.Vector3(width * 0.75, -width * 0.1, 0), driveWheelRadius, true))
+  }
   trackDrivePlan.generate(scene, material, material2)
 }
