@@ -1,5 +1,6 @@
 /**
  * Slightly modified version of the original https://github.com/mrdoob/three.js/blob/02b5ba0b53f8f461e85c9877f5a6c0094bc2bbf3/examples/js/objects/Sky.js
+ * Original rest of this comment block:
  *
  *
  * @author zz85 / https://github.com/zz85
