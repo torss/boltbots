@@ -97,8 +97,13 @@ class TrackDrivePlan {
 
   genTrackExtrudePath () {
     const curvePath = new THREE.CurvePath()
+    if (this.driveWheels.length === 0) {
+      console.warn('TrackDrivePlan.driveWheels.length === 0')
+      return curvePath
+    }
     if (this.driveWheels.length < 2) {
-      console.warn('TrackDrivePlan.driveWheels.length < 2') // TODO Should be able to handle a single "DriveWheelPlan", i.e. just generate a wheel.
+      const wheel = this.driveWheels[0]
+      curvePath.add(new ArcCurve(wheel.radius, Math.PI * 2, 0, wheel.center))
       return curvePath
     }
     let prevCurve
