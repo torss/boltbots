@@ -108,6 +108,8 @@ function ExtrudeBufferGeometry (shapes, options) {
 
     var uvgen = options.UVGenerator !== undefined ? options.UVGenerator : WorldUVGenerator
 
+    const vertMod = options.vertMod
+
     // deprecated options
 
     if (options.amount !== undefined) {
@@ -356,32 +358,15 @@ function ExtrudeBufferGeometry (shapes, options) {
     bs = bevelSize
 
     // Back facing vertices
-
-    for (i = 0; i < vlen; i++) {
-      vert = bevelEnabled ? scalePt2(vertices[ i ], verticesMovements[ i ], bs) : vertices[ i ]
-
-      if (!extrudeByPath) {
-        v(vert.x, vert.y, 0)
-      } else {
-        // v( vert.x, vert.y + extrudePts[ 0 ].y, extrudePts[ 0 ].x );
-
-        normal.copy(splineTube.normals[ 0 ]).multiplyScalar(vert.x)
-        binormal.copy(splineTube.binormals[ 0 ]).multiplyScalar(vert.y)
-
-        position2.copy(extrudePts[ 0 ]).add(normal).add(binormal)
-
-        v(position2.x, position2.y, position2.z)
-      }
-    }
-
+    // +
     // Add stepped vertices...
     // Including front facing vertices
 
-    var s
-
-    for (s = 1; s <= steps; s++) {
+    for (let s = 0; s <= steps; s++) {
       for (i = 0; i < vlen; i++) {
         vert = bevelEnabled ? scalePt2(vertices[ i ], verticesMovements[ i ], bs) : vertices[ i ]
+
+        if (vertMod) vert = vertMod(vert, s, steps)
 
         if (!extrudeByPath) {
           v(vert.x, vert.y, depth / steps * s)
