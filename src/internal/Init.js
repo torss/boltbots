@@ -3,7 +3,8 @@ import GLTFLoader from 'three-gltf-loader'
 import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
 // import {trackTest} from './TrackTest'
-import {extrudeTest} from './ExtrudeTest'
+// import {extrudeTest} from './ExtrudeTest'
+import {moctreeTest} from './MoctreeTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -14,7 +15,27 @@ function fixCubeCameraLayers (cubeCamera) {
   return cubeCamera
 }
 
+function extendThreejs () {
+  THREE.Vector3.prototype.pushOnto = function (array) {
+    array.push(this.x, this.y, this.z)
+  }
+  THREE.Vector3.prototype.addScalars = function (x, y, z) {
+    this.x += x
+    this.y += y
+    this.z += z
+    return this
+  }
+  THREE.Vector3.prototype.multiplyScalars = function (x, y, z) {
+    this.x *= x
+    this.y *= y
+    this.z *= z
+    return this
+  }
+}
+
 export function init (vueInstance) {
+  extendThreejs()
+
   const canvas = vueInstance.$refs.canvas
 
   const width = 1 // vueInstance.$el.clientWidth
@@ -76,8 +97,9 @@ export function init (vueInstance) {
     mesh.scale.multiplyScalar(0.2)
     // scene.add(mesh)
   }, undefined, console.error)
-  extrudeTest(scene, material)
   // trackTest(scene, material)
+  // extrudeTest(scene, material)
+  moctreeTest(scene, material)
 
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
   renderer.setSize(width, height)
