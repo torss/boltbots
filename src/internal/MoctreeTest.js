@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
+import * as SimplexNoise from 'simplex-noise'
 import {Moctree, moctCubeSides} from './Moctree'
 
 class MoctIterTtb {
@@ -99,7 +100,7 @@ export function moctreeTest (scene, materialParam) {
   })
 
   const moctree = new Moctree()
-  genMoctree2(moctree, material)
+  genMoctree3(moctree, material)
 
   console.time('meshMoctree')
   const geometry = meshMoctree(moctree)
@@ -107,6 +108,22 @@ export function moctreeTest (scene, materialParam) {
   var mesh = new THREE.Mesh(geometry, material)
   scene.add(mesh)
   scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material2))
+}
+
+function genMoctree3 (moctree, material, depth = 6) {
+  console.time('Moctree construction - genMoctree3')
+  const step = 1 / (1 << depth)
+  const range = [-1 + step / 2, 1 - step / 2]
+  const position = new THREE.Vector3()
+  const seed = Math.random()
+  const simplex = new SimplexNoise(seed)
+  for (position.z = range[0]; position.z < range[1]; position.z += step) {
+    for (position.x = range[0]; position.x < range[1]; position.x += step) {
+      position.y = simplex.noise2D(position.z, position.x)
+      for (;position.y > range[0]; position.y -= step) moctree.getAt(position, depth).material = material
+    }
+  }
+  console.timeEnd('Moctree construction - genMoctree3')
 }
 
 function genMoctree2 (moctree, material, depth = 5) {
