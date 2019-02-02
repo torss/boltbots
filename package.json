@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
+    "simplex-noise": "^2.4.0",
     "three": "^0.100.0",
     "three-gltf-loader": "^1.100.0",
     "vue-i18n": "^7.3.3"
