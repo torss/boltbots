@@ -4,21 +4,26 @@ import {Moctree, moctCubeSides} from './Moctree'
 
 class MoctIterTtb {
   constructor (moctNode) {
-    this.value = undefined
+    this.node = undefined
+    this.origin = undefined
     this.subIters = [new MoctIterTtbSub(moctNode)]
   }
 
   next () {
     const subIters = this.subIters
-    for (; (this.value = subIters[subIters.length - 1]);) {
-      const moctNodeNext = this.value.next().value
+    for (let subIter; (subIter = subIters[subIters.length - 1]);) {
+      const moctNodeNext = subIter.next().value
       if (!moctNodeNext) {
         subIters.pop()
         continue
       }
-      this.value = new MoctIterTtbSub(moctNodeNext, this.value)
-      if (moctNodeNext.isLeaf) return this.value.next()
-      subIters.push(this.value)
+      if (moctNodeNext.isLeaf) {
+        this.node = moctNodeNext
+        this.origin = subIter.origin
+        return this
+      }
+      subIter = new MoctIterTtbSub(moctNodeNext, subIter)
+      subIters.push(subIter)
     }
     return undefined
   }
@@ -29,15 +34,19 @@ class MoctIterTtbSub {
     this.moctNode = moctNode
     this.index = -1
     this.value = undefined
-    this.origin = parent
-      ? parent.origin.clone().addScaledVector(moctNode.octant.scale, moctNode.level.scale)
-      : (moctNode.level.depth === 0 ? moctNode.moctree.origin.clone() : new THREE.Vector3(0, 0, 0))
+    this.parentOrigin = parent
+      ? parent.origin.clone()
+      : (moctNode.isTln ? moctNode.moctree.origin.clone() : new THREE.Vector3(0, 0, 0))
+    this.origin = new THREE.Vector3(0, 0, 0)
   }
 
   next () {
     ++this.index
     if (this.moctNode.isLeaf) this.value = this.index >= 1 ? undefined : this.moctNode
     else this.value = this.index >= 8 ? undefined : this.moctNode.subs[this.index]
+    if (this.value) {
+      this.origin.copy(this.parentOrigin).addScaledVector(this.value.octant.direction, this.value.level.scale)
+    }
     return this
   }
 }
@@ -46,13 +55,8 @@ function meshMoctree (moctree) {
   const geometry = new THREE.BufferGeometry()
   const vertices = []
   const normals = []
-  // const pushV3 = (v3) => vertices.push(v3.x, v3.y, v3.z)
   const pushFace = (origin, scale, moctCubeSide) => {
-    // const v3a = new THREE.Vector3()
-    // const v3b = new THREE.Vector3()
-
     const points = moctCubeSide.faceDrawCc.map(facePoint => origin.clone().addScaledVector(facePoint, scale))
-
     points[0].pushOnto(vertices)
     points[1].pushOnto(vertices)
     points[2].pushOnto(vertices)
@@ -60,22 +64,16 @@ function meshMoctree (moctree) {
     points[3].pushOnto(vertices)
     points[2].pushOnto(vertices)
     for (let i = 0; i < 6; ++i) moctCubeSide.normal.pushOnto(normals)
-    // const push = (x, y, z) => pushV3(v3a.copy(origin).add(v3b.copy(face).multiplyScalars(x, y, z)))
-    // push(-scale, -scale, +scale)
-    // push(+scale, -scale, +scale)
-    // push(+scale, +scale, +scale)
-    // push(+scale, +scale, +scale)
-    // push(-scale, +scale, +scale)
-    // push(-scale, -scale, +scale)
   }
-  for (let iterTtb = new MoctIterTtb(moctree.tln), iterSub; (iterSub = iterTtb.next());) {
-    const moctNode = iterSub.value
+  for (let iterTtb = new MoctIterTtb(moctree.tln); iterTtb.next();) {
+    const moctNode = iterTtb.node
+    const origin = iterTtb.origin
     if (moctNode.material === undefined) continue
     const level = moctNode.level
     const scale = level.scale
     moctCubeSides.forEach(moctCubeSide => {
       const side = moctNode.sides[moctCubeSide.index]
-      if (side.isVisible) pushFace(iterSub.origin, scale, moctCubeSide)
+      if (side.isVisible) pushFace(origin, scale, moctCubeSide)
     })
   }
   geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3))
@@ -101,13 +99,52 @@ export function moctreeTest (scene, materialParam) {
   })
 
   const moctree = new Moctree()
-  moctree.tln.material = material
+  genMoctree2(moctree, material)
 
-  for (let j = 0; j < 16; ++j) {
+  console.time('meshMoctree')
+  const geometry = meshMoctree(moctree)
+  console.timeEnd('meshMoctree')
+  var mesh = new THREE.Mesh(geometry, material)
+  scene.add(mesh)
+  scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material2))
+}
+
+function genMoctree2 (moctree, material, depth = 5) {
+  console.time('Moctree construction - genMoctree2')
+  const step = 1 / (1 << depth)
+  const range = [-1 + step / 2, 1 - step / 2]
+  const position = new THREE.Vector3()
+  const center = new THREE.Vector3(0, 0, 0)
+  const radius = 0.5
+  for (position.z = range[0]; position.z < range[1]; position.z += step) {
+    for (position.y = range[0]; position.y < range[1]; position.y += step) {
+      for (position.x = range[0]; position.x < range[1]; position.x += step) {
+        const distance = center.distanceTo(position)
+        if (distance < radius) moctree.getAt(position, depth).material = material
+      }
+    }
+  }
+  console.timeEnd('Moctree construction - genMoctree2')
+}
+
+function genMoctree1 (moctree, material) {
+  console.time('Moctree construction - genMoctree1')
+  for (let j = 0; j < 100; ++j) {
+    const position = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5)
+    moctree.getAt(position, 2 + Math.floor(Math.random() * 4)).material = material
+  }
+  console.timeEnd('Moctree construction - genMoctree1')
+}
+
+function genMoctree0 (moctree, material) {
+  moctree.tln.material = material
+  console.time('Moctree construction - genMoctree0')
+  for (let j = 0; j < 5000; ++j) {
     let sub = moctree.tln
     const outerSides = sub.octant.outerSides
     const outerSide = outerSides[Math.floor(Math.random() * outerSides.length)]
-    for (let i = 0; i < 4; ++i) {
+    const depth = 3 + Math.round(Math.random() * 5) // 24 + Math.round(Math.random() * 10)
+    for (let i = 0; i < depth; ++i) {
       // sub = sub.split().subs[7]
       // sub = sub.split().subs[Math.floor(Math.random() * 8)]
       sub = sub.split().subs[outerSide.octants[Math.floor(Math.random() * outerSide.octants.length)].index]
@@ -115,9 +152,5 @@ export function moctreeTest (scene, materialParam) {
     }
     sub.material = undefined
   }
-
-  const geometry = meshMoctree(moctree)
-  var mesh = new THREE.Mesh(geometry, material)
-  scene.add(mesh)
-  scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(geometry), material2))
+  console.timeEnd('Moctree construction - genMoctree0')
 }

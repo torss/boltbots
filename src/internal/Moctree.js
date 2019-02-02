@@ -48,12 +48,8 @@ export class MoctCubeSide {
 
   completeCubeSide () {
     this.complement = MoctCubeSide.byCoordSign(this.coord, -this.sign)
-    this.octants = this.face.map(vert => MoctOctant.byDirection(vert.clone())) // Assumes face was created with scale = 1
+    this.octants = this.face.map(vert => MoctOctant.byDirection(vert.clone(), true)) // Assumes face was created with scale = 1
   }
-
-  // static byNormal (normal) {
-  //   return moctCubeSides.find(moctCubeSide => moctCubeSide.normal.equals(normal))
-  // }
 
   static byCoordSign (coord, sign) {
     const moctCubeSide = moctCubeSides[new THREE.Vector3(0, 2, 4)[coord] + (sign > 0 ? 1 : 0)]
@@ -77,30 +73,25 @@ export class MoctOctant {
   constructor (x, y, z, index = -1) {
     this.index = index
     this.direction = new THREE.Vector3(x, y, z)
-    this.outerSides = undefined // Differs between the regular and special MoctOctants
     this.neighbors = undefined // Must be created after all regular MoctOctants were created
   }
 
   completeRegularOctant () {
-    this.outerSides = 'xyz'.split('').map(coord => MoctCubeSide.byCoordSign(coord, this.direction[coord]))
     this.neighbors = 'xyz'.split('').map(coord => {
-      const dir = this.direction.clone()
-      dir[coord] *= -1
+      const innerDirection = this.direction.clone()
+      innerDirection[coord] *= -1
       return {
-        side: MoctCubeSide.byCoordSign(coord, dir[coord]),
-        octant: MoctOctant.byDirection(dir)
+        outerSide: MoctCubeSide.byCoordSign(coord, this.direction[coord]),
+        innerSide: MoctCubeSide.byCoordSign(coord, innerDirection[coord]),
+        octantNei: MoctOctant.byDirection(innerDirection)
       }
     })
   }
 
-  get scale () {
-    return this.direction
-  }
-
-  static byDirection (direction) {
+  static byDirection (direction, exact = false) {
     const moctOctant = moctOctants[(direction.x > 0 ? 1 : 0) + (direction.y > 0 ? 2 : 0) + (direction.z > 0 ? 4 : 0)]
     if (!moctOctant) return undefined
-    if (!moctOctant.direction.equals(direction)) {
+    if (exact && !moctOctant.direction.equals(direction)) {
       throw new Error('MoctOctant.byDirection sanity check failed: moctOctants order broken!')
     }
     return moctOctant
@@ -122,8 +113,7 @@ export class MoctOctant {
 for (const moctOctant of moctOctants) moctOctant.completeRegularOctant()
 for (const moctCubeSide of moctCubeSides) moctCubeSide.completeCubeSide()
 
-export const moctOctantTln = new MoctOctant(1, 1, 1) // Special top-level-node pseudo-octant
-moctOctantTln.outerSides = moctCubeSides
+export const moctOctantTln = new MoctOctant(0, 0, 0) // Special top-level-node pseudo-octant
 
 /**
   * Primary Moctree control structure
@@ -135,6 +125,17 @@ export class Moctree {
     this.tln = new MoctNode(new MoctLevel(this)) // Top-level-node
     this.lowestLevel = this.tln.level
   }
+
+  getAt (position, minDepth = 0, maxDepth = Infinity) {
+    if (maxDepth < minDepth) return undefined
+    let node = this.tln
+    const origin = this.origin.clone()
+    while (node.depth < minDepth || (!node.isLeaf && node.depth < maxDepth)) {
+      origin.addScaledVector(node.octant.direction, node.level.scale)
+      node = node.split().subs[MoctOctant.byDirection(new THREE.Vector3().subVectors(position, origin)).index]
+    }
+    return node
+  }
 }
 
 /**
@@ -145,6 +146,7 @@ export class MoctLevel {
     this.moctree = moctree
     this.parent = parent
     this.child = child
+    this.counter = 0
     this.update()
   }
 
@@ -154,6 +156,7 @@ export class MoctLevel {
       this.depth = parent.depth + 1
       this.scale = parent.scaleHalf
     } else {
+      this.counter = 1
       this.depth = 0
       this.scale = this.moctree.scale
     }
@@ -166,6 +169,11 @@ export class MoctLevel {
     if (!this.child) this.child = new MoctLevel(this.moctree, this)
     return this.child
   }
+
+  clean (count) {
+    this.counter -= count
+    if (this.counter <= 0 && !this.child && this.parent) this.parent.child = undefined
+  }
 }
 
 /**
@@ -174,9 +182,11 @@ export class MoctLevel {
 export class MoctNode {
   constructor (level, parent, octant = moctOctantTln) {
     this.level = level
+    ++level.counter
     this.parent = parent
     this.octant = octant
     this.subs = [] // Subdivisions (Child nodes)
+    this.subLeafCount = 0 // Count of (direct) subs with isLeaf === true
     this.material_ = parent ? parent.material_ : undefined
     this.sides = moctCubeSides.map(moctCubeSide => new MoctNodeSide(this, moctCubeSide))
   }
@@ -186,16 +196,22 @@ export class MoctNode {
   }
 
   set material (material) {
-    if (material === this.material_) return // Superfluous
+    if (!this.isLeaf) return
+    // if (material === this.material_) return
+    this.setNewMaterial(material)
+  }
+
+  setNewMaterial (material) {
     const wasVisible = this.isVisible
     this.material_ = material
-    if (this.isVisible !== wasVisible && !this.isTln) {
+    if (this.isTln) return
+    if (this.isVisible !== wasVisible) {
       const offset = this.isVisible ? 1 : -1
-      for (const outerSide of this.octant.outerSides) {
-        // this.parent.sides[outerSide.index].visibleCount += offset
+      for (const {outerSide} of this.octant.neighbors) {
         this.parent.sides[outerSide.index].adjustVisibleCount(offset)
       }
     }
+    this.parent.fuse()
   }
 
   get moctree () {
@@ -206,9 +222,9 @@ export class MoctNode {
   //   return this.parent.subs
   // }
 
-  // get depth () {
-  //   return this.level.moctree
-  // }
+  get depth () {
+    return this.level.depth
+  }
 
   get isTln () {
     return !this.parent
@@ -224,29 +240,46 @@ export class MoctNode {
 
   split () {
     if (!this.isLeaf) return this
+    if (this.parent) --this.parent.subLeafCount
+    this.subLeafCount = 8
     const subLevel = this.level.obtainChild()
     for (let i = 0; i < 8; ++i) this.subs.push(new MoctNode(subLevel, this, moctOctants[i]))
     for (let i = 0; i < 8; ++i) {
       const sub = this.subs[i]
-      for (const outerSide of sub.octant.outerSides) {
-        sub.sides[outerSide.index].parent = this.sides[outerSide.index]
-        sub.sides[outerSide.index].gedCon = this.sides[outerSide.index].gedCon
-        // TODO adjust to lower level when possible
+      for (const {outerSide, octantNei} of sub.octant.neighbors) {
+        const subSide = sub.sides[outerSide.index]
+        subSide.parent = this.sides[outerSide.index]
+        const gedCon = this.sides[outerSide.index].gedCon
+        if (gedCon) {
+          const nodeNei = gedCon.node
+          if (nodeNei.isLeaf) {
+            subSide.gedCon = gedCon
+          } else {
+            const subSideNei = nodeNei.subs[octantNei.index].sides[outerSide.complement.index]
+            subSide.gedCon = subSideNei
+            subSideNei.gedCon = subSide
+          }
+        }
       }
-      for (const nei of sub.octant.neighbors) {
-        // sub.sides[nei.side.index].gedCon = this.subs[nei.octant.index]
-        sub.sides[nei.side.index].gedCon = this.subs[nei.octant.index].sides[nei.side.complement.index]
+      for (const {innerSide, octantNei} of sub.octant.neighbors) {
+        sub.sides[innerSide.index].gedCon = this.subs[octantNei.index].sides[innerSide.complement.index]
       }
     }
-    // for (const moctCubeSide of moctCubeSides) {
-    //   const side = this.sides[moctCubeSide.index]
-    //   side.visibleCount = 0
-    //   for (const octant of moctCubeSide.octants) {
-    //     if (this.subs[octant.index].isVisible) {
-    //       ++side.visibleCount
-    //     }
-    //   }
-    // }
+    return this
+  }
+
+  fuse () {
+    if (this.isLeaf || this.subLeafCount < 8) return this
+    let commonMaterial = this.subs[0].material
+    for (let i = 1; i < 8; ++i) {
+      const sub = this.subs[i]
+      if (commonMaterial !== sub.material) return this
+    }
+    this.level.child.clean(8)
+    this.subs.length = 0
+    for (const side of this.sides) side.reset()
+    if (this.parent) ++this.parent.subLeafCount
+    this.setNewMaterial(commonMaterial)
     return this
   }
 }
@@ -258,11 +291,13 @@ export class MoctNodeSide {
   constructor (moctNode, moctCubeSide) {
     this.node = moctNode
     this.cubeSide = moctCubeSide
-    this.visibleCount = moctNode.isVisible ? 4 : 0
     this.parent = undefined
-    // this.visible = true
-    // this.gedCon = undefined // "Greater-equal-depth" connection (this.depth <= other.depth) - A neighboring MoctNode or undefined
     this.gedCon = undefined // "Greater-equal-depth" connection (this.depth <= other.depth) - A complementing MoctNodeSide or undefined
+    this.reset()
+  }
+
+  reset () {
+    this.visibleCount = 4
   }
 
   adjustVisibleCount (offset) {
@@ -274,21 +309,10 @@ export class MoctNodeSide {
   }
 
   get fullFace () {
-    return this.visibleCount === 4
+    return this.node.isLeaf || this.visibleCount === 4
   }
 
-  // set gedCon (otherNode) {
-  //   this.gedCon_ = otherNode
-  //   this.visible = !otherNode || !otherNode.sides[this.cubeSide.complement.index].visible
-  // }
-
-  // get gedCon () {
-  //   return this.gedCon_
-  // }
-
   get isVisible () {
-    // return this.visible && this.node.isVisible
-    // return this.node.isVisible && (!this.gedCon || !this.gedCon.isVisible || !this.gedCon.sides[this.cubeSide.complement.index].fullFace)
     return this.node.isVisible && (!this.gedCon || !this.gedCon.node.isVisible || !this.gedCon.fullFace)
   }
 }
