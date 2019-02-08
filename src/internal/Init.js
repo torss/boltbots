@@ -4,7 +4,7 @@ import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
-import {moctreeTest} from './MoctreeTest'
+import {moctreeTest} from './moctree/MoctreeTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {

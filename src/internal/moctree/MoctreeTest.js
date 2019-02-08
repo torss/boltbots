@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
 import * as SimplexNoise from 'simplex-noise'
-import {Moctree, moctCubeSides, MoctOctant} from './Moctree'
+import {Moctree, moctCubeSides, MoctOctant} from '.'
 
 class MoctIterTtb {
   constructor (moctNode) {
