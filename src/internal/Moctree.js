@@ -37,7 +37,7 @@ export class MoctCubeSide {
     }
 
     // Draw couner-clockwise
-    if ((sign > 0) !== (coord !== 'y')) {
+    if ((sign >= 0) !== (coord !== 'y')) {
       this.faceDrawCc = this.face
     } else {
       this.faceDrawCc = this.face.slice()
@@ -52,9 +52,9 @@ export class MoctCubeSide {
   }
 
   static byCoordSign (coord, sign) {
-    const moctCubeSide = moctCubeSides[new THREE.Vector3(0, 2, 4)[coord] + (sign > 0 ? 1 : 0)]
+    const moctCubeSide = moctCubeSides[new THREE.Vector3(0, 2, 4)[coord] + (sign >= 0 ? 1 : 0)]
     if (!moctCubeSide) return undefined
-    if (moctCubeSide.coord !== coord || (moctCubeSide.sign > 0) !== (sign > 0)) {
+    if (moctCubeSide.coord !== coord || (moctCubeSide.sign >= 0) !== (sign >= 0)) {
       throw new Error('MoctCubeSide.byCoordSign sanity check failed: moctCubeSides order broken!')
     }
     return moctCubeSide
@@ -89,12 +89,16 @@ export class MoctOctant {
   }
 
   static byDirection (direction, exact = false) {
-    const moctOctant = moctOctants[(direction.x > 0 ? 1 : 0) + (direction.y > 0 ? 2 : 0) + (direction.z > 0 ? 4 : 0)]
+    const moctOctant = moctOctants[(direction.x >= 0 ? 1 : 0) + (direction.y >= 0 ? 2 : 0) + (direction.z >= 0 ? 4 : 0)]
     if (!moctOctant) return undefined
     if (exact && !moctOctant.direction.equals(direction)) {
       throw new Error('MoctOctant.byDirection sanity check failed: moctOctants order broken!')
     }
     return moctOctant
+  }
+
+  static bySides (side) {
+    return moctOctants[(side.x ? 1 : 0) + (side.y ? 2 : 0) + (side.z ? 4 : 0)]
   }
 }
 
@@ -131,10 +135,18 @@ export class Moctree {
     let node = this.tln
     const origin = this.origin.clone()
     while (node.depth < minDepth || (!node.isLeaf && node.depth < maxDepth)) {
-      origin.addScaledVector(node.octant.direction, node.level.scale)
+      origin.addScaledVector(node.octant.direction, node.level.scaleHalf)
       node = node.split().subs[MoctOctant.byDirection(new THREE.Vector3().subVectors(position, origin)).index]
     }
     return node
+  }
+
+  // NOTE: Only used in one place right now
+  createBoundingBox () {
+    return new THREE.Box3(
+      this.origin.clone().subScalar(this.tln.level.scaleHalf),
+      this.origin.clone().addScalar(this.tln.level.scaleHalf)
+    )
   }
 }
 
@@ -161,6 +173,7 @@ export class MoctLevel {
       this.scale = this.moctree.scale
     }
     this.scaleHalf = this.scale / 2
+    // this.scaleQuarter = this.scale / 4
     if (this.child) this.child.update()
     else this.moctree.lowestLevel = this
   }

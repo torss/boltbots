@@ -31,6 +31,23 @@ function extendThreejs () {
     this.z *= z
     return this
   }
+  THREE.Vector3.prototype.applyFunction = function (func) {
+    this.x = func({vector: this, value: this.x, axis: 'x', index: 0})
+    this.y = func({vector: this, value: this.y, axis: 'y', index: 1})
+    this.z = func({vector: this, value: this.z, axis: 'z', index: 2})
+    return this
+  }
+  THREE.Vector3.prototype.swapTwoAxes = function (axisA, axisB) {
+    const tmpA = this[axisA]
+    this[axisA] = this[axisB]
+    this[axisB] = tmpA
+    return this
+  }
+  THREE.Vector3.prototype.isWithinOriginCube = function (cubeHalfSideLength) {
+    return this.x <= cubeHalfSideLength && this.x >= -cubeHalfSideLength &&
+      this.y <= cubeHalfSideLength && this.y >= -cubeHalfSideLength &&
+      this.z <= cubeHalfSideLength && this.z >= -cubeHalfSideLength
+  }
 }
 
 export function init (vueInstance) {
@@ -99,7 +116,7 @@ export function init (vueInstance) {
   }, undefined, console.error)
   // trackTest(scene, material)
   // extrudeTest(scene, material)
-  moctreeTest(scene, material)
+  moctreeTest(vueInstance, scene, camera, material)
 
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
   renderer.setSize(width, height)
