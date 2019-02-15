@@ -228,6 +228,7 @@ class MoctRaycast {
     this.moctree = moctree
   }
 
+  // TODO This still seems to have some kind of bug that causes incorrect misses/hits!
   run (ray, acceptWhen, moctNode, nodeOrigin) {
     if (!moctNode) {
       moctNode = this.moctree.tln
