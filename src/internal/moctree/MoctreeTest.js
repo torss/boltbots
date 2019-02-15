@@ -1,37 +1,7 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
 import * as SimplexNoise from 'simplex-noise'
-import {Moctree, moctCubeSides, MoctOctant, MoctIterTtb} from '.'
-
-function meshMoctree (moctree) {
-  const geometry = new THREE.BufferGeometry()
-  const vertices = []
-  const normals = []
-  const pushFace = (origin, scale, moctCubeSide) => {
-    const points = moctCubeSide.faceDrawCc.map(facePoint => origin.clone().addScaledVector(facePoint, scale))
-    points[0].pushOnto(vertices)
-    points[1].pushOnto(vertices)
-    points[2].pushOnto(vertices)
-    points[1].pushOnto(vertices)
-    points[3].pushOnto(vertices)
-    points[2].pushOnto(vertices)
-    for (let i = 0; i < 6; ++i) moctCubeSide.normal.pushOnto(normals)
-  }
-  for (let iterTtb = new MoctIterTtb(moctree.tln); iterTtb.next();) {
-    const moctNode = iterTtb.node
-    const origin = iterTtb.origin
-    if (moctNode.material === undefined) continue
-    const level = moctNode.level
-    const scale = level.scaleHalf
-    moctCubeSides.forEach(moctCubeSide => {
-      const side = moctNode.sides[moctCubeSide.index]
-      if (side.isVisible) pushFace(origin, scale, moctCubeSide)
-    })
-  }
-  geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3))
-  geometry.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3))
-  return geometry
-}
+import {Moctree, MoctOctant, MoctMesher} from '.'
 
 export function moctreeTest (vueInstance, scene, camera, materialParam) {
   const moctree = new Moctree()
@@ -67,7 +37,7 @@ class MoctreeTestMesher {
   remesh () {
     const {scene, moctree, material, material2} = this
     console.time('meshMoctree')
-    const geometry = meshMoctree(moctree)
+    const geometry = new MoctMesher(moctree).mesh()
     console.timeEnd('meshMoctree')
     if (this.mesh) scene.remove(this.mesh)
     if (this.wireframe) scene.remove(this.wireframe)

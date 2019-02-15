@@ -32,4 +32,5 @@ for (const moctCubeSide of moctCubeSides) moctCubeSide.completeCubeSide()
 export const moctOctantTln = new MoctOctant(0, 0, 0) // Special top-level-node pseudo-octant
 
 export {Moctree} from './Moctree'
+export * from './MoctMesher'
 export * from './iterators'
