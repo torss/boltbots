@@ -95,4 +95,8 @@ export class BufferAttributeExtIndex extends BufferAttributeExt {
   pushRelative (...indices) {
     return this.pushWithOffset(this.highestStoredIndex + 1, ...indices)
   }
+
+  pushRelativeWithOffset (offset, ...indices) {
+    return this.pushWithOffset(offset + this.highestStoredIndex + 1, ...indices)
+  }
 }
