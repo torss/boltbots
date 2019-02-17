@@ -14,11 +14,11 @@ export default {
   name: 'PageIndex',
   mounted () {
     init(this)
-    document.addEventListener('wheel', this.onWheel)
+    document.addEventListener('wheel', this.onWheel, true)
     document.addEventListener('keydown', this.onKeydown)
   },
   beforeDestroy () {
-    document.removeEventListener('wheel', this.onWheel)
+    document.removeEventListener('wheel', this.onWheel, true)
     document.removeEventListener('keydown', this.onKeydown)
     this.$deinit()
   },

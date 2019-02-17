@@ -218,6 +218,8 @@ function initEditTestControls (vueInstance, scene, camera, moctree, materialPara
   }
   function onWheel (event) {
     if (!isInEditMode()) return
+    event.stopPropagation()
+    event.preventDefault()
     const node = moctree.getAt(editTarget)
     let shapeIndex = Math.max(0, shapeSingletons.indexOf(node.shape))
     const shapeOffset = event.deltaY > 0 ? -1 : 1
