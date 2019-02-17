@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 
 export class CurveTestShape {
-  meshNode (moctNode, origin, positions, normals) {
+  meshNode (moctNode, origin, indices, positions, normals) {
     const level = moctNode.level
     const scale = level.scaleHalf
     const curveScale = level.scale
@@ -27,8 +27,9 @@ export class CurveTestShape {
       toPosition(p1, 1, +scale)
       toPosition(p0, 2, -scale)
       toPosition(p0, 3, +scale)
-      positions.pushVector3(points[0], points[1], points[2], points[1], points[3], points[2])
-      normals.pushVector3(pointNormals[0], pointNormals[1], pointNormals[2], pointNormals[1], pointNormals[3], pointNormals[2]) // TODO only need two
+      indices.pushRelative(0, 1, 2, 1, 3, 2)
+      positions.pushVector3(points[0], points[1], points[2], points[3])
+      normals.pushVector3(pointNormals[0], pointNormals[1], pointNormals[2], pointNormals[3]) // TODO only need two
     }
   }
 }
