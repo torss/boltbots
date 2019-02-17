@@ -8,6 +8,7 @@ import * as THREE from 'three'
 
 import {moctCubeSides} from './MoctCubeSide'
 import {MoctIterTtb} from './iterators'
+import {BufferAttributeExt} from '../extensions/three'
 
 /**
  * Moctree mesher
@@ -20,31 +21,31 @@ export class MoctMesher {
   mesh () {
     const moctree = this.moctree
     const geometry = new THREE.BufferGeometry()
-    const vertices = []
-    const normals = []
-    const pushFace = (origin, scale, moctCubeSide) => {
-      const points = moctCubeSide.faceDrawCc.map(facePoint => origin.clone().addScaledVector(facePoint, scale))
-      points[0].pushOnto(vertices)
-      points[1].pushOnto(vertices)
-      points[2].pushOnto(vertices)
-      points[1].pushOnto(vertices)
-      points[3].pushOnto(vertices)
-      points[2].pushOnto(vertices)
-      for (let i = 0; i < 6; ++i) moctCubeSide.normal.pushOnto(normals)
-    }
+    const positions = new BufferAttributeExt(new Float32Array(0), 3)
+    const normals = new BufferAttributeExt(new Float32Array(0), 3)
     for (let iterTtb = new MoctIterTtb(moctree.tln); iterTtb.next();) {
       const moctNode = iterTtb.node
       const origin = iterTtb.origin
-      if (moctNode.material === undefined) continue
-      const level = moctNode.level
-      const scale = level.scaleHalf
-      moctCubeSides.forEach(moctCubeSide => {
-        const side = moctNode.sides[moctCubeSide.index]
-        if (side.isVisible) pushFace(origin, scale, moctCubeSide)
-      })
+      this.meshNode(moctNode, origin, positions, normals)
     }
-    geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3))
-    geometry.addAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3))
+    geometry.addAttribute('position', positions.fitSize())
+    geometry.addAttribute('normal', normals.fitSize())
     return geometry
+  }
+
+  meshNode (moctNode, origin, positions, normals) {
+    const pushFace = (origin, scale, moctCubeSide) => {
+      const points = moctCubeSide.faceDrawCc.map(facePoint => origin.clone().addScaledVector(facePoint, scale))
+      positions.pushVector3(points[0], points[1], points[2], points[1], points[3], points[2])
+      const normal = moctCubeSide.normal
+      normals.pushVector3(normal, normal, normal, normal, normal, normal)
+    }
+    if (moctNode.material === undefined) return
+    const level = moctNode.level
+    const scale = level.scaleHalf
+    moctCubeSides.forEach(moctCubeSide => {
+      const side = moctNode.sides[moctCubeSide.index]
+      if (side.isVisible) pushFace(origin, scale, moctCubeSide)
+    })
   }
 }
