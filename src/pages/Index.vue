@@ -14,9 +14,11 @@ export default {
   name: 'PageIndex',
   mounted () {
     init(this)
+    document.addEventListener('wheel', this.onWheel)
     document.addEventListener('keydown', this.onKeydown)
   },
   beforeDestroy () {
+    document.removeEventListener('wheel', this.onWheel)
     document.removeEventListener('keydown', this.onKeydown)
     this.$deinit()
   },
@@ -29,6 +31,9 @@ export default {
     },
     onMousedown (event) {
       if (this.$onMousedown) this.$onMousedown(event)
+    },
+    onWheel (event) {
+      if (this.$onWheel) this.$onWheel(event)
     },
     onKeydown (event) {
       if (this.$onKeydown) this.$onKeydown(event)

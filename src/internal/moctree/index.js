@@ -33,4 +33,5 @@ export const moctOctantTln = new MoctOctant(0, 0, 0) // Special top-level-node p
 
 export {Moctree} from './Moctree'
 export * from './MoctMesher'
+export * from './shapes'
 export * from './iterators'

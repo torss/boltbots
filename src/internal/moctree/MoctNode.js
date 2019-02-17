@@ -7,6 +7,7 @@
 import {moctCubeSides} from './MoctCubeSide'
 import {moctOctants} from './MoctOctant'
 import {MoctNodeSide} from './MoctNodeSide'
+import {cubeShape} from './shapes'
 import {moctOctantTln} from '.'
 
 /**
@@ -21,6 +22,7 @@ export class MoctNode {
     this.subs = [] // Subdivisions (Child nodes)
     this.subLeafCount = 0 // Count of (direct) subs with isLeaf === true
     this.material_ = parent ? parent.material_ : undefined
+    this.shape = parent ? parent.shape : cubeShape
     this.sides = moctCubeSides.map(moctCubeSide => new MoctNodeSide(this, moctCubeSide))
   }
 
@@ -103,15 +105,25 @@ export class MoctNode {
 
   fuse () {
     if (this.isLeaf || this.subLeafCount < 8) return this
+
     let commonMaterial = this.subs[0].material
     for (let i = 1; i < 8; ++i) {
       const sub = this.subs[i]
       if (commonMaterial !== sub.material) return this
     }
+
+    // TODO: Proper shape merging
+    let commonShape = this.subs[0].shape
+    for (let i = 1; i < 8; ++i) {
+      const sub = this.subs[i]
+      if (commonShape !== sub.shape) return this
+    }
+
     this.level.child.clean(8)
     this.subs.length = 0
     for (const side of this.sides) side.reset()
     if (this.parent) ++this.parent.subLeafCount
+    this.shape = commonShape
     this.setNewMaterial(commonMaterial)
     return this
   }

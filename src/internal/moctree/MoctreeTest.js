@@ -1,8 +1,9 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
+import '../extensions/Number'
 import '../extensions/three/Vector3'
 import * as SimplexNoise from 'simplex-noise'
-import {Moctree, MoctOctant, MoctMesher} from '.'
+import {Moctree, MoctOctant, MoctMesher, shapeSingletons} from '.'
 
 export function moctreeTest (vueInstance, scene, camera, materialParam) {
   const moctree = new Moctree()
@@ -196,13 +197,15 @@ function initEditTestControls (vueInstance, scene, camera, moctree, materialPara
       recastRay()
     }
   }
+  function isInEditMode () {
+    return sphere2.visible && testMesher.mesh.visible
+  }
   function onMousedown (event) {
     if (event.button === 1) {
       testMesher.mesh.visible = !testMesher.mesh.visible
       return
     }
-    if (!sphere2.visible) return
-    if (!testMesher.mesh.visible) return
+    if (!isInEditMode()) return
     if (event.button === 0) {
       const node = moctree.getAt(editTarget)
       node.material = undefined
@@ -213,6 +216,17 @@ function initEditTestControls (vueInstance, scene, camera, moctree, materialPara
     recastRay()
     testMesher.remesh()
   }
+  function onWheel (event) {
+    if (!isInEditMode()) return
+    const node = moctree.getAt(editTarget)
+    let shapeIndex = Math.max(0, shapeSingletons.indexOf(node.shape))
+    const shapeOffset = event.deltaY > 0 ? -1 : 1
+    shapeIndex = (shapeIndex + shapeOffset).mod(shapeSingletons.length)
+    const newShape = shapeSingletons[shapeIndex]
+    if (newShape === node.shape) return
+    node.shape = newShape
+    testMesher.remesh()
+  }
   function onKeydown (event) {
     if (event.key === 't') {
       recastRay()
@@ -220,6 +234,7 @@ function initEditTestControls (vueInstance, scene, camera, moctree, materialPara
   }
   vueInstance.$onMousemove = onMousemove
   vueInstance.$onMousedown = onMousedown
+  vueInstance.$onWheel = onWheel
   vueInstance.$onKeydown = onKeydown
 }
 
