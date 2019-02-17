@@ -1,8 +1,10 @@
+import {TileType} from './TileType';
+
 export class Tile {
-    constructor(x, y, orientation, type, theme) {
+    constructor(x, y, posOrientation, type, theme) {
         this.x = x;
         this.y = y;
-        this.orientation = orientation;
+        this.posOrientation = posOrientation;
         this.type = type;
         this.theme = theme;
     }

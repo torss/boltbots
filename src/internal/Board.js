@@ -1,6 +1,6 @@
 import {Tile} from './Tile';
+import {TileType} from './TileType';
 
-let val = hello(); // val is "Hello";
 class Board {
     constructor(width, height, theme, seed) {
         this.tiles = new Array(height);
@@ -10,11 +10,21 @@ class Board {
                 this.tiles[y][x] = calcTile(x, y, theme, seed);
             }
         }
+
+
+
+        this.geometry = ""; // or "mesh"?
     }
     var calcTile = function(x, y, theme, seed) {
         // TODO: Procedurally generate perfect board for a random value of seed.
+
+
         var type = "";
+
+        
         var orientation = "";
+
+
         return new Tile(x, y, orientation, type, theme);
     }
 }
