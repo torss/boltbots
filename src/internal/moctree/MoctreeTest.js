@@ -53,7 +53,7 @@ function genMoctreeEdit0 (moctree, material) {
   console.time('Moctree construction - genMoctreeEdit0')
   let node = moctree.tln
   node.material = material
-  node.split().subs[0].material = undefined
+  // node.split().subs[0].material = undefined
   console.timeEnd('Moctree construction - genMoctreeEdit0')
 }
 
