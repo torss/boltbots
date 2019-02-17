@@ -114,6 +114,7 @@ export function init (vueInstance) {
 
   vueInstance.$deinit = () => {
     vueInstance.$isDestroyed = true
+    controls.dispose()
     if (mesh) {
       mesh.geometry.dispose()
       mesh.material.dispose()
