@@ -5,10 +5,10 @@
  */
 
 import * as THREE from 'three'
+import {BufferAttributeExt} from '../extensions/three'
 
 import {moctCubeSides} from './MoctCubeSide'
 import {MoctIterTtb} from './iterators'
-import {BufferAttributeExt} from '../extensions/three'
 
 /**
  * Moctree mesher

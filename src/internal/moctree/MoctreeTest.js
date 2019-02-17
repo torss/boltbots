@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
+import '../extensions/three/Vector3'
 import * as SimplexNoise from 'simplex-noise'
 import {Moctree, MoctOctant, MoctMesher} from '.'
 
