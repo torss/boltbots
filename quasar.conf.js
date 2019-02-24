@@ -31,6 +31,11 @@ module.exports = function (ctx) {
           test: /\.(js|vue)$/,
           loader: 'eslint-loader',
           exclude: /node_modules/
+        }, {
+          enforce: 'pre',
+          test: /\.(frag|vert|glsl)$/,
+          loader: 'glsl-shader-loader',
+          exclude: /(node_modules|quasar)/
         })
       }
     },
