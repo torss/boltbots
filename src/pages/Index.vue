@@ -13,6 +13,7 @@ import {init} from '../internal/Init'
 export default {
   name: 'PageIndex',
   mounted () {
+    this.$deinit = []
     init(this)
     document.addEventListener('wheel', this.onWheel, true)
     document.addEventListener('keydown', this.onKeydown)
@@ -20,7 +21,7 @@ export default {
   beforeDestroy () {
     document.removeEventListener('wheel', this.onWheel, true)
     document.removeEventListener('keydown', this.onKeydown)
-    this.$deinit()
+    this.$deinit.forEach(func => func())
   },
   methods: {
     onResize (size) {

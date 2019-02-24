@@ -4,7 +4,8 @@ import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
-import {moctreeTest} from './moctree/MoctreeTest'
+// import {moctreeTest} from './moctree/MoctreeTest'
+import {lsdfTest} from './lsdf/LsdfTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -79,7 +80,8 @@ export function init (vueInstance) {
   }, undefined, console.error)
   // trackTest(scene, material)
   // extrudeTest(scene, material)
-  moctreeTest(vueInstance, scene, camera, material)
+  // moctreeTest(vueInstance, scene, camera, material)
+  lsdfTest(vueInstance, scene, camera, material)
 
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
   renderer.setSize(width, height)
@@ -112,7 +114,7 @@ export function init (vueInstance) {
   }
   animate()
 
-  vueInstance.$deinit = () => {
+  vueInstance.$deinit.push(() => {
     vueInstance.$isDestroyed = true
     controls.dispose()
     if (mesh) {
@@ -120,5 +122,5 @@ export function init (vueInstance) {
       mesh.material.dispose()
     }
     renderer.dispose()
-  }
+  })
 }
