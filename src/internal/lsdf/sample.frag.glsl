@@ -3,6 +3,8 @@ precision mediump int;
 uniform float time;
 varying vec3 vPosition;
 varying vec4 vColor;
+varying vec2 vUv;
+varying vec3 vDirection;
 
 // See https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
 float sdSphere( vec3 p, float s ) {
@@ -17,15 +19,17 @@ float sdBox( vec3 p, vec3 b ) {
 float opSubtraction( float d1, float d2 ) { return max(-d1,d2); }
 
 float sdTest( vec3 position ) {
-  return opSubtraction(sdSphere(position, 0.5), sdBox(position, vec3(0.5, 0.5, 0.5)));
+  // return opSubtraction(sdSphere(position, 0.5 * cos(time * 0.05)), sdBox(position, vec3(0.5, 0.5, 0.5)));
+  float timeMod = abs(cos(time * 0.05));
+  return opSubtraction(sdBox(position, vec3(0.25, 0.5, 0.5)), sdSphere(position, 0.5 + 0.5 * timeMod));
 }
 
 void main()	{
   vec4 color = vec4( vColor );
-  color.r += sin( vPosition.x * 10.0 + time ) * 0.5;
-  vec3 position = vPosition;
+  // color.r += sin( vPosition.x * 10.0 + time ) * 0.5;
+  vec3 position = vec3(vUv, 0.); // vPosition;
   const int maxSteps = 10;
-  vec3 direction = vec3(0., 0., 10. / float(maxSteps));
+  vec3 direction = vDirection / float(maxSteps); // vec3(0., 0., 10. / float(maxSteps));
   float dist;
   float hit = 0.;
   for (int i = 0; i < maxSteps; i++) {
