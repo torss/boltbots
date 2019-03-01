@@ -5,6 +5,46 @@ import fragmentShader from './sample.frag.glsl'
 import {moctCubeSides} from '../moctree'
 import {BufferAttributeExtIndex, BufferAttributeExt} from '../extensions'
 
+class LsdfOpType {
+  constructor (key, funcName, typeMapSize) {
+    this.key = key
+    this.funcName = funcName
+    this.typeMapSize = typeMapSize
+  }
+}
+
+class LsdfOpTypeCombine extends LsdfOpType {
+  constructor (key, funcName, ordered = false, typeMapSize = 0) {
+    super(key, funcName, typeMapSize)
+    this.ordered = ordered
+  }
+  get kind () { return 'combine' }
+}
+
+class LsdfOpTypeShape extends LsdfOpType {
+  get kind () { return 'shape' }
+}
+
+const lsdfOpTypeCombines = [
+  new LsdfOpTypeCombine('union', 'opUnion', false),
+  new LsdfOpTypeCombine('subtract', 'opSubtraction', true),
+  new LsdfOpTypeCombine('intersect', 'opIntersection', false),
+  new LsdfOpTypeCombine('unionSmooth', 'opSmoothUnion', false, 1),
+  new LsdfOpTypeCombine('subtractSmooth', 'opSmoothSubtraction', true, 1),
+  new LsdfOpTypeCombine('intersectSmooth', 'opSmoothIntersection', false, 1)
+]
+const lsdfOpTypeShapes = [
+  new LsdfOpTypeShape('sphere', 'sdSphere', 1),
+  new LsdfOpTypeShape('box', 'sdBox', 2)
+]
+const lsdfOpTypes = [
+  ...lsdfOpTypeCombines,
+  ...lsdfOpTypeShapes
+].reduce((obj, opType) => {
+  obj[opType.key] = opType
+  return obj
+}, {})
+
 export function lsdfTest (vueInstance, scene, camera, materialParam) {
   const material = new THREE.RawShaderMaterial({
     uniforms: {
@@ -96,25 +136,29 @@ function addCubeFaces (origin, shapeType, indices, positions, normals, uvs, shap
 function initTestLsdfConfigs (count) {
   const randomA = () => 0.2 + Math.random() * 0.3 // 0.4
   const randomB = () => 0.2 + Math.random() * 0.2 // 0.3
+  const randomC = () => 0.1 + Math.random() * 0.2
   const genRandomSphere = (position) => ({type: 'sphere', position, radius: randomA()})
   const genRandomBox = (position) => ({type: 'box', position, size: new THREE.Vector3(randomB(), randomB(), randomB())})
   const genRandomSomething = (what, position) => what ? genRandomSphere(position) : genRandomBox(position)
   const combineBase = (type, x, y) => {
-    if (type === 'union') {
+    const opType = lsdfOpTypes[type]
+    if (!opType.ordered) {
       // Order independent, so re-order x, y by type string order if necessary
       if (x.type > y.type) {
         const z = x; x = y; y = z
       }
     }
-    return {type, x, y}
+    const result = {type, x, y}
+    if (opType.typeMapSize === 1) result.radius = randomC()
+    return result
   }
-  const combineRandom = (what, x, y) => combineBase(what ? 'union' : 'subtract', x, y)
+  const combineRandom = (what, x, y) => combineBase(lsdfOpTypeCombines[what].key, x, y)
   const lsdfConfigs = []
   for (let i = 0; i < count; ++i) {
     const position = new THREE.Vector3(i, 0, 0)
     const what = Math.random() > 0.5
     lsdfConfigs.push(combineRandom(
-      Math.random() > 0.66, // i % 2 === 0,
+      i % lsdfOpTypeCombines.length, // Math.random() > 0.66, // i % 2 === 0,
       genRandomSomething(what, position),
       genRandomSomething(!what, position)
     ))
@@ -131,12 +175,10 @@ function initTestLsdfTypeTree (lsdfConfigs) {
     parent.subs[key] = newSub
     return newSub
   }
-  const lsdfConfigKindMap = {}
-  for (const key of ['union', 'subtract']) lsdfConfigKindMap[key] = 'combine'
   const resolveConfig = (parent, lsdfConfig) => {
     const sub = upsertNode(parent, lsdfConfig.type)
     let resultType
-    switch (lsdfConfigKindMap[lsdfConfig.type]) {
+    switch (lsdfOpTypes[lsdfConfig.type].kind) {
       case 'combine': {
         const x = resolveConfig(sub, lsdfConfig.x)
         const y = resolveConfig(x, lsdfConfig.y)
@@ -148,10 +190,6 @@ function initTestLsdfTypeTree (lsdfConfigs) {
     }
     return resultType
   }
-  const typeMapSizes = {
-    'sphere': 1,
-    'box': 2
-  }
   const genTexMapAccess = (typeMapIndex) => {
     return 'texture(typeMap, vec2(vShapeType.x + (' + typeMapIndex + '. * typeMapTexelSize.x), vShapeType.y))'
   }
@@ -160,20 +198,28 @@ function initTestLsdfTypeTree (lsdfConfigs) {
   }
   const resolveCode = (lsdfConfig, resolveState = {typeMapIndex: 0}) => {
     const {typeMapIndex} = resolveState
-    const typeMapSize = typeMapSizes[lsdfConfig.type] || 0
+    const typeMapSize = lsdfOpTypes[lsdfConfig.type].typeMapSize // || 0
     let resultCode
-    const combineFunc = (funcName) => {
+    const combineFunc = (funcName, params = '') => {
       const x = resolveCode(lsdfConfig.x, resolveState)
       const y = resolveCode(lsdfConfig.y, resolveState)
-      resultCode = funcName + '(' + x + ', ' + y + ')'
+      resultCode = funcName + '(' + x + ', ' + y + params + ')'
     }
+    const opType = lsdfOpTypes[lsdfConfig.type]
     switch (lsdfConfig.type) {
       case 'union':
-        combineFunc('opUnion')
-        break
       case 'subtract':
-        combineFunc('opSubtraction')
+      case 'intersect':
+        combineFunc(opType.funcName)
         break
+      case 'unionSmooth':
+      case 'subtractSmooth':
+      case 'intersectSmooth': {
+        const params = ', ' + genTexMapAccess(typeMapIndex) + '.x'
+        resolveState.typeMapIndex += typeMapSize
+        combineFunc(opType.funcName, params)
+        resolveState.typeMapIndex -= typeMapSize
+      } break
       case 'sphere':
         resultCode = 'sdSphere(' + genPositionCode(typeMapIndex) + ', ' + genTexMapAccess(typeMapIndex) + '.a)'
         break
@@ -219,27 +265,53 @@ function initTestTextureFromLsdfConfigs (lsdfConfigs) {
   const size = textureSize.x * textureSize.y
   const data = new Float32Array(4 * size)
   for (let i = 0; i < data.length; ++i) data[i] = 0
-  for (let lsdfConfigIndex = 0; lsdfConfigIndex < lsdfConfigs.length; ++lsdfConfigIndex) {
-    let i = lsdfConfigIndex * textureSize.x * 4
-    const lsdfConfig = lsdfConfigs[lsdfConfigIndex]
-    for (const partKey of ['x', 'y']) {
-      const shapeConfig = lsdfConfig[partKey]
-      data[i++] = shapeConfig.position.x
-      data[i++] = shapeConfig.position.y
-      data[i++] = shapeConfig.position.z
-      switch (shapeConfig.type) {
-        case 'sphere':
-          data[i++] = shapeConfig.radius
-          break
-        case 'box':
-          data[i++] = 0
-          data[i++] = shapeConfig.size.x
-          data[i++] = shapeConfig.size.y
-          data[i++] = shapeConfig.size.z
-          data[i++] = 0
-          break
+  let i
+  const writeData = (lsdfConfig) => {
+    const opType = lsdfOpTypes[lsdfConfig.type]
+    if (opType.typeMapSize > 0) {
+      if (opType.kind === 'combine') {
+        switch (lsdfConfig.type) {
+          case 'unionSmooth':
+          case 'subtractSmooth':
+          case 'intersectSmooth':
+            data[i++] = lsdfConfig.radius
+            data[i++] = 0
+            data[i++] = 0
+            data[i++] = 0
+            break
+          default:
+            console.warn('Unknown ' + opType.kind + ' lsdfConfig.type: ' + lsdfConfig.type)
+        }
+      } else {
+        data[i++] = lsdfConfig.position.x
+        data[i++] = lsdfConfig.position.y
+        data[i++] = lsdfConfig.position.z
+        switch (lsdfConfig.type) {
+          case 'sphere':
+            data[i++] = lsdfConfig.radius
+            break
+          case 'box':
+            data[i++] = 0
+            data[i++] = lsdfConfig.size.x
+            data[i++] = lsdfConfig.size.y
+            data[i++] = lsdfConfig.size.z
+            data[i++] = 0
+            break
+          default:
+            console.warn('Unknown ' + opType.kind + ' lsdfConfig.type: ' + lsdfConfig.type)
+            data[i++] = 0
+        }
       }
     }
+    if (opType.kind === 'combine') {
+      writeData(lsdfConfig.x)
+      writeData(lsdfConfig.y)
+    }
+  }
+  for (let lsdfConfigIndex = 0; lsdfConfigIndex < lsdfConfigs.length; ++lsdfConfigIndex) {
+    i = lsdfConfigIndex * textureSize.x * 4
+    const lsdfConfig = lsdfConfigs[lsdfConfigIndex]
+    writeData(lsdfConfig)
   }
   const texture = new THREE.DataTexture(data, textureSize.x, textureSize.y, THREE.RGBAFormat, THREE.FloatType)
   texture.needsUpdate = true
