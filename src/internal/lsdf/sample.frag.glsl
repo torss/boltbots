@@ -1,13 +1,17 @@
+#version 300 es
+
 precision mediump float;
 precision mediump int;
 // uniform vec3 cameraPosition;
 uniform float time;
 uniform sampler2D typeMap;
-varying vec3 vPosition;
-varying vec4 vColor;
-varying vec2 vUv;
-varying vec3 vShapeType;
-varying vec3 vDirection;
+uniform vec2 typeMapTexelSize;
+in vec3 vPosition;
+in vec4 vColor;
+in vec2 vUv;
+in vec3 vShapeType;
+in vec3 vDirection;
+out vec4 outColor;
 
 // See https://www.alanzucconi.com/2016/07/01/surface-shading/
 vec4 simpleLambert(vec3 surfaceNormal, vec3 color) {
@@ -36,7 +40,7 @@ float sdTest(vec3 position) {
   // return opSubtraction(sdSphere(position, 0.5 * cos(time * 0.05)),
   // sdBox(position, vec3(0.5, 0.5, 0.5)));
   // float timeMod = abs(cos(time * 0.05));
-  float timeMod = abs(cos(time * 0.05 + texture2D(typeMap, vShapeType.xy).x));
+  float timeMod = abs(cos(time * 0.05 + texture(typeMap, vShapeType.xy).x));
   float sizeModBox = 1.5;
   float sizeModSphere = 0.5;
   return opSubtraction(sdBox(position, vec3(0.25, timeMod * sizeModBox * 0.5, sizeModBox * 0.5)),
@@ -47,7 +51,33 @@ float sdTest(vec3 position) {
 }
 
 float getSdf(vec3 position) {
-  return sdTest(position - texture2D(typeMap, vShapeType.xy).xyz);
+  return sdTest(position - texture(typeMap, vShapeType.xy).xyz);
+
+  // GPU melting dynamic loop, so much for that idea I guess:
+  /*
+  float resultDist;
+  vec2 uv = vShapeType.xy;
+  bool first = true;
+  for (; uv.x <= typeMapTexelSize.x; uv.x += typeMapTexelSize.x) { // vShapeType.z
+    vec4 shapePrimary = texture(typeMap, uv);
+    uv.x += typeMapTexelSize.x;
+    vec4 shapeSecondary = texture(typeMap, uv);
+    vec3 shapePosParam = position + shapePrimary.xyz;
+    float shapeDist;
+    if (shapePrimary.a >= 1.) { // Box
+      shapeDist = sdBox(shapePosParam, shapeSecondary.xyz);
+    } else { // Sphere
+      shapeDist = sdSphere(shapePosParam, shapeSecondary.x);
+    }
+    if (first) {
+      resultDist = shapeDist;
+    } else {
+      resultDist = opSubtraction(shapeDist, resultDist);
+    }
+    first = false;
+  }
+  return resultDist;
+  */
 }
 
 vec3 getSurfaceNormal(vec3 point) {
@@ -82,7 +112,8 @@ void main() {
   // color = vec4(hit, mod(dist, 0.1) * 10., 0., hit);
   // color = vec4(vPosition, 1.);
   // color = 0.5 * color + 0.5 * vec4(abs(rayDirection), 1.);
-  // color = texture2D(typeMap, vShapeType.xy);
-  // color = texture2D(typeMap, vUv);
-  gl_FragColor = color;
+  // color = texture(typeMap, vShapeType.xy);
+  // color = texture(typeMap, vUv);
+  // gl_FragColor = color;
+  outColor = color;
 }

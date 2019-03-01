@@ -84,7 +84,8 @@ export function init (vueInstance) {
   // moctreeTest(vueInstance, scene, camera, material)
   lsdfTest(vueInstance, scene, camera, material)
 
-  const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
+  const context = canvas.getContext('webgl2')
+  const renderer = new THREE.WebGLRenderer({canvas, context, antialias: true})
   renderer.setSize(width, height)
 
   vueInstance.$resize = ({width, height}) => {

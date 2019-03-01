@@ -1,20 +1,21 @@
-// Currently simple a sample from https://github.com/mrdoob/three.js/blob/master/examples/webgl_buffergeometry_rawshader.html
+#version 300 es
+
 precision mediump float;
 precision mediump int;
 uniform mat4 modelViewMatrix; // optional
 uniform mat4 projectionMatrix; // optional
 uniform mat3 normalMatrix; // optional
 uniform vec3 cameraPosition;
-attribute vec3 position;
-attribute vec4 color;
-attribute vec3 normal;
-attribute vec2 uv;
-attribute vec3 shapeType;
-varying vec3 vPosition;
-varying vec4 vColor;
-varying vec2 vUv;
-varying vec3 vShapeType;
-varying vec3 vDirection;
+in vec3 position;
+in vec4 color;
+in vec3 normal;
+in vec2 uv;
+in vec3 shapeType;
+out vec3 vPosition;
+out vec4 vColor;
+out vec2 vUv;
+out vec3 vShapeType;
+out vec3 vDirection;
 void main()	{
   vPosition = position;
   vColor = color;

@@ -9,7 +9,8 @@ export function lsdfTest (vueInstance, scene, camera, materialParam) {
   const material = new THREE.RawShaderMaterial({
     uniforms: {
       time: { value: 1.0 },
-      typeMap: new THREE.Uniform()
+      typeMap: new THREE.Uniform(),
+      typeMapTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0))
     },
     vertexShader,
     fragmentShader,
@@ -53,6 +54,7 @@ function createCubeGeometry (material) {
   const textureSize = new THREE.Vector2(16, 16)
   const texture = initTestTexture(textureSize)
   material.uniforms.typeMap.value = texture
+  material.uniforms.typeMapTexelSize.value = new THREE.Vector2(1, 1).divide(textureSize)
   for (let shapeIndex = 0; shapeIndex < textureSize.y; ++shapeIndex) {
     const shapeType = new THREE.Vector3(0.5 / textureSize.x, (0.5 / textureSize.y) + (shapeIndex / textureSize.y), 0)
     addCubeFaces(new THREE.Vector3(shapeIndex, 0, 0), shapeType, indices, positions, normals, uvs, shapeTypes)

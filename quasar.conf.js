@@ -34,7 +34,7 @@ module.exports = function (ctx) {
         }, {
           enforce: 'pre',
           test: /\.(frag|vert|glsl)$/,
-          loader: 'glsl-shader-loader',
+          loader: 'raw-loader',
           exclude: /(node_modules|quasar)/
         })
       }
