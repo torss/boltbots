@@ -4,8 +4,10 @@ precision mediump int;
 uniform mat4 modelViewMatrix; // optional
 uniform mat4 projectionMatrix; // optional
 uniform mat3 normalMatrix; // optional
+uniform vec3 cameraPosition;
 attribute vec3 position;
 attribute vec4 color;
+attribute vec3 normal;
 attribute vec2 uv;
 varying vec3 vPosition;
 varying vec4 vColor;
@@ -15,6 +17,7 @@ void main()	{
   vPosition = position;
   vColor = color;
   vUv = uv;
-  vDirection = normalize( normalMatrix * vec3(uv, 0.) );
+  vDirection = vPosition - cameraPosition;
+  // vDirection = normalize( normalMatrix * normal ); // normalize( normalMatrix * vec3(uv, 0.) );
   gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 }

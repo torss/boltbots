@@ -1,5 +1,6 @@
 precision mediump float;
 precision mediump int;
+// uniform vec3 cameraPosition;
 uniform float time;
 varying vec3 vPosition;
 varying vec4 vColor;
@@ -9,7 +10,8 @@ varying vec3 vDirection;
 // See https://www.alanzucconi.com/2016/07/01/surface-shading/
 vec4 simpleLambert(vec3 surfaceNormal, vec3 color) {
   float timeMod = abs(cos(time * 0.05));
-  vec3 lightDirection = vec3(-cos(timeMod), -sin(timeMod), 0.);
+  float modDistance = 3.;
+  vec3 lightDirection = normalize(vec3(modDistance * cos(timeMod), modDistance * sin(timeMod), 0.));
   vec3 lightColor = vec3(1., 1., 1.);
   float normalDotLightDirection = max(dot(surfaceNormal, lightDirection), 0.);
   vec4 resultColor;
@@ -31,9 +33,14 @@ float opSubtraction(float d1, float d2) { return max(-d1, d2); }
 float sdTest(vec3 position) {
   // return opSubtraction(sdSphere(position, 0.5 * cos(time * 0.05)),
   // sdBox(position, vec3(0.5, 0.5, 0.5)));
-  float timeMod = 1.; // abs(cos(time * 0.05));
-  return opSubtraction(sdBox(position, vec3(0.25, 0.5, 0.5)),
-                       sdSphere(position, 0.5 + 0.5 * timeMod));
+  float timeMod = abs(cos(time * 0.05));
+  float sizeModBox = 1.5;
+  float sizeModSphere = 0.5;
+  return opSubtraction(sdBox(position, vec3(0.25, timeMod * sizeModBox * 0.5, sizeModBox * 0.5)),
+                       sdSphere(position, sizeModSphere));
+  //return opSubtraction(sdBox(position, vec3(0.25, sizeModBox * 0.5, sizeModBox * 0.5)),
+  //                     sdSphere(position, sizeModSphere * (0.5 + 0.5 * timeMod)));
+  // return sdBox(position, vec3(0.25, sizeModBox * 0.5, sizeModBox * 0.5));
 }
 
 vec3 getSurfaceNormal(vec3 point) {
@@ -47,14 +54,16 @@ vec3 getSurfaceNormal(vec3 point) {
 void main() {
   vec4 color = vec4(0., 0., 0., 0.); // vec4(vColor);
   // color.r += sin( vPosition.x * 10.0 + time ) * 0.5;
-  vec3 position = vec3(vUv, 0.); // vPosition;
-  const int maxSteps = 100;
+  vec3 position = vPosition; // vec3(vUv, 0.); // vPosition;
+  const int maxSteps = 1000;
+  vec3 rayDirection = normalize(vDirection); // normalize(vPosition - cameraPosition);
+  float distanceMax = 2.;
   vec3 direction =
-      vDirection / float(maxSteps); // vec3(0., 0., 10. / float(maxSteps));
+      rayDirection / (float(maxSteps) / distanceMax); // vec3(0., 0., 10. / float(maxSteps));
   float dist;
   // float hit = 0.;
   for (int i = 0; i < maxSteps; i++) {
-    vec3 checkPosition = position + vec3(0., 0., 0.25);
+    vec3 checkPosition = position; // + vec3(0., 0., 0.25);
     dist = sdTest(checkPosition);
     if (dist < 0.01) {
       // hit = 1.; // float(i) / float(maxSteps);
@@ -65,5 +74,6 @@ void main() {
   }
   // color = vec4(hit, mod(dist, 0.1) * 10., 0., hit);
   // color = vec4(vPosition, 1.);
+  color = 0.5 * color + 0.5 * vec4(abs(rayDirection), 1.);
   gl_FragColor = color;
 }
