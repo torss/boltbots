@@ -51,12 +51,15 @@ function createCubeGeometry (material) {
   const normals = new BufferAttributeExt(new Float32Array(), 3)
   const uvs = new BufferAttributeExt(new Float32Array(), 2)
   const shapeTypes = new BufferAttributeExt(new Float32Array(), 3)
+  // const lsdfConfigs = new BufferAttributeExt(new Uint32Array(), 1)
   const textureSize = new THREE.Vector2(16, 16)
   const texture = initTestTexture(textureSize)
   material.uniforms.typeMap.value = texture
   material.uniforms.typeMapTexelSize.value = new THREE.Vector2(1, 1).divide(textureSize)
   for (let shapeIndex = 0; shapeIndex < textureSize.y; ++shapeIndex) {
-    const shapeType = new THREE.Vector3(0.5 / textureSize.x, (0.5 / textureSize.y) + (shapeIndex / textureSize.y), 0)
+    const shapeType = new THREE.Vector3(0.5 / textureSize.x, (0.5 / textureSize.y) + (shapeIndex / textureSize.y))
+    shapeType.z = Math.floor(Math.random() * 3)
+    // const lsdfConfig = 0
     addCubeFaces(new THREE.Vector3(shapeIndex, 0, 0), shapeType, indices, positions, normals, uvs, shapeTypes)
   }
   geometry.setIndex(indices.fitSize())
@@ -64,6 +67,7 @@ function createCubeGeometry (material) {
   geometry.addAttribute('normal', normals.fitSize())
   geometry.addAttribute('uv', uvs.fitSize())
   geometry.addAttribute('shapeType', shapeTypes.fitSize())
+  // geometry.addAttribute('lsdfConfig', lsdfConfigs.fitSize())
   return geometry
 }
 
@@ -77,6 +81,7 @@ function addCubeFaces (origin, shapeType, indices, positions, normals, uvs, shap
     const uvRange = [0, 1]
     uvRange.forEach(u => uvRange.forEach(v => uvs.pushVector2(new THREE.Vector2(u, v))))
     shapeTypes.pushVector3(shapeType, shapeType, shapeType, shapeType)
+    // lsdfConfigs.pushScalar(lsdfConfig, lsdfConfig, lsdfConfig, lsdfConfig)
   })
 }
 

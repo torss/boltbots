@@ -45,6 +45,12 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
     return this
   }
 
+  pushScalar (...scalars) {
+    return pushBase(this, 1, 'pushScalar', scalars, (scalar) => {
+      this.array[this.indexCurrent++] = scalar
+    })
+  }
+
   pushVector2 (...vector2s) {
     return pushBase(this, 2, 'pushVector2', vector2s, (vector2) => {
       this.array[this.indexCurrent++] = vector2.x
