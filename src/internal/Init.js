@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import GLTFLoader from 'three-gltf-loader'
 import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
+import Stats from 'stats.js'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
 // import {moctreeTest} from './moctree/MoctreeTest'
@@ -93,10 +94,16 @@ export function init (vueInstance) {
   }
 
   vueInstance.$isDestroyed = false
+  const stats = new Stats()
+  stats.dom.style.cssText = ''
+  const toolbarStatsParent = vueInstance.$parent.$parent.$parent.$refs.toolbarStats
+  toolbarStatsParent.appendChild(stats.dom)
   function animate () {
     if (vueInstance.$isDestroyed) return
 
     requestAnimationFrame(animate)
+
+    stats.begin()
 
     const sunPosTime = new Date().getTime() * 0.00025
     const sunPosTime2 = new Date().getTime() * 0.00015
@@ -111,11 +118,14 @@ export function init (vueInstance) {
     // }
 
     renderer.render(scene, camera)
+
+    stats.end()
   }
   animate()
 
   vueInstance.$deinit.push(() => {
     vueInstance.$isDestroyed = true
+    toolbarStatsParent.removeChild(stats.dom)
     controls.dispose()
     if (mesh) {
       mesh.geometry.dispose()
