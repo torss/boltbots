@@ -9,14 +9,17 @@ attribute vec3 position;
 attribute vec4 color;
 attribute vec3 normal;
 attribute vec2 uv;
+attribute vec3 shapeType;
 varying vec3 vPosition;
 varying vec4 vColor;
 varying vec2 vUv;
+varying vec3 vShapeType;
 varying vec3 vDirection;
 void main()	{
   vPosition = position;
   vColor = color;
   vUv = uv;
+  vShapeType = shapeType;
   vDirection = vPosition - cameraPosition;
   // vDirection = normalize( normalMatrix * normal ); // normalize( normalMatrix * vec3(uv, 0.) );
   gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
