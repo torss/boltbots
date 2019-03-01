@@ -35,6 +35,7 @@ float sdBox(vec3 p, vec3 b) {
   return min(max(d.x, max(d.y, d.z)), 0.0) + length(max(d, 0.0));
 }
 
+float opUnion(float d1, float d2) {  return min(d1, d2); }
 float opSubtraction(float d1, float d2) { return max(-d1, d2); }
 
 float sdTest(vec3 position, float testMod) {
@@ -52,19 +53,25 @@ float sdTest(vec3 position, float testMod) {
 }
 
 float getSdf(vec3 position) {
-  // return sdTest(position - texture(typeMap, vShapeType.xy).xyz);
-
-  vec3 adjustedPosition = position - texture(typeMap, vShapeType.xy).xyz;
   switch (uint(vShapeType.z)) {
-    case 0u:
-      return sdTest(adjustedPosition, 0.);
-    case 1u:
-      return sdTest(adjustedPosition, 0.5);
-    case 2u:
-      return opSubtraction(sdSphere(adjustedPosition, 0.5), sdBox(adjustedPosition, vec3(0.25, 0.5, 0.5)));
+    // [LSDF TYPE TARGET] //
     default:
       return 0.;
   }
+
+  // return sdTest(position - texture(typeMap, vShapeType.xy).xyz);
+
+  // vec3 adjustedPosition = position - texture(typeMap, vShapeType.xy).xyz;
+  // switch (uint(vShapeType.z)) {
+  //   case 0u:
+  //     return sdTest(adjustedPosition, 0.);
+  //   case 1u:
+  //     return sdTest(adjustedPosition, 0.5);
+  //   case 2u:
+  //     return opSubtraction(sdSphere(adjustedPosition, 0.5), sdBox(adjustedPosition, vec3(0.25, 0.5, 0.5)));
+  //   default:
+  //     return 0.;
+  // }
 
   // GPU melting dynamic loop, so much for that idea I guess:
   /*
@@ -126,6 +133,19 @@ void main() {
   // color = vec4(vPosition, 1.);
   // color = 0.5 * color + 0.5 * vec4(abs(rayDirection), 1.);
   // color = texture(typeMap, vShapeType.xy);
+  // color = vec4(texture(typeMap, vShapeType.xy).xyz / 16., 1.);
+  // switch (uint(vShapeType.z)) {
+  //   case 0u:
+  //     color = 0.5 * color + 0.5 * vec4(0., 1., 0., 1.);
+  //     break;
+  //   case 1u:
+  //     color = 0.5 * color + 0.5 * vec4(1., 1., 0., 1.);
+  //     break;
+  //   default:
+  //     color = 0.5 * color + 0.5 * vec4(1., 0., 0., 1.);
+  // }
+  // color = 0.5 * color + 0.5 * vec4(texture(typeMap, vShapeType.xy).a, 0, 0, 1.);
+  // color = 0.5 * color + 0.5 * texture(typeMap, vUv);
   // color = texture(typeMap, vUv);
   // gl_FragColor = color;
   outColor = color;
