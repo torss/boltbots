@@ -126,22 +126,22 @@ void main() {
   vec4 color = vec4(0., 0., 0., 0.); // vec4(vColor);
   // color.r += sin( vPosition.x * 10.0 + time ) * 0.5;
   vec3 position = vPosition; // vec3(vUv, 0.); // vPosition;
-  const int maxSteps = 1000;
+  const int maxSteps = 64;
   vec3 rayDirection = normalize(vDirection); // normalize(vPosition - cameraPosition);
-  float distanceMax = 2.;
-  vec3 direction =
-      rayDirection / (float(maxSteps) / distanceMax); // vec3(0., 0., 10. / float(maxSteps));
+  // float distanceMax = 2.;
+  // vec3 direction =
+  //     rayDirection / (float(maxSteps) / distanceMax); // vec3(0., 0., 10. / float(maxSteps));
   float dist;
   // float hit = 0.;
   for (int i = 0; i < maxSteps; i++) {
     vec3 checkPosition = position; // + vec3(0., 0., 0.25);
     dist = getSdf(checkPosition);
-    if (dist < 0.01) {
+    if (dist < 0.001) {
       // hit = 1.; // float(i) / float(maxSteps);
       color = simpleLambert(getSurfaceNormal(checkPosition), vec3(1., 1., 1.));
       break;
     }
-    position += direction;
+    position += dist * rayDirection; // max(dist, 0.001) * rayDirection; // direction
   }
   // color = vec4(hit, mod(dist, 0.1) * 10., 0., hit);
   // color = vec4(vPosition, 1.);

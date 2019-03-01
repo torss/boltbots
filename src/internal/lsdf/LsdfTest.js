@@ -157,11 +157,17 @@ function initTestLsdfConfigs (count) {
   for (let i = 0; i < count; ++i) {
     const position = new THREE.Vector3(i, 0, 0)
     const what = Math.random() > 0.5
-    lsdfConfigs.push(combineRandom(
+    const combine0 = combineRandom(
       i % lsdfOpTypeCombines.length, // Math.random() > 0.66, // i % 2 === 0,
       genRandomSomething(what, position),
       genRandomSomething(!what, position)
-    ))
+    )
+    // const combine1 = combineRandom(
+    //   Math.floor(Math.random() * lsdfOpTypeCombines.length),
+    //   combine0,
+    //   genRandomSomething(Math.random() > 0.5, position)
+    // )
+    lsdfConfigs.push(combine0)
   }
   return lsdfConfigs
 }
