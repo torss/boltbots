@@ -1,0 +1,80 @@
+import * as THREE from 'three'
+
+class LsdfOpType {
+  constructor (key, funcName, typeMapSize) {
+    this.key = key
+    this.funcName = funcName
+    this.typeMapSize = typeMapSize
+  }
+}
+
+class LsdfOpTypeCombine extends LsdfOpType {
+  constructor (key, funcName, ordered = false, typeMapSize = 0) {
+    super(key, funcName, typeMapSize)
+    this.ordered = ordered
+  }
+  get kind () { return 'combine' }
+}
+
+class LsdfOpTypeShape extends LsdfOpType {
+  get kind () { return 'shape' }
+}
+
+export const lsdfOpTypeCombines = [
+  new LsdfOpTypeCombine('union', 'opUnion', false),
+  new LsdfOpTypeCombine('subtract', 'opSubtraction', true),
+  new LsdfOpTypeCombine('intersect', 'opIntersection', false),
+  new LsdfOpTypeCombine('unionSmooth', 'opSmoothUnion', false, 1),
+  new LsdfOpTypeCombine('subtractSmooth', 'opSmoothSubtraction', true, 1),
+  new LsdfOpTypeCombine('intersectSmooth', 'opSmoothIntersection', false, 1)
+]
+export const lsdfOpTypeShapes = [
+  new LsdfOpTypeShape('sphere', 'sdSphere', 1),
+  new LsdfOpTypeShape('box', 'sdBox', 2)
+]
+export const lsdfOpTypes = [
+  ...lsdfOpTypeCombines,
+  ...lsdfOpTypeShapes
+].reduce((obj, opType) => {
+  obj[opType.key] = opType
+  return obj
+}, {})
+
+export function initTestLsdfConfigs (count) {
+  const randomA = () => 0.2 + Math.random() * 0.3 // 0.4
+  const randomB = () => 0.2 + Math.random() * 0.2 // 0.3
+  const randomC = () => 0.1 + Math.random() * 0.2
+  const genRandomSphere = (position) => ({type: 'sphere', position, radius: randomA()})
+  const genRandomBox = (position) => ({type: 'box', position, size: new THREE.Vector3(randomB(), randomB(), randomB())})
+  const genRandomSomething = (what, position) => what ? genRandomSphere(position) : genRandomBox(position)
+  const combineBase = (type, x, y) => {
+    const opType = lsdfOpTypes[type]
+    if (!opType.ordered) {
+      // Order independent, so re-order x, y by type string order if necessary
+      if (x.type > y.type) {
+        const z = x; x = y; y = z
+      }
+    }
+    const result = {type, x, y}
+    if (opType.typeMapSize === 1) result.radius = randomC()
+    return result
+  }
+  const combineRandom = (what, x, y) => combineBase(lsdfOpTypeCombines[what].key, x, y)
+  const lsdfConfigs = []
+  for (let i = 0; i < count; ++i) {
+    const position = new THREE.Vector3(i, 0, 0)
+    const what = Math.random() > 0.5
+    const combine0 = combineRandom(
+      i % lsdfOpTypeCombines.length, // Math.random() > 0.66, // i % 2 === 0,
+      genRandomSomething(what, position),
+      genRandomSomething(!what, position)
+    )
+    const combine1 = combineRandom(
+      Math.floor(Math.random() * lsdfOpTypeCombines.length),
+      combine0,
+      genRandomSomething(Math.random() > 0.5, position)
+    )
+    lsdfConfigs.push(combine1)
+  }
+  return lsdfConfigs
+}
