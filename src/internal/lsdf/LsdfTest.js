@@ -162,12 +162,12 @@ function initTestLsdfConfigs (count) {
       genRandomSomething(what, position),
       genRandomSomething(!what, position)
     )
-    // const combine1 = combineRandom(
-    //   Math.floor(Math.random() * lsdfOpTypeCombines.length),
-    //   combine0,
-    //   genRandomSomething(Math.random() > 0.5, position)
-    // )
-    lsdfConfigs.push(combine0)
+    const combine1 = combineRandom(
+      Math.floor(Math.random() * lsdfOpTypeCombines.length),
+      combine0,
+      genRandomSomething(Math.random() > 0.5, position)
+    )
+    lsdfConfigs.push(combine1)
   }
   return lsdfConfigs
 }
@@ -197,7 +197,8 @@ function initTestLsdfTypeTree (lsdfConfigs) {
     return resultType
   }
   const genTexMapAccess = (typeMapIndex) => {
-    return 'texture(typeMap, vec2(vShapeType.x + (' + typeMapIndex + '. * typeMapTexelSize.x), vShapeType.y))'
+    // return 'texture(typeMap, vec2(vShapeType.x + (' + typeMapIndex + '. * typeMapTexelSize.x), vShapeType.y))'
+    return 'tm' + typeMapIndex
   }
   const genPositionCode = (typeMapIndex) => {
     return 'position - ' + genTexMapAccess(typeMapIndex) + '.xyz'
@@ -244,15 +245,19 @@ function initTestLsdfTypeTree (lsdfConfigs) {
     ++leaf.useCount
     leaf.users.push(lsdfConfig)
   }
+  let typeMapIndexMax = 0
   lsdfTypeLeaves.forEach((lsdfTypeLeaf, index) => {
     lsdfTypeLeaf.typeId = index
-    lsdfTypeLeaf.shaderCode = resolveCode(lsdfTypeLeaf.users[0])
+    const resolveState = {typeMapIndex: 0}
+    lsdfTypeLeaf.shaderCode = resolveCode(lsdfTypeLeaf.users[0], resolveState)
+    typeMapIndexMax = Math.max(typeMapIndexMax, resolveState.typeMapIndex)
     for (const lsdfConfig of lsdfTypeLeaf.users) lsdfConfig.typeLeaf = lsdfTypeLeaf
     lsdfTypeLeaf.users = undefined
   })
   return {
     lsdfTypeRoot,
-    lsdfTypeLeaves
+    lsdfTypeLeaves,
+    typeMapIndexMax
   }
 }
 
@@ -261,9 +266,15 @@ function adjustLsdfFragmentShader (material, lsdfTypeTree) {
   for (const lsdfTypeLeaf of lsdfTypeTree.lsdfTypeLeaves) {
     shaderCode += '    case ' + lsdfTypeLeaf.typeId + 'u:\n      return ' + lsdfTypeLeaf.shaderCode + ';\n'
   }
+  let shaderCodePre = ''
+  for (let i = 0; i < lsdfTypeTree.typeMapIndexMax; ++i) {
+    shaderCodePre += 'vec4 tm' + i + ' = texture(typeMap, vec2(vShapeType.x + (' + i + '. * typeMapTexelSize.x), vShapeType.y));\n'
+  }
   window.waw = lsdfTypeTree.lsdfTypeLeaves // FIXME debug only
   window.shaderCode = shaderCode // FIXME debug only
+  window.shaderCodePre = shaderCodePre // FIXME debug only
   material.fragmentShader = fragmentShader.replace('// [LSDF TYPE TARGET] //', shaderCode)
+    .replace('// [LSDF PRE TARGET] //', shaderCodePre)
 }
 
 function initTestTextureFromLsdfConfigs (lsdfConfigs) {

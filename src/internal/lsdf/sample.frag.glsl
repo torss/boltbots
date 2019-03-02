@@ -67,6 +67,7 @@ float sdTest(vec3 position, float testMod) {
 }
 
 float getSdf(vec3 position) {
+  // [LSDF PRE TARGET] //
   switch (uint(vShapeType.z)) {
     // [LSDF TYPE TARGET] //
     default:
