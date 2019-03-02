@@ -18,6 +18,7 @@ out vec2 vUv;
 flat out vec3 vShapeType;
 // flat out float vLsdfConfig;
 out vec3 vDirection;
+flat out vec3 vNormal;
 void main()	{
   vPosition = position;
   vColor = color;
@@ -25,6 +26,7 @@ void main()	{
   vShapeType = shapeType;
   // vLsdfConfig = lsdfConfig;
   vDirection = vPosition - cameraPosition;
+  vNormal = normal;
   // vDirection = normalize( normalMatrix * normal ); // normalize( normalMatrix * vec3(uv, 0.) );
   gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 }

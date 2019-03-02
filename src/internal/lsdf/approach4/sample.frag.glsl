@@ -12,6 +12,7 @@ in vec2 vUv;
 flat in vec3 vShapeType;
 // flat in float vLsdfConfig;
 in vec3 vDirection;
+flat in vec3 vNormal;
 out vec4 outColor;
 
 // See https://www.alanzucconi.com/2016/07/01/surface-shading/
@@ -150,6 +151,6 @@ void main() {
   // color = 0.5 * color + 0.5 * texture(typeMap, vUv);
   // color = texture(typeMap, vUv);
   // gl_FragColor = color;
-  color = vec4(0., 1., 0., 0.1);
+  color = vec4(vNormal, 0.1);
   outColor = color;
 }

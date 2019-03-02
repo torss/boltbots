@@ -17,7 +17,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam) {
     vertexShader,
     fragmentShader,
     side: THREE.FrontSide,
-    transparent: true
+    transparent: false
   })
   addTestCube(scene, material)
 
@@ -53,7 +53,7 @@ function createCubeGeometry (material) {
       const shapeType = new THREE.Vector3(0, 0, 0)
       addCubeFaces(loctNodeOrigin, shapeType, indices, positions, normals, uvs, shapeTypes, loctNode.level.scaleHalf)
     }
-    refineLoctTree({loctTree, maxDepth: 8, sdfEpsilon: 0.01, sdfFunc, leafFunc})
+    refineLoctTree({loctTree, maxDepth: 6, sdfEpsilon: 0.005, sdfFunc, leafFunc})
   })
 
   const {texture, textureSize} = initTestTextureFromLsdfConfigs(lsdfConfigs)
