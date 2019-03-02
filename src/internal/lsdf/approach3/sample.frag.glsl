@@ -52,67 +52,42 @@ float opSmoothIntersection(float d1, float d2, float k) {
   return mix(d2, d1, h) + k * h * (1.0 - h);
 }
 
-float sdTest(vec3 position, float testMod) {
-  // return opSubtraction(sdSphere(position, 0.5 * cos(time * 0.05)),
-  // sdBox(position, vec3(0.5, 0.5, 0.5)));
-  // float timeMod = abs(cos(time * 0.05));
-  float timeMod = abs(cos(time * 0.05 + texture(typeMap, vShapeType.xy).x));
-  float sizeModBox = 1.5;
-  float sizeModSphere = 0.5;
-  return opSubtraction(sdBox(position, vec3(0.25 + testMod, timeMod * sizeModBox * 0.5, sizeModBox * 0.5)),
-                       sdSphere(position, sizeModSphere));
-  //return opSubtraction(sdBox(position, vec3(0.25, sizeModBox * 0.5, sizeModBox * 0.5)),
-  //                     sdSphere(position, sizeModSphere * (0.5 + 0.5 * timeMod)));
-  // return sdBox(position, vec3(0.25, sizeModBox * 0.5, sizeModBox * 0.5));
-}
-
 float getSdf(vec3 position) {
-  // [LSDF PRE TARGET] //
-  switch (uint(vShapeType.z)) {
-    // [LSDF TYPE TARGET] //
-    default:
-      return 0.;
-  }
-
-  // return sdTest(position - texture(typeMap, vShapeType.xy).xyz);
-
-  // vec3 adjustedPosition = position - texture(typeMap, vShapeType.xy).xyz;
-  // switch (uint(vShapeType.z)) {
-  //   case 0u:
-  //     return sdTest(adjustedPosition, 0.);
-  //   case 1u:
-  //     return sdTest(adjustedPosition, 0.5);
-  //   case 2u:
-  //     return opSubtraction(sdSphere(adjustedPosition, 0.5), sdBox(adjustedPosition, vec3(0.25, 0.5, 0.5)));
-  //   default:
-  //     return 0.;
-  // }
-
-  // GPU melting dynamic loop, so much for that idea I guess:
-  /*
-  float resultDist;
-  vec2 uv = vShapeType.xy;
-  bool first = true;
-  for (; uv.x <= typeMapTexelSize.x; uv.x += typeMapTexelSize.x) { // vShapeType.z
-    vec4 shapePrimary = texture(typeMap, uv);
-    uv.x += typeMapTexelSize.x;
-    vec4 shapeSecondary = texture(typeMap, uv);
-    vec3 shapePosParam = position + shapePrimary.xyz;
-    float shapeDist;
-    if (shapePrimary.a >= 1.) { // Box
-      shapeDist = sdBox(shapePosParam, shapeSecondary.xyz);
-    } else { // Sphere
-      shapeDist = sdSphere(shapePosParam, shapeSecondary.x);
+  float stack[8];
+  float result = 0.;
+  for (uint i = 0u; i < 8u; ++i) {
+    vec4 data0 = texture(typeMap, vec2(vShapeType.x + (float(i * 2u + 0u) * typeMapTexelSize.x), vShapeType.y));
+    vec4 data1 = texture(typeMap, vec2(vShapeType.x + (float(i * 2u + 1u) * typeMapTexelSize.x), vShapeType.y));
+    switch (uint(data0.a)) {
+      case 0u: // Return
+        return result;
+      case 1u: // Sphere
+        stack[i] = sdSphere(position - data0.xyz, data1.x);
+        break;
+      case 2u: // Box
+        stack[i] = sdBox(position - data0.xyz, data1.xyz);
+        break;
+      case 3u:
+        stack[i] = opUnion(stack[uint(data0.x)], stack[uint(data0.y)]);
+        break;
+      case 4u:
+        stack[i] = opSubtraction(stack[uint(data0.x)], stack[uint(data0.y)]);
+        break;
+      case 5u:
+        stack[i] = opIntersection(stack[uint(data0.x)], stack[uint(data0.y)]);
+        break;
+      case 6u:
+        stack[i] = opSmoothUnion(stack[uint(data0.x)], stack[uint(data0.y)], data0.z);
+        break;
+      case 7u:
+        stack[i] = opSmoothSubtraction(stack[uint(data0.x)], stack[uint(data0.y)], data0.z);
+        break;
+      case 8u:
+        stack[i] = opSmoothIntersection(stack[uint(data0.x)], stack[uint(data0.y)], data0.z);
+        break;
     }
-    if (first) {
-      resultDist = shapeDist;
-    } else {
-      resultDist = opSubtraction(shapeDist, resultDist);
-    }
-    first = false;
+    result = stack[i];
   }
-  return resultDist;
-  */
 }
 
 vec3 getSurfaceNormal(vec3 point) {

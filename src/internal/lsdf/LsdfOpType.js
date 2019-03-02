@@ -3,8 +3,9 @@ import * as THREE from 'three'
 class LsdfOpType {
   constructor (key, funcName, typeMapSize) {
     this.key = key
-    this.funcName = funcName
-    this.typeMapSize = typeMapSize
+    this.funcName = funcName // LSDF approach2
+    this.opCode = -1 // LSDF approach3
+    this.typeMapSize = typeMapSize // LSDF approach2 (maybe approach3 too?)
   }
 }
 
@@ -32,6 +33,8 @@ export const lsdfOpTypeShapes = [
   new LsdfOpTypeShape('sphere', 'sdSphere', 1),
   new LsdfOpTypeShape('box', 'sdBox', 2)
 ]
+lsdfOpTypeCombines.forEach((lsdfOpType, index) => { lsdfOpType.opCode = index + 3 })
+lsdfOpTypeShapes.forEach((lsdfOpType, index) => { lsdfOpType.opCode = index + 1 })
 export const lsdfOpTypes = [
   ...lsdfOpTypeCombines,
   ...lsdfOpTypeShapes
