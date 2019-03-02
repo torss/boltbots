@@ -5,6 +5,7 @@ import fragmentShader from './sample.frag.glsl'
 import {moctCubeSides} from '../../moctree'
 import {BufferAttributeExtIndex, BufferAttributeExt} from '../../extensions'
 import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
+import {LoctTree} from './LoctTree'
 
 export function lsdfTest (vueInstance, scene, camera, materialParam) {
   const material = new THREE.RawShaderMaterial({
@@ -42,16 +43,29 @@ function createCubeGeometry (material) {
   // const textureSize = new THREE.Vector2(16, 16)
   // const texture = initTestTexture(textureSize)
   const lsdfConfigs = initTestLsdfConfigs(16)
+
+  lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
+    const loctTree = new LoctTree()
+    loctTree.origin.x = lsdfConfigIndex
+    const sdfFunc = constructNaiveSdfFunc(lsdfConfig)
+    const leafFunc = (loctNode, loctNodeOrigin) => {
+      if (loctNode.sdfValue > 0) return
+      const shapeType = new THREE.Vector3(0, 0, 0)
+      addCubeFaces(loctNodeOrigin, shapeType, indices, positions, normals, uvs, shapeTypes, loctNode.level.scaleHalf)
+    }
+    refineLoctTree({loctTree, maxDepth: 8, sdfEpsilon: 0.01, sdfFunc, leafFunc})
+  })
+
   const {texture, textureSize} = initTestTextureFromLsdfConfigs(lsdfConfigs)
   material.uniforms.typeMap.value = texture
   material.uniforms.typeMapTexelSize.value = new THREE.Vector2(1, 1).divide(textureSize)
 
-  for (let shapeIndex = 0; shapeIndex < textureSize.y; ++shapeIndex) {
-    const shapeType = new THREE.Vector3(0.5 / textureSize.x, (0.5 / textureSize.y) + (shapeIndex / textureSize.y))
-    // shapeType.z = Math.floor(Math.random() * lsdfTypeTree.lsdfTypeLeaves.length)
-    // const lsdfConfig = 0
-    addCubeFaces(new THREE.Vector3(shapeIndex, 0, 0), shapeType, indices, positions, normals, uvs, shapeTypes)
-  }
+  // for (let shapeIndex = 0; shapeIndex < textureSize.y; ++shapeIndex) {
+  //   const shapeType = new THREE.Vector3(0.5 / textureSize.x, (0.5 / textureSize.y) + (shapeIndex / textureSize.y))
+  //   // shapeType.z = Math.floor(Math.random() * lsdfTypeTree.lsdfTypeLeaves.length)
+  //   // const lsdfConfig = 0
+  //   addCubeFaces(new THREE.Vector3(shapeIndex, 0, 0), shapeType, indices, positions, normals, uvs, shapeTypes)
+  // }
   geometry.setIndex(indices.fitSize())
   geometry.addAttribute('position', positions.fitSize())
   geometry.addAttribute('normal', normals.fitSize())
@@ -59,6 +73,65 @@ function createCubeGeometry (material) {
   geometry.addAttribute('shapeType', shapeTypes.fitSize())
   // geometry.addAttribute('lsdfConfig', lsdfConfigs.fitSize())
   return geometry
+}
+
+function constructNaiveSdfFunc (lsdfConfig) {
+  // return (position) => position.length() - 0.5
+
+  const evaluate = (position, lsdfConfig) => {
+    const opType = lsdfOpTypes[lsdfConfig.type]
+    let result = 0
+    if (opType.kind === 'combine') {
+      const x = evaluate(position, lsdfConfig.x)
+      const y = evaluate(position, lsdfConfig.y)
+      switch (lsdfConfig.type) {
+        case 'unionSmooth':
+        case 'subtractSmooth':
+        case 'intersectSmooth':
+          result = opType.func(x, y, lsdfConfig.radius)
+          break
+        default:
+          result = opType.func(x, y)
+      }
+    } else {
+      switch (lsdfConfig.type) {
+        case 'sphere':
+          result = opType.func(position.clone().sub(lsdfConfig.position), lsdfConfig.radius)
+          break
+        case 'box':
+          result = opType.func(position.clone().sub(lsdfConfig.position), lsdfConfig.size)
+          break
+        default:
+          console.warn('Unknown ' + opType.kind + ' lsdfConfig.type: ' + lsdfConfig.type)
+      }
+    }
+    return result
+  }
+  return (position) => evaluate(position, lsdfConfig)
+}
+
+function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, leafFunc}) {
+  if (!leafFunc) leafFunc = (loctNode, loctNodeOrigin) => {}
+  refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, leafFunc, loctTree.tln, loctTree.origin.clone())
+}
+
+function refineLoctNodeSplit (maxDepth, sdfEpsilon, sdfFunc, leafFunc, loctNode, loctNodeOrigin) {
+  loctNode.split()
+  for (let i = 0; i < 8; ++i) {
+    const sub = loctNode.subs[i]
+    const subOrigin = new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(sub.octant.direction, sub.level.scaleHalf)
+    refineLoctNode(maxDepth, sdfEpsilon, sdfFunc, leafFunc, sub, subOrigin)
+  }
+}
+
+function refineLoctNode (maxDepth, sdfEpsilon, sdfFunc, leafFunc, loctNode, loctNodeOrigin) {
+  loctNode.sdfValue = sdfFunc(loctNodeOrigin)
+  const sdfValueAbs = Math.abs(loctNode.sdfValue)
+  if (sdfValueAbs < loctNode.level.diagonalHalf && sdfValueAbs > sdfEpsilon && loctNode.level.depth < maxDepth) {
+    refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, leafFunc, loctNode, loctNodeOrigin)
+  } else {
+    leafFunc(loctNode, loctNodeOrigin)
+  }
 }
 
 function addCubeFaces (origin, shapeType, indices, positions, normals, uvs, shapeTypes, scale = 0.5) {

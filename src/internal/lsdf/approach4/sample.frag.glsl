@@ -150,5 +150,6 @@ void main() {
   // color = 0.5 * color + 0.5 * texture(typeMap, vUv);
   // color = texture(typeMap, vUv);
   // gl_FragColor = color;
+  color = vec4(0., 1., 0., 0.1);
   outColor = color;
 }

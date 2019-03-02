@@ -12,3 +12,12 @@ Math.nextPowerOfTwo = function (n) {
 // Math.nearestPowerOfTwo = function (n) {
 //   return 1 << 31 - Math.clz32(n)
 // }
+
+Math.clamp = function (value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+// Equivalent of https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/mix.xhtml
+Math.lerp = function (x, y, a) {
+  return x * (1 - a) + y * a
+}

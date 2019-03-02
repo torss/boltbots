@@ -37,3 +37,10 @@ THREE.Vector3.prototype.isWithinOriginCube = function (cubeHalfSideLength) {
     this.y <= cubeHalfSideLength && this.y >= -cubeHalfSideLength &&
     this.z <= cubeHalfSideLength && this.z >= -cubeHalfSideLength
 }
+
+THREE.Vector3.prototype.abs = function () {
+  this.x = Math.abs(this.x)
+  this.y = Math.abs(this.y)
+  this.z = Math.abs(this.z)
+  return this
+}
