@@ -47,6 +47,7 @@ export function initTestLsdfConfigs (count) {
   const randomA = () => 0.2 + Math.random() * 0.3 // 0.4
   const randomB = () => 0.2 + Math.random() * 0.2 // 0.3
   const randomC = () => 0.1 + Math.random() * 0.2
+  const randomD = () => Math.random() * 0.2 - 0.1
   const genRandomSphere = (position) => ({type: 'sphere', position, radius: randomA()})
   const genRandomBox = (position) => ({type: 'box', position, size: new THREE.Vector3(randomB(), randomB(), randomB())})
   const genRandomSomething = (what, position) => what ? genRandomSphere(position) : genRandomBox(position)
@@ -67,17 +68,19 @@ export function initTestLsdfConfigs (count) {
   for (let i = 0; i < count; ++i) {
     const position = new THREE.Vector3(i, 0, 0)
     const what = Math.random() > 0.5
-    const combine0 = combineRandom(
+    let combine = combineRandom(
       i % lsdfOpTypeCombines.length, // Math.random() > 0.66, // i % 2 === 0,
       genRandomSomething(what, position),
       genRandomSomething(!what, position)
     )
-    const combine1 = combineRandom(
-      Math.floor(Math.random() * lsdfOpTypeCombines.length),
-      combine0,
-      genRandomSomething(Math.random() > 0.5, position)
-    )
-    lsdfConfigs.push(combine1)
+    for (let i = 0; i < 3; ++i) {
+      combine = combineRandom(
+        Math.floor(Math.random() * lsdfOpTypeCombines.length), // i === 0 ? Math.floor(Math.random() * lsdfOpTypeCombines.length) : lsdfOpTypeCombines.indexOf(lsdfOpTypes['intersectSmooth']),
+        combine,
+        genRandomSomething(i === 0 ? Math.random() > 0.5 : false, i === 0 ? position : new THREE.Vector3(0, randomD(), randomD()).add(position))
+      )
+    }
+    lsdfConfigs.push(combine)
   }
   return lsdfConfigs
 }

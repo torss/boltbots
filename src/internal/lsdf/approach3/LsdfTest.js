@@ -133,7 +133,7 @@ function initTestTextureFromLsdfConfigs (lsdfConfigs) {
           data[i++] = 0
       }
     }
-    if (stackIndex + 1 > 8) console.error('E190302-0332 LSDF complexity too high')
+    if (stackIndex + 1 > 16) console.error('E190302-0332 LSDF complexity too high')
     return stackIndex++
   }
   for (let lsdfConfigIndex = 0; lsdfConfigIndex < lsdfConfigs.length; ++lsdfConfigIndex) {

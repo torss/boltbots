@@ -52,12 +52,14 @@ float opSmoothIntersection(float d1, float d2, float k) {
   return mix(d2, d1, h) + k * h * (1.0 - h);
 }
 
-vec4 dataArray[16];
+const uint complexity = 16u;
+
+vec4 dataArray[complexity * 2u];
 
 float getSdf(vec3 position) {
-  float stack[8];
+  float stack[complexity];
   float result = 0.;
-  for (uint i = 0u; i < 8u; ++i) {
+  for (uint i = 0u; i < complexity; ++i) {
     // vec4 data0 = texture(typeMap, vec2(vShapeType.x + (float(i * 2u + 0u) * typeMapTexelSize.x), vShapeType.y));
     // vec4 data1 = texture(typeMap, vec2(vShapeType.x + (float(i * 2u + 1u) * typeMapTexelSize.x), vShapeType.y));
     vec4 data0 = dataArray[i * 2u + 0u];
@@ -105,7 +107,7 @@ vec3 getSurfaceNormal(vec3 point) {
 }
 
 void main() {
-  for (uint i = 0u; i < 16u; ++i) {
+  for (uint i = 0u; i < complexity * 2u; ++i) {
     dataArray[i] = texture(typeMap, vec2(vShapeType.x + (float(i) * typeMapTexelSize.x), vShapeType.y));
   }
 
