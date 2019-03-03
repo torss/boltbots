@@ -100,7 +100,7 @@ export function initTestLsdfConfigs (count) {
       genRandomSomething(what, position),
       genRandomSomething(!what, position)
     )
-    for (let i = 0; i < 0; ++i) {
+    for (let i = 0; i < 2; ++i) {
       combine = combineRandom(
         Math.floor(Math.random() * lsdfOpTypeCombines.length), // i === 0 ? Math.floor(Math.random() * lsdfOpTypeCombines.length) : lsdfOpTypeCombines.indexOf(lsdfOpTypes['intersectSmooth']),
         combine,

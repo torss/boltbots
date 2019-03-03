@@ -51,3 +51,10 @@ THREE.Vector3.prototype.redivScalar = function (scalar = 1) {
   this.z = scalar / this.z
   return this
 }
+
+THREE.Vector3.prototype.rsub = function (v) {
+  this.x = v.x - this.x
+  this.y = v.y - this.y
+  this.z = v.z - this.z
+  return this
+}

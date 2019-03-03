@@ -45,7 +45,7 @@ function createGeometry (material) {
     color: new BufferAttributeExt(new Float32Array(), 3)
   }
 
-  const lsdfConfigs = initTestLsdfConfigs(1)
+  const lsdfConfigs = initTestLsdfConfigs(16)
 
   console.time('CONSTRUCT')
   let pointCount = 0
@@ -85,28 +85,33 @@ function addPoint (buffers, position, normal) {
 function constructNaiveSdfFunc (lsdfConfig) {
   if (!lsdfConfig) return (position) => position.length() - 0.4 // Test
 
-  const evaluate = (position, lsdfConfig) => {
+  const buildEvaluator = (lsdfConfig) => {
     const opType = lsdfOpTypes[lsdfConfig.type]
+    const func = opType.func
     let result = 0
     if (opType.kind === 'combine') {
-      const x = evaluate(position, lsdfConfig.x)
-      const y = evaluate(position, lsdfConfig.y)
+      const x = buildEvaluator(lsdfConfig.x)
+      const y = buildEvaluator(lsdfConfig.y)
       switch (lsdfConfig.type) {
         case 'unionSmooth':
         case 'subtractSmooth':
         case 'intersectSmooth':
-          result = opType.func(x, y, lsdfConfig.radius)
+          const radius = lsdfConfig.radius
+          result = (position) => func(x(position), y(position), radius)
           break
         default:
-          result = opType.func(x, y)
+          result = (position) => func(x(position), y(position))
       }
     } else {
+      const offset = lsdfConfig.position.clone()
       switch (lsdfConfig.type) {
         case 'sphere':
-          result = opType.func(position.clone().sub(lsdfConfig.position), lsdfConfig.radius)
+          const radius = lsdfConfig.radius
+          result = (position) => func(offset.clone().rsub(position), radius)
           break
         case 'box':
-          result = opType.func(position.clone().sub(lsdfConfig.position), lsdfConfig.size)
+          const size = lsdfConfig.size
+          result = (position) => func(offset.clone().rsub(position), size)
           break
         default:
           console.warn('Unknown ' + opType.kind + ' lsdfConfig.type: ' + lsdfConfig.type)
@@ -114,7 +119,7 @@ function constructNaiveSdfFunc (lsdfConfig) {
     }
     return result
   }
-  return (position) => evaluate(position, lsdfConfig)
+  return buildEvaluator(lsdfConfig)
 }
 
 function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc}) {
