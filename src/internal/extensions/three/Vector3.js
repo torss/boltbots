@@ -44,3 +44,10 @@ THREE.Vector3.prototype.abs = function () {
   this.z = Math.abs(this.z)
   return this
 }
+
+THREE.Vector3.prototype.redivScalar = function (scalar = 1) {
+  this.x = scalar / this.x
+  this.y = scalar / this.y
+  this.z = scalar / this.z
+  return this
+}
