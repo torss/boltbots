@@ -66,8 +66,51 @@ function createGeometry (material) {
       ).normalize()
       addPoint(buffers, loctNodeOrigin, normal)
       ++pointCount
+
+      const range = 4
+      const factor = (1 / range) * 0.025
+      const pos = new THREE.Vector3()
+      const normalA = normal.clone()
+      // normalA.swizzle('z', 'x', 'y').multiplyScalar(factor)
+      // normalA.cross(normalA.clone().swizzle('z', 'x', 'y'))
+      // normalA.cross((normalA.y !== 0 || normalA.z !== 0) ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0))
+      // normalA.cross(new THREE.Vector3(
+      //   (normalA.x < normalA.y) && (normalA.x < normalA.z),
+      //   (normalA.y <= normalA.x) && (normalA.y < normalA.z),
+      //   (normalA.z <= normalA.x) && (normalA.z <= normalA.y)
+      // ))
+      normalA.cross(Math.abs(normalA.z) < Math.abs(normalA.x) ? new THREE.Vector3(normalA.y, -normalA.x, 0) : new THREE.Vector3(0, -normalA.z, normalA.y))
+      const normalB = normalA.clone().cross(normal)
+      normalA.multiplyScalar(factor)
+      normalB.multiplyScalar(factor)
+      pos.copy(loctNodeOrigin)
+      for (let i = 0; i < range; ++i) {
+        let pos2 = pos.add(normalA).clone()
+        for (let j = 0; j < range; ++j) {
+          pos2.add(normalB)
+          addPoint(buffers, pos2, normal)
+        }
+        pos2 = pos.add(normalA).clone()
+        for (let j = 0; j < range; ++j) {
+          pos2.sub(normalB)
+          addPoint(buffers, pos2, normal)
+        }
+      }
+      pos.copy(loctNodeOrigin)
+      for (let i = 0; i < range; ++i) {
+        let pos2 = pos.sub(normalA).clone()
+        for (let j = 0; j < range; ++j) {
+          pos2.add(normalB)
+          addPoint(buffers, pos2, normal)
+        }
+        pos2 = pos.sub(normalA).clone()
+        for (let j = 0; j < range; ++j) {
+          pos2.sub(normalB)
+          addPoint(buffers, pos2, normal)
+        }
+      }
     }
-    refineLoctTree({loctTree, maxDepth: 8, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
+    refineLoctTree({loctTree, maxDepth: 6, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
   })
   console.timeEnd('CONSTRUCT')
   console.log('pointCount: ' + pointCount)
