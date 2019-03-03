@@ -54,7 +54,7 @@ function createCubeGeometry (material) {
   const texture = new THREE.DataTexture3D(textureData, textureSize.x, textureSize.y, textureSize.z)
   texture.format = THREE.RedFormat
   texture.type = THREE.FloatType
-  texture.minFilter = texture.magFilter = THREE.NearestFilter // LinearFilter // NearestFilter
+  texture.minFilter = texture.magFilter = THREE.LinearFilter // LinearFilter // NearestFilter
   texture.unpackAlignment = 1
   texture.needsUpdate = true
   material.uniforms.volume.value = texture
@@ -88,14 +88,14 @@ function createCubeGeometry (material) {
       // }
       // if (discard) return
 
-      let discard = true
-      for (let i = 0; i < 8; ++i) {
-        if (loctNode.subs[i].sdfValue < 0) {
-          discard = false
-          break
-        }
-      }
-      if (discard) return
+      // let discard = true
+      // for (let i = 0; i < 8; ++i) {
+      //   if (loctNode.subs[i].sdfValue < 0) {
+      //     discard = false
+      //     break
+      //   }
+      // }
+      // if (discard) return
 
       for (let i = 0; i < 8; ++i) {
         // const volumeIndex3 = volumePos.clone().add(textureSizeTexel.clone().multiply(moctOctants[i].direction)).multiply(textureSize)
@@ -188,23 +188,54 @@ function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc
   refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree.tln, loctTree.origin.clone())
 }
 
+function refineLoctNodeObtain (sdfFunc, loctNode, loctNodeOrigin) {
+  loctNode.sdfValue = sdfFunc(loctNodeOrigin)
+}
+
 function refineLoctNodeSplit (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin) {
   loctNode.split()
+  const calcSubPos = (loctNodeOrigin, sub, level) => new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(sub.octant.direction, level.scaleHalf)
+
+  // for (let i = 0; i < 8; ++i) {
+  //   const sub = loctNode.subs[i]
+  //   const subOrigin = calcSubPos(loctNodeOrigin, sub, sub.level) // new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(sub.octant.direction, sub.level.scaleHalf)
+  //   refineLoctNode(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, sub, subOrigin)
+  // }
+  // postSplitFunc(loctNode, loctNodeOrigin)
+
+  let positive = false
+  let negative = false
   for (let i = 0; i < 8; ++i) {
     const sub = loctNode.subs[i]
-    const subOrigin = new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(sub.octant.direction, sub.level.scaleHalf)
+    const subEdge = calcSubPos(loctNodeOrigin, sub, loctNode.level)
+    refineLoctNodeObtain(sdfFunc, sub, subEdge)
+    if (sub.sdfValue >= 0) positive = true
+    else negative = true
+  }
+  for (let i = 0; i < 8; ++i) {
+    const sub = loctNode.subs[i]
+    const subOrigin = calcSubPos(loctNodeOrigin, sub, sub.level)
     refineLoctNode(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, sub, subOrigin)
   }
-  postSplitFunc(loctNode, loctNodeOrigin)
+  if (positive && negative) {
+    postSplitFunc(loctNode, loctNodeOrigin)
+  }
+  // else {
+  //   loctNode.subs.length = 0 // TODO proper recursive merge
+  // }
 }
 
 function refineLoctNode (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin) {
-  loctNode.sdfValue = sdfFunc(loctNodeOrigin)
-  const sdfValueAbs = Math.abs(loctNode.sdfValue)
-  if (sdfValueAbs < loctNode.level.diagonalHalf && sdfValueAbs > sdfEpsilon && loctNode.level.depth < maxDepth) {
+  // refineLoctNodeObtain(sdfFunc, loctNode, loctNodeOrigin) // loctNode.sdfValue = sdfFunc(loctNodeOrigin)
+  // const sdfValueAbs = Math.abs(loctNode.sdfValue)
+  // if (sdfValueAbs < loctNode.level.diagonalHalf && sdfValueAbs > sdfEpsilon && loctNode.level.depth < maxDepth) {
+  //   refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin)
+  // }
+  // // else { leafFunc(loctNode, loctNodeOrigin) }
+
+  if (loctNode.level.depth < maxDepth) {
     refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin)
   }
-  // else { leafFunc(loctNode, loctNodeOrigin) }
 }
 
 function addCubeFaces (origin, shapeType, indices, positions, relposs, normals, uvs, shapeTypes, diagonalHalfs, diagonalHalf, scales, scale = 0.5) {

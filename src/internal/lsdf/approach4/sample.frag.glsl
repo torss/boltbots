@@ -2,7 +2,7 @@
 
 precision mediump float;
 precision mediump int;
-precision mediump sampler3D;
+precision highp sampler3D;
 uniform vec3 cameraPosition;
 uniform float time;
 uniform sampler2D typeMap;
@@ -68,30 +68,30 @@ float sdTest0 (vec3 position, vec3 ofs) {
 }
 
 float getSdf(vec3 position) {
-  // return texture(volume, vShapeType + position).x;
+  return texture(volume, vShapeType + position).x;
   // return sdSphere(position, volumeTexelSize.x * abs(cos(time * 0.1)));
   // return sdSphere(position, volumeTexelSize.x * 0.5);
   // return sdSphere(position, texture(volume, vShapeType).x);
 
-  return opUnion(
-    opUnion(
-      opUnion(
-        sdTest0(position, vec3(0.5, 0.5, 0.5)),
-        sdTest0(position, vec3(-0.5, 0.5, 0.5))
-      ), opUnion(
-        sdTest0(position, vec3(0.5, -0.5, 0.5)),
-        sdTest0(position, vec3(-0.5, -0.5, 0.5))
-      )
-    ), opUnion(
-      opUnion(
-        sdTest0(position, vec3(0.5, 0.5, -0.5)),
-        sdTest0(position, vec3(-0.5, 0.5, -0.5))
-      ), opUnion(
-        sdTest0(position, vec3(0.5, -0.5, -0.5)),
-        sdTest0(position, vec3(-0.5, -0.5, -0.5))
-      )
-    )
-  );
+  // return opUnion(
+  //   opUnion(
+  //     opUnion(
+  //       sdTest0(position, vec3(0.5, 0.5, 0.5)),
+  //       sdTest0(position, vec3(-0.5, 0.5, 0.5))
+  //     ), opUnion(
+  //       sdTest0(position, vec3(0.5, -0.5, 0.5)),
+  //       sdTest0(position, vec3(-0.5, -0.5, 0.5))
+  //     )
+  //   ), opUnion(
+  //     opUnion(
+  //       sdTest0(position, vec3(0.5, 0.5, -0.5)),
+  //       sdTest0(position, vec3(-0.5, 0.5, -0.5))
+  //     ), opUnion(
+  //       sdTest0(position, vec3(0.5, -0.5, -0.5)),
+  //       sdTest0(position, vec3(-0.5, -0.5, -0.5))
+  //     )
+  //   )
+  // );
 }
 
 vec3 getSurfaceNormal(vec3 point) {
@@ -153,7 +153,7 @@ void main() {
   vec3 position = vRelpos * volumeTexelSize;
   vec3 offset = vec3(0., 0., 0.);
   const int maxSteps = 32;
-  vec3 fixedStep = rayDirection * volumeTexelSize / float(maxSteps);
+  vec3 fixedStep = 4. * rayDirection * volumeTexelSize / float(maxSteps);
   float test = 0.;
   float dist = 0.;
   float hit = 0.;
@@ -166,6 +166,7 @@ void main() {
       gl_FragDepth = length((vPosition + float(i) * (rayDirection * vScale * 2. / float(maxSteps))) - cameraPosition) / 100.;
       hit = 1.;
       color = vec4(vRelpos + 0.5, 1.);
+      // color = vec4(abs(rayDirection), 1.);
       // color = simpleLambert(getSurfaceNormal(checkPosition), vec3(1., 1., 1.));
       color = mix(color, simpleLambert(getSurfaceNormal(checkPosition), vec3(1., 1., 1.)), 0.25);
       break;
@@ -175,12 +176,14 @@ void main() {
     // if (distTotal >= sqrt(0.75)) break;
     offset += fixedStep;
     // if (abs(offset.x) >= volumeTexelSize.x || abs(offset.y) >= volumeTexelSize.y || abs(offset.z) >= volumeTexelSize.z) break;
+    if (length(offset) > length(volumeTexelSize)) break;
     position += fixedStep; // dist * rayDirection;
     test = float(i) / float(maxSteps);
   }
   // color = vec4(offset / volumeTexelSize + 0.5, 1.);
   // color = mix(vec4(test, test, test, 1.), color, hit);
   // color = vec4(mix(color.xyz, vNormal, 0.5), 1.);
+  // color = vec4(abs(rayDirection), hit);
 
   // float volumeValue = texture(volume, vShapeType + vRelpos * volumeTexelSize).x * 1000.;
   // color = vec4(volumeValue, -volumeValue, 0., 1.);
