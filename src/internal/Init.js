@@ -104,8 +104,6 @@ export function init (vueInstance) {
 
     requestAnimationFrame(animate)
 
-    stats.begin()
-
     const sunPosTime = new Date().getTime() * 0.00025
     const sunPosTime2 = new Date().getTime() * 0.00015
     const sunPosFactor = 100 * Math.cos(sunPosTime2)
@@ -120,7 +118,7 @@ export function init (vueInstance) {
 
     renderer.render(scene, camera)
 
-    stats.end()
+    stats.update()
   }
   animate()
 
