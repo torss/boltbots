@@ -32,6 +32,16 @@ THREE.Vector3.prototype.swapTwoAxes = function (axisA, axisB) {
   return this
 }
 
+THREE.Vector3.prototype.swizzle = function (xc, yc, zc) {
+  const nx = this[xc]
+  const ny = this[yc]
+  const nz = this[zc]
+  this.x = nx
+  this.y = ny
+  this.z = nz
+  return this
+}
+
 THREE.Vector3.prototype.isWithinOriginCube = function (cubeHalfSideLength) {
   return this.x <= cubeHalfSideLength && this.x >= -cubeHalfSideLength &&
     this.y <= cubeHalfSideLength && this.y >= -cubeHalfSideLength &&
