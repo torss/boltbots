@@ -9,146 +9,86 @@ import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
 import {LoctTree} from './LoctTree'
 
 export function lsdfTest (vueInstance, scene, camera, materialParam) {
-  const material = new THREE.RawShaderMaterial({
-    uniforms: {
-      time: { value: 1.0 },
-      typeMap: new THREE.Uniform(),
-      typeMapTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0)),
-      volume: new THREE.Uniform(),
-      volumeTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0))
-    },
-    vertexShader,
-    fragmentShader,
-    side: THREE.FrontSide,
-    transparent: true
-  })
-  addTestCube(scene, material)
+  // const material = new THREE.RawShaderMaterial({
+  //   uniforms: {
+  //     time: { value: 1.0 },
+  //     typeMap: new THREE.Uniform(),
+  //     typeMapTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0)),
+  //     volume: new THREE.Uniform(),
+  //     volumeTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0))
+  //   },
+  //   vertexShader,
+  //   fragmentShader,
+  //   side: THREE.FrontSide,
+  //   transparent: true
+  // })
+  // addTestCube(scene, material)
 
-  const intervalId = setInterval(() => { material.uniforms.time.value = performance.now() * 0.005 }, 16)
-  vueInstance.$deinit.push(() => clearInterval(intervalId))
+  addTestCube(scene, undefined)
+
+  // const intervalId = setInterval(() => { material.uniforms.time.value = performance.now() * 0.005 }, 16)
+  // vueInstance.$deinit.push(() => clearInterval(intervalId))
 }
 
 function addTestCube (scene, material) {
   const geometry = createCubeGeometry(material)
-  const cube = new THREE.Mesh(geometry, material)
-  scene.add(cube)
+  // const cube = new THREE.Mesh(geometry, material)
+  // scene.add(cube)
+  material = new THREE.PointsMaterial({ size: 0.0125, sizeAttenuation: true, vertexColors: THREE.VertexColors })
+  const points = new THREE.Points(geometry, material)
+  scene.add(points)
 }
 
 function createCubeGeometry (material) {
   const geometry = new THREE.BufferGeometry()
-  const indices = new BufferAttributeExtIndex()
-  const positions = new BufferAttributeExt(new Float32Array(), 3)
-  const relposs = new BufferAttributeExt(new Float32Array(), 3)
-  const normals = new BufferAttributeExt(new Float32Array(), 3)
-  const uvs = new BufferAttributeExt(new Float32Array(), 2)
-  const shapeTypes = new BufferAttributeExt(new Float32Array(), 3) // TODO should be renamed for approach4
-  const diagonalHalfs = new BufferAttributeExt(new Float32Array(), 1)
-  const scales = new BufferAttributeExt(new Float32Array(), 1)
-  // const lsdfConfigs = new BufferAttributeExt(new Uint32Array(), 1)
+  const buffers = {
+    position: new BufferAttributeExt(new Float32Array(), 3),
+    color: new BufferAttributeExt(new Float32Array(), 3)
+  }
+  // const indices = new BufferAttributeExtIndex()
+  // const relposs = new BufferAttributeExt(new Float32Array(), 3)
+  // const normals = new BufferAttributeExt(new Float32Array(), 3)
+  // const uvs = new BufferAttributeExt(new Float32Array(), 2)
+  // const shapeTypes = new BufferAttributeExt(new Float32Array(), 3)
+  // const diagonalHalfs = new BufferAttributeExt(new Float32Array(), 1)
+  // const scales = new BufferAttributeExt(new Float32Array(), 1)
 
-  // TODO
-  const textureLength = 128
-  const textureSize = new THREE.Vector3(textureLength, textureLength, textureLength)
-  const textureSizeTexel = textureSize.clone().redivScalar()
-  const textureData = new Float32Array(textureSize.x * textureSize.y * textureSize.z)
-  const texture = new THREE.DataTexture3D(textureData, textureSize.x, textureSize.y, textureSize.z)
-  texture.format = THREE.RedFormat
-  texture.type = THREE.FloatType
-  texture.minFilter = texture.magFilter = THREE.LinearFilter // LinearFilter // NearestFilter
-  texture.unpackAlignment = 1
-  texture.needsUpdate = true
-  material.uniforms.volume.value = texture
-  material.uniforms.volumeTexelSize.value = textureSizeTexel
+  const lsdfConfigs = initTestLsdfConfigs(3)
 
-  // const textureSize = new THREE.Vector2(16, 16)
-  // const texture = initTestTexture(textureSize)
-  const lsdfConfigs = initTestLsdfConfigs(1)
-
-  let boxCount = 0
-  const volumePos = textureSizeTexel.clone()
+  let pointCount = 0
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
     const loctTree = new LoctTree()
     loctTree.origin.x = lsdfConfigIndex
-    const sdfFunc = constructNaiveSdfFunc(lsdfConfig)
-    // const leafFunc = (loctNode, loctNodeOrigin) => {
-    //   if (Math.abs(loctNode.sdfValue) >= 0.01) return
-    //   const shapeType = new THREE.Vector3(0, 0, 0)
-    //   addCubeFaces(loctNodeOrigin, shapeType, indices, positions, normals, uvs, shapeTypes, loctNode.level.scaleHalf)
-    //   ++boxCount
-    // }
+    const sdfFunc = constructNaiveSdfFunc(lsdfConfigIndex > 0 && lsdfConfig)
     const postSplitFunc = (loctNode, loctNodeOrigin) => {
       if (loctNode.isLeaf || loctNode.subLeafCount !== 8) return
-      // let discard = true
-      // const diagonalHalf = loctNode.subs[0].diagonalHalf
-      // for (let i = 0; i < 8; ++i) {
-      //   if (Math.abs(loctNode.subs[i].sdfValue) < diagonalHalf) {
-      //     discard = false
-      //     break
-      //   }
-      // }
-      // if (discard) return
-
-      // let discard = true
-      // for (let i = 0; i < 8; ++i) {
-      //   if (loctNode.subs[i].sdfValue < 0) {
-      //     discard = false
-      //     break
-      //   }
-      // }
-      // if (discard) return
-
-      for (let i = 0; i < 8; ++i) {
-        // const volumeIndex3 = volumePos.clone().add(textureSizeTexel.clone().multiply(moctOctants[i].direction)).multiply(textureSize)
-        const volumeIndex3 = volumePos.clone().multiply(textureSize).add(moctOctants[i].direction.clone().multiplyScalar(0.5)).floor()
-        const volumeIndex = volumeIndex3.x + volumeIndex3.y * textureSize.x + volumeIndex3.z * (textureSize.x * textureSize.y)
-        textureData[volumeIndex] = loctNode.subs[i].sdfValue * loctNode.level.scale // boxCount % 2 === 0 ? 1 : -1 // loctNode.subs[i].sdfValue
-      }
-      const shapeType = volumePos
-      const diagonalHalf = loctNode.level.diagonalHalf
-      addCubeFaces(loctNodeOrigin, shapeType, indices, positions, relposs, normals, uvs, shapeTypes, diagonalHalfs, diagonalHalf, scales, loctNode.level.scaleHalf)
-      volumePos.x += 2 * textureSizeTexel.x
-      if (volumePos.x >= 1) {
-        volumePos.x = textureSizeTexel.x
-        volumePos.y += 2 * textureSizeTexel.y
-        if (volumePos.y >= 1) {
-          volumePos.y = textureSizeTexel.y
-          volumePos.z += 2 * textureSizeTexel.z
-          if (volumePos.z >= 1) {
-            console.error('Ran out of volume texture space!')
-            volumePos.z = textureSizeTexel.z
-          }
-        }
-      }
-      ++boxCount
+      addPoint(buffers, loctNodeOrigin)
+      ++pointCount
     }
-    refineLoctTree({loctTree, maxDepth: 6, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
+    refineLoctTree({loctTree, maxDepth: 8, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
   })
-  console.log('boxCount: ' + boxCount)
+  console.log('pointCount: ' + pointCount)
 
-  // const {texture, textureSize} = initTestTextureFromLsdfConfigs(lsdfConfigs)
-  // material.uniforms.typeMap.value = texture
-  // material.uniforms.typeMapTexelSize.value = new THREE.Vector2(1, 1).divide(textureSize)
-
-  // for (let shapeIndex = 0; shapeIndex < textureSize.y; ++shapeIndex) {
-  //   const shapeType = new THREE.Vector3(0.5 / textureSize.x, (0.5 / textureSize.y) + (shapeIndex / textureSize.y))
-  //   // shapeType.z = Math.floor(Math.random() * lsdfTypeTree.lsdfTypeLeaves.length)
-  //   // const lsdfConfig = 0
-  //   addCubeFaces(new THREE.Vector3(shapeIndex, 0, 0), shapeType, indices, positions, normals, uvs, shapeTypes)
-  // }
-  geometry.setIndex(indices.fitSize())
-  geometry.addAttribute('position', positions.fitSize())
-  geometry.addAttribute('relpos', relposs.fitSize())
-  geometry.addAttribute('normal', normals.fitSize())
-  geometry.addAttribute('uv', uvs.fitSize())
-  geometry.addAttribute('shapeType', shapeTypes.fitSize())
-  geometry.addAttribute('diagonalHalfs', diagonalHalfs.fitSize())
-  geometry.addAttribute('scales', scales.fitSize())
-  // geometry.addAttribute('lsdfConfig', lsdfConfigs.fitSize())
+  Object.entries(buffers).forEach(([key, value]) => geometry.addAttribute(key, value.fitSize()))
+  // geometry.setIndex(indices.fitSize())
+  // geometry.addAttribute('position', positions.fitSize())
+  // geometry.addAttribute('relpos', relposs.fitSize())
+  // geometry.addAttribute('normal', normals.fitSize())
+  // geometry.addAttribute('uv', uvs.fitSize())
+  // geometry.addAttribute('shapeType', shapeTypes.fitSize())
+  // geometry.addAttribute('diagonalHalfs', diagonalHalfs.fitSize())
+  // geometry.addAttribute('scales', scales.fitSize())
+  // // geometry.addAttribute('lsdfConfig', lsdfConfigs.fitSize())
   return geometry
 }
 
+function addPoint (buffers, position) {
+  buffers.position.pushVector3(position)
+  buffers.color.pushVector3(new THREE.Vector3(Math.random(), Math.random(), Math.random()))
+}
+
 function constructNaiveSdfFunc (lsdfConfig) {
-  if (lsdfConfig) return (position) => position.length() - 0.4
+  if (!lsdfConfig) return (position) => position.length() - 0.4 // Test
 
   const evaluate = (position, lsdfConfig) => {
     const opType = lsdfOpTypes[lsdfConfig.type]
@@ -223,6 +163,7 @@ function refineLoctNodeSplit (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loct
   // else {
   //   loctNode.subs.length = 0 // TODO proper recursive merge
   // }
+  loctNode.subs.length = 0
 }
 
 function refineLoctNode (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin) {
@@ -233,7 +174,8 @@ function refineLoctNode (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode,
   // }
   // // else { leafFunc(loctNode, loctNodeOrigin) }
 
-  if (loctNode.level.depth < maxDepth) {
+  const sdfValueAbs = Math.abs(loctNode.sdfValue)
+  if (sdfValueAbs < 2 * loctNode.level.diagonalHalf && loctNode.level.depth < maxDepth) {
     refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin)
   }
 }
