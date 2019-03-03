@@ -4,6 +4,7 @@ import vertexShader from './sample.vert.glsl'
 import fragmentShader from './sample.frag.glsl'
 import {BufferAttributeExt} from '../../extensions'
 import '../../extensions/three/Vector3'
+import {moctOctants} from '../../moctree'
 import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
 import {LoctTree} from './LoctTree'
 
@@ -44,8 +45,9 @@ function createGeometry (material) {
     color: new BufferAttributeExt(new Float32Array(), 3)
   }
 
-  const lsdfConfigs = initTestLsdfConfigs(3)
+  const lsdfConfigs = initTestLsdfConfigs(1)
 
+  console.time('CONSTRUCT')
   let pointCount = 0
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
     const loctTree = new LoctTree()
@@ -67,6 +69,7 @@ function createGeometry (material) {
     }
     refineLoctTree({loctTree, maxDepth: 8, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
   })
+  console.timeEnd('CONSTRUCT')
   console.log('pointCount: ' + pointCount)
 
   Object.entries(buffers).forEach(([key, value]) => geometry.addAttribute(key, value.fitSize()))
@@ -117,47 +120,42 @@ function constructNaiveSdfFunc (lsdfConfig) {
 function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc}) {
   // if (!leafFunc) leafFunc = (loctNode, loctNodeOrigin) => {}
   if (!postSplitFunc) postSplitFunc = (loctNode, loctNodeOrigin) => {}
-  refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree.tln, loctTree.origin.clone())
+  refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree, loctTree.tln, loctTree.origin.clone())
 }
 
 function refineLoctNodeObtain (sdfFunc, loctNode, loctNodeOrigin) {
   loctNode.sdfValue = sdfFunc(loctNodeOrigin)
 }
 
-function refineLoctNodeSplit (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin) {
-  loctNode.split()
-  const calcSubPos = (loctNodeOrigin, sub, level) => new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(sub.octant.direction, level.scaleHalf)
-
-  // for (let i = 0; i < 8; ++i) {
-  //   const sub = loctNode.subs[i]
-  //   const subOrigin = calcSubPos(loctNodeOrigin, sub, sub.level) // new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(sub.octant.direction, sub.level.scaleHalf)
-  //   refineLoctNode(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, sub, subOrigin)
-  // }
-  // postSplitFunc(loctNode, loctNodeOrigin)
+function refineLoctNodeSplit (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree, loctNode, loctNodeOrigin) {
+  loctNode.split(loctTree.reuseNodes)
+  const calcSubPos = (loctNodeOrigin, octant, level) => new THREE.Vector3().copy(loctNodeOrigin).addScaledVector(octant.direction, level.scaleHalf)
 
   let positive = false
   let negative = false
   for (let i = 0; i < 8; ++i) {
     const sub = loctNode.subs[i]
-    const subEdge = calcSubPos(loctNodeOrigin, sub, loctNode.level)
+    const subEdge = calcSubPos(loctNodeOrigin, moctOctants[i], loctNode.level)
     refineLoctNodeObtain(sdfFunc, sub, subEdge)
     if (sub.sdfValue >= 0) positive = true
     else negative = true
   }
   for (let i = 0; i < 8; ++i) {
     const sub = loctNode.subs[i]
-    const subOrigin = calcSubPos(loctNodeOrigin, sub, sub.level)
-    refineLoctNode(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, sub, subOrigin)
+    const subOrigin = calcSubPos(loctNodeOrigin, moctOctants[i], sub.level)
+    refineLoctNode(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree, sub, subOrigin)
   }
   if (positive && negative) {
     postSplitFunc(loctNode, loctNodeOrigin)
   }
-  loctNode.subs.length = 0
+  loctTree.reuseNodes.push(loctNode.subs)
+  loctNode.subs = undefined
+  // if (loctNode.parent) ++loctNode.parent.subLeafCount
 }
 
-function refineLoctNode (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin) {
+function refineLoctNode (maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree, loctNode, loctNodeOrigin) {
   const sdfValueAbs = Math.abs(loctNode.sdfValue)
   if (sdfValueAbs < 2 * loctNode.level.diagonalHalf && loctNode.level.depth < maxDepth) {
-    refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctNode, loctNodeOrigin)
+    refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree, loctNode, loctNodeOrigin)
   }
 }

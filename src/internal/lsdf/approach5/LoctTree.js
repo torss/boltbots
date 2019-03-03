@@ -8,5 +8,7 @@ export class LoctTree {
     this.scale = 1 // Scale of the top-level node
     this.tln = new LoctNode(new LoctLevel(this)) // Top-level-node
     this.lowestLevel = this.tln.level
+
+    this.reuseNodes = []
   }
 }

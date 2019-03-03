@@ -7,7 +7,7 @@ export class LoctNode {
     ++level.counter
     this.parent = parent
     this.octant = octant
-    this.subs = [] // Subdivisions (Child nodes)
+    this.subs = undefined // Subdivisions (Child nodes)
     this.subLeafCount = 0 // Count of (direct) subs with isLeaf === true
 
     this.sdfValue = 0
@@ -26,15 +26,30 @@ export class LoctNode {
   }
 
   get isLeaf () {
-    return this.subs.length === 0
+    return this.subs === undefined // || this.subs.length === 0
   }
 
-  split () {
+  reuseFor (level, parent) {
+    if (level !== this.level) {
+      --this.level.counter
+      this.level = level
+      ++level.counter
+    }
+    this.parent = parent
+  }
+
+  split (reuseNodes) {
     if (!this.isLeaf) return this
     if (this.parent) --this.parent.subLeafCount
     this.subLeafCount = 8
     const subLevel = this.level.obtainChild()
-    for (let i = 0; i < 8; ++i) this.subs.push(new LoctNode(subLevel, this, moctOctants[i]))
+    if (reuseNodes && reuseNodes.length > 0) {
+      this.subs = reuseNodes.pop()
+      for (let i = 0; i < 8; ++i) this.subs[i].reuseFor(subLevel, this)
+    } else {
+      this.subs = []
+      for (let i = 0; i < 8; ++i) this.subs.push(new LoctNode(subLevel, this, moctOctants[i]))
+    }
     return this
   }
 }
