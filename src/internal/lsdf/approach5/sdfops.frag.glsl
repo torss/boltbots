@@ -64,6 +64,6 @@ float compute() {
 }
 
 void main() {
-  outColor = vec4(compute(), 1., 1., 1.);
+  // outColor = vec4(compute(), 1., 1., 1.);
   outColor = vec4(vUv, 0., 1.);
 }

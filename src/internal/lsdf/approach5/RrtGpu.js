@@ -29,7 +29,6 @@ export class RrtGpu {
       stencilBuffer: false,
       depthBuffer: false
     })
-    // FIXME // this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat })
     this.output = new Float32Array(4 * this.renderTarget.width * this.renderTarget.height)
   }
 
@@ -43,15 +42,10 @@ export class RrtGpu {
     this.mesh.material.dispose()
   }
 
-  compute (readRenderTarget = true, scene, camera) {
+  compute (readRenderTarget = true) {
     const currentRenderTarget = this.renderer.getRenderTarget()
     this.renderer.setRenderTarget(this.renderTarget)
-    this.renderer.setClearColor(new THREE.Color(0, 0, Math.cos(performance.now() * 0.0005)), 1)
-    this.renderer.clear()
-    // TODO deactivate autoClear ? https://threejs.org/docs/#api/en/renderers/WebGLRenderer.render
     this.renderer.render(this.scene, this.camera)
-    // if (scene && camera) this.renderer.render(scene, camera) // FIXME
-    this.renderer.setClearColor(new THREE.Color(1, 0, 0), 1)
     if (readRenderTarget) this.readRenderTarget()
     this.renderer.setRenderTarget(currentRenderTarget)
     return this
