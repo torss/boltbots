@@ -8,33 +8,34 @@ import '../../extensions/three/Vector3'
 import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
 import {LoctTree} from './LoctTree'
 
-export function lsdfTest (vueInstance, scene, camera, materialParam) {
-  // const material = new THREE.RawShaderMaterial({
-  //   uniforms: {
-  //     time: { value: 1.0 },
-  //     typeMap: new THREE.Uniform(),
-  //     typeMapTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0)),
-  //     volume: new THREE.Uniform(),
-  //     volumeTexelSize: new THREE.Uniform(new THREE.Vector2(0, 0))
-  //   },
-  //   vertexShader,
-  //   fragmentShader,
-  //   side: THREE.FrontSide,
-  //   transparent: true
-  // })
-  // addTestCube(scene, material)
+export function lsdfTest (vueInstance, scene, camera, materialParam, renderer) {
+  // const pointSize = 4 // 0.125
+  const material = new THREE.RawShaderMaterial({
+    uniforms: {
+      scale: { value: 6 }
+    },
+    vertexShader,
+    fragmentShader,
+    side: THREE.FrontSide,
+    transparent: false
+  })
+  addTestCube(scene, material)
 
-  addTestCube(scene, undefined)
-
-  // const intervalId = setInterval(() => { material.uniforms.time.value = performance.now() * 0.005 }, 16)
-  // vueInstance.$deinit.push(() => clearInterval(intervalId))
+  const intervalId = setInterval(() => {
+    // WebGLRenderer.js - isPointsMaterial - refreshUniformsPoints
+    // material.uniforms.size.value = pointSize * renderer.getPixelRatio()
+    // material.uniforms.scale.value = 0.5 * renderer.getSize(new THREE.Vector2()).y
+    material.uniforms.scale.value = 6 * Math.abs(Math.cos(performance.now() * 0.001))
+  }, 16)
+  vueInstance.$deinit.push(() => clearInterval(intervalId))
 }
 
 function addTestCube (scene, material) {
   const geometry = createCubeGeometry(material)
   // const cube = new THREE.Mesh(geometry, material)
   // scene.add(cube)
-  material = new THREE.PointsMaterial({ size: 0.0125, sizeAttenuation: true, vertexColors: THREE.VertexColors })
+
+  // material = new THREE.PointsMaterial({ size: 0.0125, sizeAttenuation: true, vertexColors: THREE.VertexColors })
   const points = new THREE.Points(geometry, material)
   scene.add(points)
 }
@@ -45,13 +46,6 @@ function createCubeGeometry (material) {
     position: new BufferAttributeExt(new Float32Array(), 3),
     color: new BufferAttributeExt(new Float32Array(), 3)
   }
-  // const indices = new BufferAttributeExtIndex()
-  // const relposs = new BufferAttributeExt(new Float32Array(), 3)
-  // const normals = new BufferAttributeExt(new Float32Array(), 3)
-  // const uvs = new BufferAttributeExt(new Float32Array(), 2)
-  // const shapeTypes = new BufferAttributeExt(new Float32Array(), 3)
-  // const diagonalHalfs = new BufferAttributeExt(new Float32Array(), 1)
-  // const scales = new BufferAttributeExt(new Float32Array(), 1)
 
   const lsdfConfigs = initTestLsdfConfigs(3)
 
@@ -70,15 +64,6 @@ function createCubeGeometry (material) {
   console.log('pointCount: ' + pointCount)
 
   Object.entries(buffers).forEach(([key, value]) => geometry.addAttribute(key, value.fitSize()))
-  // geometry.setIndex(indices.fitSize())
-  // geometry.addAttribute('position', positions.fitSize())
-  // geometry.addAttribute('relpos', relposs.fitSize())
-  // geometry.addAttribute('normal', normals.fitSize())
-  // geometry.addAttribute('uv', uvs.fitSize())
-  // geometry.addAttribute('shapeType', shapeTypes.fitSize())
-  // geometry.addAttribute('diagonalHalfs', diagonalHalfs.fitSize())
-  // geometry.addAttribute('scales', scales.fitSize())
-  // // geometry.addAttribute('lsdfConfig', lsdfConfigs.fitSize())
   return geometry
 }
 

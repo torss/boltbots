@@ -82,11 +82,12 @@ export function init (vueInstance) {
   // trackTest(scene, material)
   // extrudeTest(scene, material)
   // moctreeTest(vueInstance, scene, camera, material)
-  lsdfTest(vueInstance, scene, camera, material)
 
   const context = canvas.getContext('webgl2')
   const renderer = new THREE.WebGLRenderer({canvas, context, antialias: true})
   renderer.setSize(width, height)
+
+  lsdfTest(vueInstance, scene, camera, material, renderer)
 
   vueInstance.$resize = ({width, height}) => {
     camera.aspect = width / height
