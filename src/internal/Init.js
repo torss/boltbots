@@ -118,6 +118,7 @@ export function init (vueInstance) {
     //   mesh.rotation.y += 0.02
     // }
 
+    renderer.clear()
     renderer.render(scene, camera)
 
     stats.update()
