@@ -11,9 +11,17 @@ import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
 import {LoctTree} from './LoctTree'
 import {LsdfGpu} from './LsdfGpu'
 
+const settings = {
+  maxDepth: 10,
+  scale: 2,
+  count: 2,
+  firstSphere: true,
+  pulse: false
+}
+
 export function lsdfTest (vueInstance, scene, camera, materialParam, renderer) {
   const lsdfGpu = new LsdfGpu(renderer, new THREE.Vector2(256, 256))
-  lsdfGpu.compute(false)
+  // lsdfGpu.compute(false)
   const lsdfGpuPlaneMaterial = new THREE.MeshBasicMaterial({
     map: lsdfGpu.renderTarget.texture
   })
@@ -28,13 +36,13 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer) {
   //   transparent: false
   // })
   const lsdfGpuPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), lsdfGpuPlaneMaterial)
-  // lsdfGpuPlane.position.x -= 2
+  lsdfGpuPlane.position.z -= 2
   scene.add(lsdfGpuPlane)
 
   // const pointSize = 4 // 0.125
   const material = new THREE.RawShaderMaterial({
     uniforms: {
-      scale: { value: 6 }
+      scale: { value: settings.scale }
     },
     vertexShader,
     fragmentShader,
@@ -47,7 +55,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer) {
     // WebGLRenderer.js - isPointsMaterial - refreshUniformsPoints
     // material.uniforms.size.value = pointSize * renderer.getPixelRatio()
     // material.uniforms.scale.value = 0.5 * renderer.getSize(new THREE.Vector2()).y
-    material.uniforms.scale.value = 6 * 4 * Math.abs(Math.cos(performance.now() * 0.001))
+    if (settings.pulse) material.uniforms.scale.value = settings.scale * Math.abs(Math.cos(performance.now() * 0.001))
   }, 16)
   vueInstance.$deinit.push(() => {
     clearInterval(intervalId)
@@ -72,14 +80,19 @@ function createGeometry (material) {
     color: new BufferAttributeExt(new Float32Array(), 3)
   }
 
-  const lsdfConfigs = initTestLsdfConfigs(16)
+  const lsdfConfigs = initTestLsdfConfigs(settings.count)
 
   console.time('CONSTRUCT')
   let pointCount = 0
+  let sdfCount = 0
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
     const loctTree = new LoctTree()
     loctTree.origin.x = lsdfConfigIndex
-    const sdfFunc = constructNaiveSdfFunc(lsdfConfigIndex > 0 && lsdfConfig)
+    const sdfFuncBase = constructNaiveSdfFunc((!settings.firstSphere || lsdfConfigIndex > 0) && lsdfConfig)
+    const sdfFunc = (position) => {
+      ++sdfCount
+      return sdfFuncBase(position)
+    }
     const postSplitFunc = (loctNode, loctNodeOrigin) => {
       if (loctNode.isLeaf || loctNode.subLeafCount !== 8) return
       const subs = loctNode.subs
@@ -137,10 +150,12 @@ function createGeometry (material) {
       //   }
       // }
     }
-    refineLoctTree({loctTree, maxDepth: 6, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
+    refineLoctTree({loctTree, maxDepth: settings.maxDepth, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
   })
   console.timeEnd('CONSTRUCT')
   console.log('pointCount: ' + pointCount)
+  console.log('sdfCount: ' + sdfCount)
+  console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
 
   Object.entries(buffers).forEach(([key, value]) => geometry.addAttribute(key, value.fitSize()))
   return geometry
