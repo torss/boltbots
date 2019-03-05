@@ -33,15 +33,23 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
     this.indexCurrent = this.array.length
   }
 
+  clear (resize = true) {
+    if (resize) this.resize(0)
+    this.countCurrent = 0
+    this.indexCurrent = 0
+    return this
+  }
+
   padSize (newCountCurrent) {
     this.countCurrent = newCountCurrent
     this.resize(Math.nextPowerOfTwo(this.countCurrent))
     return this
   }
 
-  fitSize () {
+  fitSize (markForUpdate = true) {
     this.resize(this.countCurrent)
     this.indexCurrent = this.countCurrent * this.itemSize
+    if (markForUpdate) this.needsUpdate = true
     return this
   }
 
