@@ -88,13 +88,15 @@ export function init (vueInstance) {
   renderer.autoClear = false
   renderer.setSize(width, height)
 
-  lsdfTest(vueInstance, scene, camera, material, renderer)
+  const preAnimateFuncs = []
 
-  vueInstance.$resize = ({width, height}) => {
+  lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+
+  vueInstance.$onResize.push(({width, height}) => {
     camera.aspect = width / height
     camera.updateProjectionMatrix()
     renderer.setSize(width, height)
-  }
+  })
 
   vueInstance.$isDestroyed = false
   const stats = new Stats()
@@ -105,6 +107,8 @@ export function init (vueInstance) {
     if (vueInstance.$isDestroyed) return
 
     requestAnimationFrame(animate)
+
+    for (const func of preAnimateFuncs) func()
 
     const sunPosTime = new Date().getTime() * 0.00025
     const sunPosTime2 = new Date().getTime() * 0.00015

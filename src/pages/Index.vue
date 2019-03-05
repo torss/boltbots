@@ -14,6 +14,11 @@ export default {
   name: 'PageIndex',
   mounted () {
     this.$deinit = []
+    this.$onResize = []
+    this.$onMousemove = []
+    this.$onMousedown = []
+    this.$onWheel = []
+    this.$onKeydown = []
     init(this)
     document.addEventListener('wheel', this.onWheel, true)
     document.addEventListener('keydown', this.onKeydown)
@@ -25,19 +30,19 @@ export default {
   },
   methods: {
     onResize (size) {
-      if (this.$resize) this.$resize(size)
+      this.$onResize.forEach(func => func(size))
     },
     onMousemove (event) {
-      if (this.$onMousemove) this.$onMousemove(event)
+      this.$onMousemove.forEach(func => func(event))
     },
     onMousedown (event) {
-      if (this.$onMousedown) this.$onMousedown(event)
+      this.$onMousedown.forEach(func => func(event))
     },
     onWheel (event) {
-      if (this.$onWheel) this.$onWheel(event)
+      this.$onWheel.forEach(func => func(event))
     },
     onKeydown (event) {
-      if (this.$onKeydown) this.$onKeydown(event)
+      this.$onKeydown.forEach(func => func(event))
     }
   }
 }

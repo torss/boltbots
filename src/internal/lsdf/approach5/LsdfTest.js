@@ -6,20 +6,23 @@ import vertexShaderDebug from './debug.vert.glsl'
 import fragmentShaderDebug from './debug.frag.glsl'
 import {BufferAttributeExt} from '../../extensions'
 import '../../extensions/three/Vector3'
+import '../../extensions/three/Camera'
 import {moctOctants} from '../../moctree'
 import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
 import {LoctTree} from './LoctTree'
 import {LsdfGpu} from './LsdfGpu'
 
 const settings = {
-  maxDepth: 10,
+  maxDepth: 5,
   scale: 2,
   count: 2,
   firstSphere: true,
   pulse: false
 }
 
-export function lsdfTest (vueInstance, scene, camera, materialParam, renderer) {
+export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, preAnimateFuncs) {
+  window.settings = settings
+
   const lsdfGpu = new LsdfGpu(renderer, new THREE.Vector2(256, 256))
   // lsdfGpu.compute(false)
   const lsdfGpuPlaneMaterial = new THREE.MeshBasicMaterial({
@@ -49,46 +52,193 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer) {
     side: THREE.FrontSide,
     transparent: false
   })
-  addTestShapes(scene, material)
+  const {lsdfInstances, points} = addTestShapes(scene, material)
+  lsdfInstances.forEach((lsdfInstance, index) => {
+    lsdfInstance.points.position.x = index
+    lsdfInstance.addToScene(scene)
+  })
 
-  const intervalId = setInterval(() => {
+  preAnimateFuncs.push(() => {
     // WebGLRenderer.js - isPointsMaterial - refreshUniformsPoints
     // material.uniforms.size.value = pointSize * renderer.getPixelRatio()
     // material.uniforms.scale.value = 0.5 * renderer.getSize(new THREE.Vector2()).y
     if (settings.pulse) material.uniforms.scale.value = settings.scale * Math.abs(Math.cos(performance.now() * 0.001))
-  }, 16)
+    lsdfInstances.forEach((lsdfInstance) => lsdfInstance.update(camera))
+  })
   vueInstance.$deinit.push(() => {
-    clearInterval(intervalId)
+    lsdfInstances.forEach((lsdfInstance) => lsdfInstance.dispose())
     material.dispose()
     lsdfGpu.dispose()
     // TODO complete cleanup
   })
+  vueInstance.$onKeydown.push(() => {
+    switch (event.key) {
+      case 't':
+        // lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.testPlane.visible = !lsdfInstance.testPlane.visible })
+        lsdfInstances.forEach((lsdfInstance) => lsdfInstance.testMarkers.forEach(x => { x.visible = !x.visible }))
+        break
+      case 'r':
+        points.visible = !points.visible
+        break
+      case 's':
+        lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.march(camera) })
+        break
+    }
+  })
+}
+
+class LsdfInstance {
+  constructor (lsdfConfig, sdfFunc, material) {
+    this.lsdfConfig = lsdfConfig
+    this.sdfFunc = sdfFunc
+    this.splatBuffer = new SplatBuffer()
+    this.points = new THREE.Points(this.splatBuffer.geometry, material)
+    this.radius = new THREE.Vector2(0.5, 0.5).length() // new THREE.Vector3(0.5, 0.5, 0.5).length()
+
+    const sideLength = this.radius
+    // this.testPlaneBuffers = {
+    //   geometry: new THREE.BufferGeometry(),
+    //   buffers: {
+    //     position: new BufferAttributeExt(new Float32Array(), 3 * 4),
+    //     normal: new BufferAttributeExt(new Float32Array(), 3 * 4)
+    //   }
+    // }
+    // this.testPlane = new THREE.Mesh(
+    //   new THREE.PlaneGeometry(sideLength, sideLength),
+    //   new THREE.MeshBasicMaterial({color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5})
+    // )
+    // this.points.add(this.testPlane)
+    this.testMarkers = [1, 2, 3].map(() => new THREE.Mesh(
+      new THREE.SphereGeometry(sideLength / 20),
+      new THREE.MeshBasicMaterial({color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5})
+    ))
+    this.testMarkers.forEach((testMarker) => this.points.add(testMarker))
+  }
+
+  addToScene (scene) {
+    scene.add(this.points)
+  }
+
+  dispose () {
+    this.splatBuffer.dispose()
+    // this.testPlane.geometry.dispose()
+    // this.testPlane.material.dispose()
+    this.testMarkers.forEach((testMarker) => {
+      testMarker.geometry.dispose()
+      testMarker.material.dispose()
+    })
+  }
+
+  update (camera) {
+    const normals = camera.getWorldNormals()
+    // const direction = this.points.position.clone().sub(camera.position).normalize()
+    const direction = camera.position.clone().sub(this.points.position).normalize()
+    // this.testPlane.position.copy(direction).multiplyScalar(this.radius).negate()
+    // this.testPlane.lookAt(this.points.position.clone().add(normals.direction))
+    const testMarkers = this.testMarkers
+    normals.up.multiplyScalar(this.radius)
+    normals.side.multiplyScalar(this.radius)
+    // normals.direction.multiplyScalar(this.radius).negate()
+    direction.multiplyScalar(this.radius)
+    // testMarkers[0].position.copy(normals.direction.multiplyScalar(this.radius).negate())
+    testMarkers[0].position.copy(direction)
+    testMarkers[1].position.copy(testMarkers[0].position).add(normals.up)
+    testMarkers[2].position.copy(testMarkers[0].position).add(normals.side)
+  }
+
+  march (camera) {
+    const normals = camera.getWorldNormals()
+    const direction = this.points.position.clone().sub(camera.position).normalize()
+    normals.up.multiplyScalar(this.radius)
+    normals.side.multiplyScalar(this.radius)
+
+    this.splatBuffer.clear()
+    const marchCenter = this.points.position.clone().sub(direction.clone().multiplyScalar(this.radius))
+    const subdivs = 256
+    const subdivsRec = 2 / subdivs
+    const steps = 32
+    const minDist = 0.0001
+    const epsilonDist = 0.01
+    const marchSpacePos = new THREE.Vector2()
+    const maxRayPosDistSquared = this.radius * this.radius
+    let pointCount = 0
+    let sdfCount = 0
+    for (marchSpacePos.y = -1; marchSpacePos.y <= 1; marchSpacePos.y += subdivsRec) {
+      for (marchSpacePos.x = -1; marchSpacePos.x <= 1; marchSpacePos.x += subdivsRec) {
+        const rayPos = new THREE.Vector3()
+          .copy(marchCenter)
+          .add(normals.up.clone().multiplyScalar(marchSpacePos.y))
+          .add(normals.side.clone().multiplyScalar(marchSpacePos.x))
+        for (let step = 0; step < steps; ++step) {
+          const dist = Math.max(minDist, this.sdfFunc(rayPos))
+          ++sdfCount
+          rayPos.add(direction.clone().multiplyScalar(dist))
+          const rayPosLocal = rayPos.clone().sub(this.points.position)
+          if (rayPosLocal.lengthSq() > maxRayPosDistSquared) break
+          if (dist < epsilonDist) {
+            addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
+            ++pointCount
+            break
+          }
+        }
+      }
+    }
+    this.splatBuffer.fitSize()
+    console.log('LsdfInstance.march pointCount: ' + pointCount)
+    console.log('LsdfInstance.march sdfCount: ' + sdfCount)
+    console.log('LsdfInstance.march sdfCount/pointCount: ' + (sdfCount / pointCount))
+  }
+}
+
+class SplatBuffer {
+  constructor () {
+    this.geometry = new THREE.BufferGeometry()
+    this.buffers = {
+      position: new BufferAttributeExt(new Float32Array(), 3),
+      normal: new BufferAttributeExt(new Float32Array(), 3),
+      color: new BufferAttributeExt(new Float32Array(), 3)
+    }
+    Object.entries(this.buffers).forEach(([key, value]) => this.geometry.addAttribute(key, value))
+  }
+
+  fitSize (markForUpdate = true) {
+    Object.values(this.buffers).forEach((value) => value.fitSize(markForUpdate))
+    return this
+  }
+
+  clear (resize = false) {
+    Object.values(this.buffers).forEach((value) => value.clear(resize))
+  }
+
+  dispose () {
+    this.geometry.dispose()
+  }
 }
 
 function addTestShapes (scene, material) {
-  const geometry = createGeometry(material)
+  const {splatBuffer, lsdfInstances} = createGeometry(material)
   // material = new THREE.PointsMaterial({ size: 0.0125, sizeAttenuation: true, vertexColors: THREE.VertexColors })
-  const points = new THREE.Points(geometry, material)
+  const points = new THREE.Points(splatBuffer.geometry, material)
   scene.add(points)
+  return {lsdfInstances, points}
 }
 
 function createGeometry (material) {
-  const geometry = new THREE.BufferGeometry()
-  const buffers = {
-    position: new BufferAttributeExt(new Float32Array(), 3),
-    normal: new BufferAttributeExt(new Float32Array(), 3),
-    color: new BufferAttributeExt(new Float32Array(), 3)
-  }
+  const splatBuffer = new SplatBuffer()
 
   const lsdfConfigs = initTestLsdfConfigs(settings.count)
 
   console.time('CONSTRUCT')
   let pointCount = 0
   let sdfCount = 0
+  const lsdfInstances = []
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
     const loctTree = new LoctTree()
     loctTree.origin.x = lsdfConfigIndex
     const sdfFuncBase = constructNaiveSdfFunc((!settings.firstSphere || lsdfConfigIndex > 0) && lsdfConfig)
+
+    lsdfInstances.push(new LsdfInstance(lsdfConfig, sdfFuncBase, material))
+
     const sdfFunc = (position) => {
       ++sdfCount
       return sdfFuncBase(position)
@@ -104,7 +254,7 @@ function createGeometry (material) {
         preNormalAxis(subs, 0, 1, 4, 5, 2, 3, 6, 7),
         preNormalAxis(subs, 0, 1, 2, 3, 4, 5, 6, 7)
       ).normalize()
-      addPoint(buffers, loctNodeOrigin, normal)
+      addPoint(splatBuffer.buffers, loctNodeOrigin, normal)
       ++pointCount
 
       // const range = 4
@@ -157,8 +307,11 @@ function createGeometry (material) {
   console.log('sdfCount: ' + sdfCount)
   console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
 
-  Object.entries(buffers).forEach(([key, value]) => geometry.addAttribute(key, value.fitSize()))
-  return geometry
+  splatBuffer.fitSize(false)
+  return {
+    splatBuffer,
+    lsdfInstances
+  }
 }
 
 function addPoint (buffers, position, normal) {
