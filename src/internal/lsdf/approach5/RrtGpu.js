@@ -29,11 +29,23 @@ export class RrtGpu {
       stencilBuffer: false,
       depthBuffer: false
     })
-    this.output = new Float32Array(4 * this.renderTarget.width * this.renderTarget.height)
+    this.output = new Float32Array(4 * this.capacity)
   }
 
   get material () {
     return this.mesh.material
+  }
+
+  get width () {
+    return this.renderTarget.width
+  }
+
+  get height () {
+    return this.renderTarget.height
+  }
+
+  get capacity () {
+    return this.width * this.height
   }
 
   dispose () {

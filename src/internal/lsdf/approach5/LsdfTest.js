@@ -15,29 +15,55 @@ import {LsdfGpu} from './LsdfGpu'
 const settings = {
   maxDepth: 5,
   scale: 2,
-  count: 2,
+  count: 1,
   firstSphere: true,
-  pulse: false
+  pulse: false,
+  gpuMarch: true
 }
 
 export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, preAnimateFuncs) {
   window.settings = settings
 
-  const lsdfGpu = new LsdfGpu(renderer, new THREE.Vector2(256, 256))
-  // lsdfGpu.compute(false)
-  const lsdfGpuPlaneMaterial = new THREE.MeshBasicMaterial({
-    map: lsdfGpu.renderTarget.texture
-  })
-  // const lsdfGpuPlaneMaterial = new THREE.RawShaderMaterial({
-  //   uniforms: {
-  //     map: { value: lsdfGpu.renderTarget.texture }
-  //     // map: { value: testMap }
-  //   },
-  //   vertexShader: vertexShaderDebug,
-  //   fragmentShader: fragmentShaderDebug,
-  //   side: THREE.FrontSide,
-  //   transparent: false
+  const lsdfGpu = new LsdfGpu(renderer, new THREE.Vector2(1024, 1024))
+
+  // console.time('lsdfGpu.compute(false)')
+  // for (let i = 0; i < 512; ++i) lsdfGpu.compute(false)
+  // console.timeEnd('lsdfGpu.compute(false)')
+  // console.time('lsdfGpu.compute(true)')
+  // for (let i = 0; i < 512; ++i) lsdfGpu.compute(true)
+  // console.timeEnd('lsdfGpu.compute(true)')
+  // const dataTextures = lsdfGpu.dataTextures
+  // const updateDataTextures = () => {
+  //   dataTextures[0].needsUpdate = true
+  //   dataTextures[1].needsUpdate = true
+  //   dataTextures[2].needsUpdate = true
+  // }
+  // console.time('lsdfGpu.compute(false) + updateDataTextures')
+  // for (let i = 0; i < 512; ++i) {
+  //   updateDataTextures()
+  //   lsdfGpu.compute(false)
+  // }
+  // console.timeEnd('lsdfGpu.compute(false) + updateDataTextures')
+  // console.time('lsdfGpu.compute(true) + updateDataTextures')
+  // for (let i = 0; i < 512; ++i) {
+  //   updateDataTextures()
+  //   lsdfGpu.compute(true)
+  // }
+  // console.timeEnd('lsdfGpu.compute(true) + updateDataTextures')
+
+  // const lsdfGpuPlaneMaterial = new THREE.MeshBasicMaterial({
+  //   map: lsdfGpu.renderTarget.texture
   // })
+  const lsdfGpuPlaneMaterial = new THREE.RawShaderMaterial({
+    uniforms: {
+      map: { value: lsdfGpu.renderTarget.texture }
+      // map: { value: testMap }
+    },
+    vertexShader: vertexShaderDebug,
+    fragmentShader: fragmentShaderDebug,
+    side: THREE.FrontSide,
+    transparent: false
+  })
   const lsdfGpuPlane = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2), lsdfGpuPlaneMaterial)
   lsdfGpuPlane.position.z -= 2
   scene.add(lsdfGpuPlane)
@@ -71,7 +97,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
     lsdfGpu.dispose()
     // TODO complete cleanup
   })
-  vueInstance.$onKeydown.push(() => {
+  vueInstance.$onKeydown.push((event) => {
     switch (event.key) {
       case 't':
         // lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.testPlane.visible = !lsdfInstance.testPlane.visible })
@@ -81,7 +107,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
         points.visible = !points.visible
         break
       case 's':
-        lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.march(camera) })
+        lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.march(camera, settings.gpuMarch && lsdfGpu) })
         break
     }
   })
@@ -93,21 +119,9 @@ class LsdfInstance {
     this.sdfFunc = sdfFunc
     this.splatBuffer = new SplatBuffer()
     this.points = new THREE.Points(this.splatBuffer.geometry, material)
-    this.radius = new THREE.Vector2(0.5, 0.5).length() // new THREE.Vector3(0.5, 0.5, 0.5).length()
+    this.radius = new THREE.Vector2(0.5, 0.5).length()
 
     const sideLength = this.radius
-    // this.testPlaneBuffers = {
-    //   geometry: new THREE.BufferGeometry(),
-    //   buffers: {
-    //     position: new BufferAttributeExt(new Float32Array(), 3 * 4),
-    //     normal: new BufferAttributeExt(new Float32Array(), 3 * 4)
-    //   }
-    // }
-    // this.testPlane = new THREE.Mesh(
-    //   new THREE.PlaneGeometry(sideLength, sideLength),
-    //   new THREE.MeshBasicMaterial({color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5})
-    // )
-    // this.points.add(this.testPlane)
     this.testMarkers = [1, 2, 3].map(() => new THREE.Mesh(
       new THREE.SphereGeometry(sideLength / 20),
       new THREE.MeshBasicMaterial({color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5})
@@ -121,8 +135,6 @@ class LsdfInstance {
 
   dispose () {
     this.splatBuffer.dispose()
-    // this.testPlane.geometry.dispose()
-    // this.testPlane.material.dispose()
     this.testMarkers.forEach((testMarker) => {
       testMarker.geometry.dispose()
       testMarker.material.dispose()
@@ -131,22 +143,18 @@ class LsdfInstance {
 
   update (camera) {
     const normals = camera.getWorldNormals()
-    // const direction = this.points.position.clone().sub(camera.position).normalize()
     const direction = camera.position.clone().sub(this.points.position).normalize()
-    // this.testPlane.position.copy(direction).multiplyScalar(this.radius).negate()
-    // this.testPlane.lookAt(this.points.position.clone().add(normals.direction))
     const testMarkers = this.testMarkers
     normals.up.multiplyScalar(this.radius)
     normals.side.multiplyScalar(this.radius)
-    // normals.direction.multiplyScalar(this.radius).negate()
+
     direction.multiplyScalar(this.radius)
-    // testMarkers[0].position.copy(normals.direction.multiplyScalar(this.radius).negate())
     testMarkers[0].position.copy(direction)
     testMarkers[1].position.copy(testMarkers[0].position).add(normals.up)
     testMarkers[2].position.copy(testMarkers[0].position).add(normals.side)
   }
 
-  march (camera) {
+  march (camera, lsdfGpu) {
     const normals = camera.getWorldNormals()
     const direction = this.points.position.clone().sub(camera.position).normalize()
     normals.up.multiplyScalar(this.radius)
@@ -154,39 +162,121 @@ class LsdfInstance {
 
     this.splatBuffer.clear()
     const marchCenter = this.points.position.clone().sub(direction.clone().multiplyScalar(this.radius))
-    const subdivs = 256
+    const subdivs = 1024
     const subdivsRec = 2 / subdivs
     const steps = 32
     const minDist = 0.0001
     const epsilonDist = 0.01
-    const marchSpacePos = new THREE.Vector2()
+    const marchSpacePos = new THREE.Vector2(-1, -1)
     const maxRayPosDistSquared = this.radius * this.radius
     let pointCount = 0
     let sdfCount = 0
-    for (marchSpacePos.y = -1; marchSpacePos.y <= 1; marchSpacePos.y += subdivsRec) {
-      for (marchSpacePos.x = -1; marchSpacePos.x <= 1; marchSpacePos.x += subdivsRec) {
-        const rayPos = new THREE.Vector3()
-          .copy(marchCenter)
-          .add(normals.up.clone().multiplyScalar(marchSpacePos.y))
-          .add(normals.side.clone().multiplyScalar(marchSpacePos.x))
-        for (let step = 0; step < steps; ++step) {
-          const dist = Math.max(minDist, this.sdfFunc(rayPos))
-          ++sdfCount
-          rayPos.add(direction.clone().multiplyScalar(dist))
-          const rayPosLocal = rayPos.clone().sub(this.points.position)
-          if (rayPosLocal.lengthSq() > maxRayPosDistSquared) break
-          if (dist < epsilonDist) {
-            addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
-            ++pointCount
-            break
+    const getRayPos = () => {
+      return new THREE.Vector3()
+        .copy(marchCenter)
+        .add(normals.up.clone().multiplyScalar(marchSpacePos.y))
+        .add(normals.side.clone().multiplyScalar(marchSpacePos.x))
+    }
+    console.log('LsdfInstance.march')
+    if (lsdfGpu) {
+      console.time('LsdfInstance.march - gpu')
+      const gpuStages = LsdfGpu.buildPlan(this.lsdfConfig) // Currently unused
+      console.log('gpuStages: ' + gpuStages.length)
+      const dataTextures = lsdfGpu.dataTextures
+      // const data0 = dataTextures[0].image.data
+      // const data1 = dataTextures[1].image.data
+      // const data2 = dataTextures[2].image.data
+      const {data0, data1, data2} = lsdfGpu
+      const nextPosBatch = (capacity) => {
+        let count = 0, i = 0
+        for (; count < capacity; ++count) {
+          if (marchSpacePos.y > 1) break
+          if (marchSpacePos.x > 1) {
+            marchSpacePos.x = -1
+            marchSpacePos.y += subdivsRec
+          }
+          const rayPos = getRayPos()
+          data0[i] = 0.0 // Test only
+          // data0[i] = direction.x // Ray extension test: compute the next ray position in the fragment shader (requires direction input - uniform vs another data texture?)
+          data1[i] = 0.4 // Test only
+          data2[i++] = rayPos.x
+          data0[i] = 0.0 // Test only
+          // data0[i] = direction.y // Ray extension test
+          data1[i] = 0.0 // Test only
+          data2[i++] = rayPos.y
+          data0[i] = 0.0 // Test only
+          // data0[i] = direction.z // Ray extension test
+          data1[i] = 0.0 // Test only
+          data2[i++] = rayPos.z
+          data0[i] = 1.0 // Test only
+          // data0[i] = 0.0 // Test only
+          data1[i] = 0.0 // Test only
+          data2[i++] = 0
+          marchSpacePos.x += subdivsRec
+        }
+        return count
+      }
+      let computeCalls = 0
+      for (let batchSize; (batchSize = nextPosBatch(lsdfGpu.capacity)) > 0;) {
+        for (let i = 0; i < 3; ++i) dataTextures[i].needsUpdate = true
+        let batchSizeReal = batchSize
+        for (let step = 0; step < steps && batchSizeReal > 0; ++step) {
+          lsdfGpu.compute()
+          ++computeCalls
+          let count = 0, i = 0
+          for (; count < batchSize; ++count, i += 4) {
+            if (data2[i + 3] > 0) continue // TODO Discard could be done more efficiently by replacement with data from the batch's end and decrementing the batch size
+            const rayPos = new THREE.Vector3(data2[i + 0], data2[i + 1], data2[i + 2])
+            const dist = Math.max(minDist, lsdfGpu.output[i + 0])
+            rayPos.add(direction.clone().multiplyScalar(dist))
+            // const rayPos = new THREE.Vector3(lsdfGpu.output[i + 1], lsdfGpu.output[i + 2], lsdfGpu.output[i + 3])
+            const rayPosLocal = rayPos.clone().sub(this.points.position)
+            if (rayPosLocal.lengthSq() > maxRayPosDistSquared) {
+              data2[i + 3] = 1
+              --batchSizeReal
+            } else if (dist < epsilonDist) {
+              addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
+              ++pointCount
+              data2[i + 3] = 1
+              --batchSizeReal
+            } else {
+              data2[i + 0] = rayPos.x
+              data2[i + 1] = rayPos.y
+              data2[i + 2] = rayPos.z
+            }
+          }
+          dataTextures[2].needsUpdate = true
+        }
+      }
+      console.timeEnd('LsdfInstance.march - gpu')
+      console.log('pointCount: ' + pointCount)
+      console.log('computeCalls: ' + computeCalls)
+      console.log('computeCalls/pointCount: ' + (computeCalls / pointCount))
+    } else {
+      console.time('LsdfInstance.march - cpu')
+      for (marchSpacePos.y = -1; marchSpacePos.y <= 1; marchSpacePos.y += subdivsRec) {
+        for (marchSpacePos.x = -1; marchSpacePos.x <= 1; marchSpacePos.x += subdivsRec) {
+          const rayPos = getRayPos()
+          for (let step = 0; step < steps; ++step) {
+            const dist = Math.max(minDist, this.sdfFunc(rayPos))
+            ++sdfCount
+            rayPos.add(direction.clone().multiplyScalar(dist))
+            const rayPosLocal = rayPos.clone().sub(this.points.position)
+            if (rayPosLocal.lengthSq() > maxRayPosDistSquared) break
+            if (dist < epsilonDist) {
+              addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
+              ++pointCount
+              break
+            }
           }
         }
       }
+      console.timeEnd('LsdfInstance.march - cpu')
+      console.log('pointCount: ' + pointCount)
+      console.log('sdfCount: ' + sdfCount)
+      console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
     }
     this.splatBuffer.fitSize()
-    console.log('LsdfInstance.march pointCount: ' + pointCount)
-    console.log('LsdfInstance.march sdfCount: ' + sdfCount)
-    console.log('LsdfInstance.march sdfCount/pointCount: ' + (sdfCount / pointCount))
   }
 }
 
@@ -227,6 +317,9 @@ function createGeometry (material) {
   const splatBuffer = new SplatBuffer()
 
   const lsdfConfigs = initTestLsdfConfigs(settings.count)
+  if (settings.firstSphere) {
+    lsdfConfigs[0] = {type: 'sphere', position: new THREE.Vector3(), radius: 0.4}
+  }
 
   console.time('CONSTRUCT')
   let pointCount = 0
@@ -235,7 +328,7 @@ function createGeometry (material) {
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
     const loctTree = new LoctTree()
     loctTree.origin.x = lsdfConfigIndex
-    const sdfFuncBase = constructNaiveSdfFunc((!settings.firstSphere || lsdfConfigIndex > 0) && lsdfConfig)
+    const sdfFuncBase = buildSdfFunc(lsdfConfig)
 
     lsdfInstances.push(new LsdfInstance(lsdfConfig, sdfFuncBase, material))
 
@@ -320,44 +413,39 @@ function addPoint (buffers, position, normal) {
   buffers.color.pushVector3(new THREE.Vector3(Math.random(), Math.random(), Math.random()))
 }
 
-function constructNaiveSdfFunc (lsdfConfig) {
-  if (!lsdfConfig) return (position) => position.length() - 0.4 // Test
-
-  const buildEvaluator = (lsdfConfig) => {
-    const opType = lsdfOpTypes[lsdfConfig.type]
-    const func = opType.func
-    let result = 0
-    if (opType.kind === 'combine') {
-      const x = buildEvaluator(lsdfConfig.x)
-      const y = buildEvaluator(lsdfConfig.y)
-      switch (lsdfConfig.type) {
-        case 'unionSmooth':
-        case 'subtractSmooth':
-        case 'intersectSmooth':
-          const radius = lsdfConfig.radius
-          result = (position) => func(x(position), y(position), radius)
-          break
-        default:
-          result = (position) => func(x(position), y(position))
-      }
-    } else {
-      const offset = lsdfConfig.position.clone()
-      switch (lsdfConfig.type) {
-        case 'sphere':
-          const radius = lsdfConfig.radius
-          result = (position) => func(offset.clone().rsub(position), radius)
-          break
-        case 'box':
-          const size = lsdfConfig.size
-          result = (position) => func(offset.clone().rsub(position), size)
-          break
-        default:
-          console.warn('Unknown ' + opType.kind + ' lsdfConfig.type: ' + lsdfConfig.type)
-      }
+function buildSdfFunc (lsdfConfig) {
+  const opType = lsdfOpTypes[lsdfConfig.type]
+  const func = opType.func
+  let result = 0
+  if (opType.kind === 'combine') {
+    const x = buildSdfFunc(lsdfConfig.x)
+    const y = buildSdfFunc(lsdfConfig.y)
+    switch (lsdfConfig.type) {
+      case 'unionSmooth':
+      case 'subtractSmooth':
+      case 'intersectSmooth':
+        const radius = lsdfConfig.radius
+        result = (position) => func(x(position), y(position), radius)
+        break
+      default:
+        result = (position) => func(x(position), y(position))
     }
-    return result
+  } else {
+    const offset = lsdfConfig.position.clone()
+    switch (lsdfConfig.type) {
+      case 'sphere':
+        const radius = lsdfConfig.radius
+        result = (position) => func(offset.clone().rsub(position), radius)
+        break
+      case 'box':
+        const size = lsdfConfig.size
+        result = (position) => func(offset.clone().rsub(position), size)
+        break
+      default:
+        console.warn('buildSdfFunc - Unknown ' + opType.kind + ' lsdfConfig.type: ' + lsdfConfig.type)
+    }
   }
-  return buildEvaluator(lsdfConfig)
+  return result
 }
 
 function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc}) {

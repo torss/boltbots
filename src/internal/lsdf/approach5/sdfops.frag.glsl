@@ -41,6 +41,7 @@ float compute() {
   vec4 v0 = texture(data0, vUv);
   vec4 v1 = texture(data1, vUv);
   vec4 v2 = texture(data2, vUv);
+  // return sdSphere(v2.xyz, v1.x);
   switch (uint(v0.a)) {
   case 1u:
     return sdSphere(v2.xyz - v0.xyz, v1.x);
@@ -64,6 +65,12 @@ float compute() {
 }
 
 void main() {
-  // outColor = vec4(compute(), 1., 1., 1.);
-  outColor = vec4(vUv, 0., 1.);
+  // outColor = vec4(vUv, 0., 1.);
+
+  // vec4 v0 = texture(data0, vUv);
+  // vec4 v2 = texture(data2, vUv);
+  // float dist = compute();
+  // outColor = vec4(dist, v2.xyz + dist * v0.xyz);
+
+  outColor = vec4(compute(), 0., 0., 1.);
 }

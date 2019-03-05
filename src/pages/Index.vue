@@ -12,13 +12,15 @@ import {init} from '../internal/Init'
 
 export default {
   name: 'PageIndex',
-  mounted () {
+  created () {
     this.$deinit = []
     this.$onResize = []
     this.$onMousemove = []
     this.$onMousedown = []
     this.$onWheel = []
     this.$onKeydown = []
+  },
+  mounted () {
     init(this)
     document.addEventListener('wheel', this.onWheel, true)
     document.addEventListener('keydown', this.onKeydown)
