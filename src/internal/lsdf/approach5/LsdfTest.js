@@ -18,7 +18,7 @@ const settings = {
   count: 1,
   firstSphere: true,
   pulse: false,
-  gpuMarch: true
+  gpuMarch: false
 }
 
 export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, preAnimateFuncs) {
@@ -84,12 +84,74 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
     lsdfInstance.addToScene(scene)
   })
 
+  const splatBufferTest = new SplatBuffer()
+  const splatBufferTestBuffer = splatBufferTest.buffers.position
+  const splatBufferTestFunc = (vector3) => {
+    if (splatBufferTestBuffer.count < ++splatBufferTestBuffer.countCurrent) splatBufferTestBuffer.resize(Math.nextPowerOfTwo(splatBufferTestBuffer.countCurrent))
+    splatBufferTestBuffer.array[splatBufferTestBuffer.indexCurrent++] = vector3.x
+    splatBufferTestBuffer.array[splatBufferTestBuffer.indexCurrent++] = vector3.y
+    splatBufferTestBuffer.array[splatBufferTestBuffer.indexCurrent++] = vector3.z
+  }
+  let splatBufferTestFuncDirectCount = 0
+  let splatBufferTestBufferArray = splatBufferTestBuffer.array
+  const splatBufferTestFuncDirect = (vector3) => {
+    // if (splatBufferTestBuffer.count < ++splatBufferTestBuffer.countCurrent) splatBufferTestBuffer.resize(Math.nextPowerOfTwo(splatBufferTestBuffer.countCurrent))
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount++] = vector3.x
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount++] = vector3.y
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount++] = vector3.z
+  }
+  const splatBufferTestFuncDirect2 = (x, y, z) => {
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount++] = x
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount++] = y
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount++] = z
+  }
+  const splatBufferTestFuncDirect3 = (x, y, z) => {
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount + 0] = x
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount + 1] = y
+    splatBufferTestBufferArray[splatBufferTestFuncDirectCount + 2] = z
+    splatBufferTestFuncDirectCount += 3
+  }
+  const splatBufferTestArray = []
+  for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestArray.push(new THREE.Vector3())
+  const splatBufferTestArrayTyped = new Float32Array(3 * 1920 * 1080)
+
+  const dynamicSplatBufferTest = (() => {
+    const splatBuffer = new SplatBuffer()
+    const points = new THREE.Points(splatBuffer.geometry, material)
+    scene.add(points)
+    const {position, normal, color} = splatBuffer.buffers
+    const size = 1920 * 1080
+    position.padSize(size)
+    normal.padSize(size)
+    color.padSize(size)
+    const positionArray = position.array
+    const normalArray = normal.array
+    const colorArray = color.array
+    for (let i = 0, j = 0; i < size; ++i, j += 3) {
+      normalArray[j + 0] = 1
+      normalArray[j + 1] = 0
+      normalArray[j + 2] = 0
+      colorArray[j + 0] = 0
+      colorArray[j + 1] = 0
+      colorArray[j + 2] = 0
+    }
+    return () => {
+      for (let i = 0, j = 0; i < size; ++i, j += 3) {
+        positionArray[j + 0] += 0.001
+        positionArray[j + 1] += 0.002
+        positionArray[j + 2] += 0.003
+      }
+      position.needsUpdate = true
+    }
+  })()
+
   preAnimateFuncs.push(() => {
     // WebGLRenderer.js - isPointsMaterial - refreshUniformsPoints
     // material.uniforms.size.value = pointSize * renderer.getPixelRatio()
     // material.uniforms.scale.value = 0.5 * renderer.getSize(new THREE.Vector2()).y
     if (settings.pulse) material.uniforms.scale.value = settings.scale * Math.abs(Math.cos(performance.now() * 0.001))
     lsdfInstances.forEach((lsdfInstance) => lsdfInstance.update(camera))
+    // dynamicSplatBufferTest()
   })
   vueInstance.$deinit.push(() => {
     lsdfInstances.forEach((lsdfInstance) => lsdfInstance.dispose())
@@ -108,6 +170,52 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
         break
       case 's':
         lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.march(camera, settings.gpuMarch && lsdfGpu) })
+        break
+      case 'q':
+        const position = new THREE.Vector3(Math.random(), Math.random(), Math.random())
+        // splatBufferTest.buffers.position.padSize(1920 * 1080)
+        // console.time('splatBufferTest - fitSize(true)')
+        // splatBufferTest.clear(false)
+        // for (let i = 0; i < 1920 * 1080; ++i) addPointTest(splatBufferTest.buffers, position)
+        // splatBufferTest.fitSize(true)
+        // console.timeEnd('splatBufferTest - fitSize(true)')
+        console.time('splatBufferTest - fitSize(false)')
+        splatBufferTest.clear(false)
+        for (let i = 0; i < 1920 * 1080; ++i) addPointTest(splatBufferTest.buffers, position)
+        splatBufferTest.fitSize(false)
+        console.timeEnd('splatBufferTest - fitSize(false)')
+        console.time('splatBufferTestFunc - fitSize(false)')
+        splatBufferTest.clear(false)
+        for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestFunc(position)
+        splatBufferTest.fitSize(false)
+        console.timeEnd('splatBufferTestFunc - fitSize(false)')
+        // console.time('splatBufferTestFuncDirect - fitSize(false)')
+        // splatBufferTest.clear(false)
+        // for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestFuncDirect(position)
+        // splatBufferTest.fitSize(false)
+        // console.timeEnd('splatBufferTestFuncDirect - fitSize(false)')
+        console.time('splatBufferTestFuncDirect')
+        splatBufferTestFuncDirectCount = 0
+        for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestFuncDirect(position)
+        console.timeEnd('splatBufferTestFuncDirect')
+        console.time('splatBufferTestFuncDirect2')
+        splatBufferTestFuncDirectCount = 0
+        for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestFuncDirect2(position.x, position.y, position.z)
+        console.timeEnd('splatBufferTestFuncDirect2')
+        console.time('splatBufferTestFuncDirect3')
+        splatBufferTestFuncDirectCount = 0
+        for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestFuncDirect3(position.x, position.y, position.z)
+        console.timeEnd('splatBufferTestFuncDirect3')
+        console.time('splatBufferTestArray')
+        for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestArray[i].copy(position)
+        console.timeEnd('splatBufferTestArray')
+        console.time('splatBufferTestArrayTyped')
+        for (let i = 0, j = 0; i < 1920 * 1080; ++i, j += 3) {
+          splatBufferTestArrayTyped[j + 0] = position.x
+          splatBufferTestArrayTyped[j + 1] = position.y
+          splatBufferTestArrayTyped[j + 2] = position.z
+        }
+        console.timeEnd('splatBufferTestArrayTyped')
         break
     }
   })
@@ -411,6 +519,10 @@ function addPoint (buffers, position, normal) {
   buffers.position.pushVector3(position)
   buffers.normal.pushVector3(normal)
   buffers.color.pushVector3(new THREE.Vector3(Math.random(), Math.random(), Math.random()))
+}
+
+function addPointTest (buffers, position) {
+  buffers.position.pushVector3proto(position)
 }
 
 function buildSdfFunc (lsdfConfig) {

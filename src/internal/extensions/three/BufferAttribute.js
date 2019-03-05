@@ -42,7 +42,7 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
 
   padSize (newCountCurrent) {
     this.countCurrent = newCountCurrent
-    this.resize(Math.nextPowerOfTwo(this.countCurrent))
+    if (this.count < this.countCurrent) this.resize(Math.nextPowerOfTwo(this.countCurrent))
     return this
   }
 
@@ -67,11 +67,35 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
   }
 
   pushVector3 (...vector3s) {
-    return pushBase(this, 3, 'pushVector3', vector3s, (vector3) => {
+    // return pushBase(this, 3, 'pushVector3', vector3s, (vector3) => {
+    //   this.array[this.indexCurrent++] = vector3.x
+    //   this.array[this.indexCurrent++] = vector3.y
+    //   this.array[this.indexCurrent++] = vector3.z
+    // })
+
+    this.padSize(this.countCurrent + vector3s.length)
+    for (let i = 0; i < vector3s.length; ++i) {
+      const vector3 = vector3s[i]
       this.array[this.indexCurrent++] = vector3.x
       this.array[this.indexCurrent++] = vector3.y
       this.array[this.indexCurrent++] = vector3.z
-    })
+    }
+  }
+
+  pushVector3proto (vector3) {
+    // this.padSize(this.countCurrent + 1)
+    // this.array[this.indexCurrent + 0] = vector3.x
+    // this.array[this.indexCurrent + 1] = vector3.y
+    // this.array[this.indexCurrent + 2] = vector3.z
+    // this.indexCurrent += 3
+
+    if (this.count < ++this.countCurrent) {
+      console.log('resize')
+      this.resize(Math.nextPowerOfTwo(this.countCurrent))
+    }
+    this.array[this.indexCurrent++] = vector3.x
+    this.array[this.indexCurrent++] = vector3.y
+    this.array[this.indexCurrent++] = vector3.z
   }
 }
 
