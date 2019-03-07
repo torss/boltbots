@@ -14,14 +14,15 @@ import {LsdfGpu} from './LsdfGpu'
 
 const settings = {
   maxDepth: 5,
-  scale: 2,
+  scale: 30,
   count: 1,
   firstSphere: true,
   pulse: false,
   gpuMarch: false,
   useLsdfVolumeForLoct: false,
   useLsdfVolumeForMarch: false,
-  lsdfVolumeSideLength: 5
+  lsdfVolumeSideLength: 5,
+  useKsurf: true
 }
 
 export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, preAnimateFuncs) {
@@ -305,7 +306,10 @@ class LsdfInstance {
       new THREE.SphereGeometry(sideLength / 20),
       new THREE.MeshBasicMaterial({color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5})
     ))
-    this.testMarkers.forEach((testMarker) => this.points.add(testMarker))
+    this.testMarkers.forEach((testMarker) => {
+      testMarker.visible = false
+      this.points.add(testMarker)
+    })
   }
 
   addToScene (scene) {
@@ -527,19 +531,78 @@ function createGeometry (material) {
 
   const lsdfConfigs = initTestLsdfConfigs(settings.count)
   if (settings.firstSphere) {
-    lsdfConfigs[0] = {type: 'sphere', position: new THREE.Vector3(), radius: 0.4}
+    // lsdfConfigs[0] = {type: 'sphere', position: new THREE.Vector3(), radius: 0.4}
+    lsdfConfigs[0] = {
+      type: 'subtract',
+      x: {type: 'sphere', position: new THREE.Vector3(0.25, 0.25, 0.25), radius: 0.4},
+      y: {type: 'sphere', position: new THREE.Vector3(), radius: 0.4}
+    }
   }
 
+  const constructFunc = settings.useKsurf ? constructViaKsurf : constructViaLoct
+  constructFunc(lsdfConfigs, splatBuffer)
+
+  const lsdfInstances = lsdfConfigs.map((lsdfConfig) => {
+    const sdfFuncBase = buildSdfFunc(lsdfConfig)
+    return new LsdfInstance(lsdfConfig, sdfFuncBase, material)
+  })
+
+  splatBuffer.fitSize(false)
+  return {
+    splatBuffer,
+    lsdfInstances
+  }
+}
+
+function constructViaKsurf (lsdfConfigs, splatBuffer) {
+  console.time('CONSTRUCT - ksurf')
+  let pointCount = 0
+  let sdfCount = 0
+  lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
+    const sdfFuncBase = buildSdfFunc(lsdfConfig)
+    const sdfFunc = (position) => {
+      ++sdfCount
+      return sdfFuncBase(position)
+    }
+
+    const distTol = 0.001
+    const steps = 64
+    const sphcMaxY = Math.PI / 2
+    const sphcMaxX = 2 * Math.PI
+    const sphcStepY = (2 * sphcMaxY) / steps
+    const sphcStepX = sphcMaxX / steps
+    for (const sphc = new THREE.Vector2(0, -sphcMaxY); sphc.y < sphcMaxY; sphc.y += sphcStepY) {
+      const sphmYx = Math.cos(sphc.y)
+      const sphmYy = Math.sin(sphc.y)
+      const sphmYxAbs = Math.abs(sphmYx)
+      const radiusX = sphmYxAbs
+      const sphcStep2 = radiusX > 0 ? sphcStepX / radiusX : sphcMaxX
+      for (sphc.x = 0; sphc.x < sphcMaxX; sphc.x += sphcStep2) {
+        const sphmXx = Math.cos(sphc.x) * radiusX
+        const sphmXy = Math.sin(sphc.x) * radiusX
+        const pos = new THREE.Vector3(sphmXx, sphmYy, sphmXy).multiplyScalar(0.4)
+        if (Math.abs(sdfFunc(pos)) < distTol) {
+          addPoint(splatBuffer.buffers, pos, pos)
+          // addPoint(splatBuffer.buffers, pos, new THREE.Vector3(Math.random(), 0, 0))
+          ++pointCount
+        }
+      }
+    }
+  })
+  console.timeEnd('CONSTRUCT - ksurf')
+  console.log('pointCount: ' + pointCount)
+  console.log('sdfCount: ' + sdfCount)
+  console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
+}
+
+function constructViaLoct (lsdfConfigs, splatBuffer) {
   console.time('CONSTRUCT')
   let pointCount = 0
   let sdfCount = 0
-  const lsdfInstances = []
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
     const loctTree = new LoctTree()
     loctTree.origin.x = lsdfConfigIndex
     const sdfFuncBase = buildSdfFunc(lsdfConfig)
-
-    lsdfInstances.push(new LsdfInstance(lsdfConfig, sdfFuncBase, material))
 
     let sdfSampler
     if (settings.useLsdfVolumeForLoct) {
@@ -620,12 +683,6 @@ function createGeometry (material) {
   console.log('pointCount: ' + pointCount)
   console.log('sdfCount: ' + sdfCount)
   console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
-
-  splatBuffer.fitSize(false)
-  return {
-    splatBuffer,
-    lsdfInstances
-  }
 }
 
 function addPoint (buffers, position, normal) {
