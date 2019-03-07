@@ -18,7 +18,10 @@ const settings = {
   count: 1,
   firstSphere: true,
   pulse: false,
-  gpuMarch: false
+  gpuMarch: false,
+  useLsdfVolumeForLoct: false,
+  useLsdfVolumeForMarch: false,
+  lsdfVolumeSideLength: 5
 }
 
 export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, preAnimateFuncs) {
@@ -148,7 +151,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
       }
       position.needsUpdate = true
     }
-  })(false)
+  })(true)
 
   preAnimateFuncs.push(() => {
     // WebGLRenderer.js - isPointsMaterial - refreshUniformsPoints
@@ -175,6 +178,9 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
         break
       case 's':
         lsdfInstances.forEach((lsdfInstance) => { lsdfInstance.march(camera, settings.gpuMarch && lsdfGpu) })
+        break
+      case 'i':
+        createGeometry(material)
         break
       case 'q':
         const position = new THREE.Vector3(Math.random(), Math.random(), Math.random())
@@ -224,6 +230,66 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
         break
     }
   })
+}
+
+class LsdfVolume {
+  constructor (sideLength) {
+    this.array = new Float64Array(sideLength * sideLength * sideLength)
+    this.sideLength = sideLength
+  }
+
+  get sideLength2 () {
+    return this.sideLength * this.sideLength
+  }
+
+  fromLsdfFunc (lsdfFunc, scale = new THREE.Vector3(1, 1, 1), centerOffset = new THREE.Vector3(0, 0, 0)) {
+    const {sideLength, sideLength2} = this
+    const halfScale = scale.clone().divideScalar(2)
+    const step = scale.clone().multiplyScalar(sideLength).redivScalar()
+    const halfStep = step.clone().divideScalar(2)
+    const posStart = centerOffset.clone().sub(halfScale).add(halfStep)
+    const pos = new THREE.Vector3(0, 0, 0)
+    const index = new THREE.Vector3(0, 0, 0)
+    const indexArray = new THREE.Vector3(0, 0, 0)
+    for (index.z = 0, indexArray.z = 0, pos.z = posStart.z; index.z < sideLength; ++index.z, indexArray.z += sideLength2, pos.z += step.z) {
+      for (index.y = 0, indexArray.y = indexArray.z, pos.y = posStart.y; index.y < sideLength; ++index.y, indexArray.y += sideLength, pos.y += step.y) {
+        for (index.x = 0, indexArray.x = indexArray.y, pos.x = posStart.x; index.x < sideLength; ++index.x, indexArray.x += 1, pos.x += step.x) {
+          this.array[indexArray.x] = lsdfFunc(pos)
+        }
+      }
+    }
+  }
+
+  sample (pos, minDist) {
+    const {sideLength, sideLength2} = this
+    const posFloor = pos.clone().floor()
+    if (posFloor.x < 0 || posFloor.x >= sideLength || posFloor.y < 0 || posFloor.y >= sideLength || posFloor.z < 0 || posFloor.z >= sideLength) {
+      return minDist
+    }
+    // const posNeighbor = pos.clone().sub(posFloor)
+    // posNeighbor.x = posNeighbor.x > 0.5 ? posFloor.x + 1 : posFloor.x - 1
+    // posNeighbor.y = posNeighbor.y > 0.5 ? posFloor.y + 1 : posFloor.y - 1
+    // posNeighbor.z = posNeighbor.z > 0.5 ? posFloor.z + 1 : posFloor.z - 1
+    // const toIndex = (position) => position.x + position.y * sideLength + position.z * sideLength2
+    const indexFocus = posFloor.x + posFloor.y * sideLength + posFloor.z * sideLength2
+    const valueFocus = this.array[indexFocus]
+    let value = valueFocus
+    for (const co of 'xyz') {
+      const coPosFloor = posFloor[co]
+      const coPosNeighbor = pos[co] - coPosFloor > 0.5 ? coPosFloor + 1 : coPosFloor - 1
+      if (coPosNeighbor < 0 || coPosNeighbor >= sideLength) {
+        value += valueFocus
+      } else {
+        const posNeighbor = new THREE.Vector3().copy(posFloor)
+        posNeighbor[co] = coPosNeighbor
+        const index = posNeighbor.x + posNeighbor.y * sideLength + posNeighbor.z * sideLength2
+        value += this.array[index]
+        // ! TODO proper weighted average
+      }
+    }
+    value *= 0.25
+    return Math.max(minDist, value)
+  }
 }
 
 class LsdfInstance {
@@ -366,25 +432,51 @@ class LsdfInstance {
       console.log('computeCalls: ' + computeCalls)
       console.log('computeCalls/pointCount: ' + (computeCalls / pointCount))
     } else {
-      console.time('LsdfInstance.march - cpu')
-      for (marchSpacePos.y = -1; marchSpacePos.y <= 1; marchSpacePos.y += subdivsRec) {
-        for (marchSpacePos.x = -1; marchSpacePos.x <= 1; marchSpacePos.x += subdivsRec) {
-          const rayPos = getRayPos()
-          for (let step = 0; step < steps; ++step) {
-            const dist = Math.max(minDist, this.sdfFunc(rayPos))
-            ++sdfCount
-            rayPos.add(direction.clone().multiplyScalar(dist))
-            const rayPosLocal = rayPos.clone().sub(this.points.position)
-            if (rayPosLocal.lengthSq() > maxRayPosDistSquared) break
-            if (dist < epsilonDist) {
-              addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
-              ++pointCount
-              break
+      if (settings.useLsdfVolumeForMarch) {
+        console.time('LsdfInstance.march - LsdfVolume creation')
+        const lsdfVolume = new LsdfVolume(settings.lsdfVolumeSideLength)
+        lsdfVolume.fromLsdfFunc(this.sdfFunc) // TODO LsdfVolume offset
+        console.timeEnd('LsdfInstance.march - LsdfVolume creation')
+        console.time('LsdfInstance.march - cpu - useLsdfVolume')
+        for (marchSpacePos.y = -1; marchSpacePos.y <= 1; marchSpacePos.y += subdivsRec) {
+          for (marchSpacePos.x = -1; marchSpacePos.x <= 1; marchSpacePos.x += subdivsRec) {
+            const rayPos = getRayPos()
+            for (let step = 0; step < steps; ++step) {
+              const dist = lsdfVolume.sample(rayPos, minDist)
+              ++sdfCount
+              rayPos.add(direction.clone().multiplyScalar(dist))
+              const rayPosLocal = rayPos.clone().sub(this.points.position)
+              if (rayPosLocal.lengthSq() > maxRayPosDistSquared) break
+              if (dist < epsilonDist) {
+                addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
+                ++pointCount
+                break
+              }
             }
           }
         }
+        console.timeEnd('LsdfInstance.march - cpu - useLsdfVolume')
+      } else {
+        console.time('LsdfInstance.march - cpu')
+        for (marchSpacePos.y = -1; marchSpacePos.y <= 1; marchSpacePos.y += subdivsRec) {
+          for (marchSpacePos.x = -1; marchSpacePos.x <= 1; marchSpacePos.x += subdivsRec) {
+            const rayPos = getRayPos()
+            for (let step = 0; step < steps; ++step) {
+              const dist = Math.max(minDist, this.sdfFunc(rayPos))
+              ++sdfCount
+              rayPos.add(direction.clone().multiplyScalar(dist))
+              const rayPosLocal = rayPos.clone().sub(this.points.position)
+              if (rayPosLocal.lengthSq() > maxRayPosDistSquared) break
+              if (dist < epsilonDist) {
+                addPoint(this.splatBuffer.buffers, rayPosLocal, new THREE.Vector3(1, 0, 0))
+                ++pointCount
+                break
+              }
+            }
+          }
+        }
+        console.timeEnd('LsdfInstance.march - cpu')
       }
-      console.timeEnd('LsdfInstance.march - cpu')
       console.log('pointCount: ' + pointCount)
       console.log('sdfCount: ' + sdfCount)
       console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
@@ -449,10 +541,22 @@ function createGeometry (material) {
 
     lsdfInstances.push(new LsdfInstance(lsdfConfig, sdfFuncBase, material))
 
+    let sdfSampler
+    if (settings.useLsdfVolumeForLoct) {
+      console.time('CONSTRUCT - LsdfVolume creation')
+      const lsdfVolume = new LsdfVolume(settings.lsdfVolumeSideLength)
+      lsdfVolume.fromLsdfFunc(sdfFuncBase) // TODO LsdfVolume offset
+      console.timeEnd('CONSTRUCT - LsdfVolume creation')
+      sdfSampler = (position) => lsdfVolume.sample(position, 0) // TODO LsdfVolume fix minDist
+    } else {
+      sdfSampler = sdfFuncBase
+    }
+
     const sdfFunc = (position) => {
       ++sdfCount
-      return sdfFuncBase(position)
+      return sdfSampler(position)
     }
+
     const postSplitFunc = (loctNode, loctNodeOrigin) => {
       if (loctNode.isLeaf || loctNode.subLeafCount !== 8) return
       const subs = loctNode.subs
