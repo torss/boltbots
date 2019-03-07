@@ -115,8 +115,10 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
   for (let i = 0; i < 1920 * 1080; ++i) splatBufferTestArray.push(new THREE.Vector3())
   const splatBufferTestArrayTyped = new Float32Array(3 * 1920 * 1080)
 
-  const dynamicSplatBufferTest = (() => {
+  const dynamicSplatBufferTest = ((dummy) => {
+    if (dummy) return () => {}
     const splatBuffer = new SplatBuffer()
+    splatBuffer.setDynamic(true)
     const points = new THREE.Points(splatBuffer.geometry, material)
     scene.add(points)
     const {position, normal, color} = splatBuffer.buffers
@@ -128,6 +130,9 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
     const normalArray = normal.array
     const colorArray = color.array
     for (let i = 0, j = 0; i < size; ++i, j += 3) {
+      positionArray[j + 0] += Math.random() * 10
+      positionArray[j + 1] += Math.random() * 10
+      positionArray[j + 2] += Math.random() * 10
       normalArray[j + 0] = 1
       normalArray[j + 1] = 0
       normalArray[j + 2] = 0
@@ -143,7 +148,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
       }
       position.needsUpdate = true
     }
-  })()
+  })(false)
 
   preAnimateFuncs.push(() => {
     // WebGLRenderer.js - isPointsMaterial - refreshUniformsPoints
@@ -151,7 +156,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
     // material.uniforms.scale.value = 0.5 * renderer.getSize(new THREE.Vector2()).y
     if (settings.pulse) material.uniforms.scale.value = settings.scale * Math.abs(Math.cos(performance.now() * 0.001))
     lsdfInstances.forEach((lsdfInstance) => lsdfInstance.update(camera))
-    // dynamicSplatBufferTest()
+    dynamicSplatBufferTest()
   })
   vueInstance.$deinit.push(() => {
     lsdfInstances.forEach((lsdfInstance) => lsdfInstance.dispose())
@@ -174,11 +179,11 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
       case 'q':
         const position = new THREE.Vector3(Math.random(), Math.random(), Math.random())
         // splatBufferTest.buffers.position.padSize(1920 * 1080)
-        // console.time('splatBufferTest - fitSize(true)')
-        // splatBufferTest.clear(false)
-        // for (let i = 0; i < 1920 * 1080; ++i) addPointTest(splatBufferTest.buffers, position)
-        // splatBufferTest.fitSize(true)
-        // console.timeEnd('splatBufferTest - fitSize(true)')
+        console.time('splatBufferTest - fitSize(true)')
+        splatBufferTest.clear(false)
+        for (let i = 0; i < 1920 * 1080; ++i) addPointTest(splatBufferTest.buffers, position)
+        splatBufferTest.fitSize(true)
+        console.timeEnd('splatBufferTest - fitSize(true)')
         console.time('splatBufferTest - fitSize(false)')
         splatBufferTest.clear(false)
         for (let i = 0; i < 1920 * 1080; ++i) addPointTest(splatBufferTest.buffers, position)
@@ -396,16 +401,20 @@ class SplatBuffer {
       normal: new BufferAttributeExt(new Float32Array(), 3),
       color: new BufferAttributeExt(new Float32Array(), 3)
     }
-    Object.entries(this.buffers).forEach(([key, value]) => this.geometry.addAttribute(key, value))
+    Object.entries(this.buffers).forEach(([key, buffer]) => this.geometry.addAttribute(key, buffer))
+  }
+
+  setDynamic (value) {
+    Object.values(this.buffers).forEach((buffer) => { buffer.setDynamic(value) })
   }
 
   fitSize (markForUpdate = true) {
-    Object.values(this.buffers).forEach((value) => value.fitSize(markForUpdate))
+    Object.values(this.buffers).forEach((buffer) => buffer.fitSize(markForUpdate))
     return this
   }
 
   clear (resize = false) {
-    Object.values(this.buffers).forEach((value) => value.clear(resize))
+    Object.values(this.buffers).forEach((buffer) => buffer.clear(resize))
   }
 
   dispose () {

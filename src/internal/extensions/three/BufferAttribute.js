@@ -89,10 +89,7 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
     // this.array[this.indexCurrent + 2] = vector3.z
     // this.indexCurrent += 3
 
-    if (this.count < ++this.countCurrent) {
-      console.log('resize')
-      this.resize(Math.nextPowerOfTwo(this.countCurrent))
-    }
+    if (this.count < ++this.countCurrent) this.resize(Math.nextPowerOfTwo(this.countCurrent))
     this.array[this.indexCurrent++] = vector3.x
     this.array[this.indexCurrent++] = vector3.y
     this.array[this.indexCurrent++] = vector3.z
