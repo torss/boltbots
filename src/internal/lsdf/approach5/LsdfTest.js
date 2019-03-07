@@ -13,7 +13,7 @@ import {LoctTree} from './LoctTree'
 import {LsdfGpu} from './LsdfGpu'
 
 const settings = {
-  maxDepth: 5,
+  maxDepth: 6,
   scale: 30,
   count: 1,
   firstSphere: true,
@@ -580,9 +580,10 @@ function constructViaKsurf (lsdfConfigs, splatBuffer) {
       for (sphc.x = 0; sphc.x < sphcMaxX; sphc.x += sphcStep2) {
         const sphmXx = Math.cos(sphc.x) * radiusX
         const sphmXy = Math.sin(sphc.x) * radiusX
-        const pos = new THREE.Vector3(sphmXx, sphmYy, sphmXy).multiplyScalar(0.4)
+        const normal = new THREE.Vector3(sphmXx, sphmYy, sphmXy)
+        const pos = normal.clone().multiplyScalar(0.4)
         if (Math.abs(sdfFunc(pos)) < distTol) {
-          addPoint(splatBuffer.buffers, pos, pos)
+          addPoint(splatBuffer.buffers, pos, normal)
           // addPoint(splatBuffer.buffers, pos, new THREE.Vector3(Math.random(), 0, 0))
           ++pointCount
         }
@@ -632,6 +633,7 @@ function constructViaLoct (lsdfConfigs, splatBuffer) {
         preNormalAxis(subs, 0, 1, 2, 3, 4, 5, 6, 7)
       ).normalize()
       addPoint(splatBuffer.buffers, loctNodeOrigin, normal)
+      // addPoint(splatBuffer.buffers, loctNodeOrigin, new THREE.Vector3(Math.random(), 0, 0))
       ++pointCount
 
       // const range = 4
