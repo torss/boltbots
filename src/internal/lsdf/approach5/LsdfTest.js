@@ -15,14 +15,15 @@ import {LsdfGpu} from './LsdfGpu'
 const settings = {
   maxDepth: 6,
   scale: 30,
-  count: 1,
+  count: 16,
   firstSphere: true,
   pulse: false,
   gpuMarch: false,
   useLsdfVolumeForLoct: false,
   useLsdfVolumeForMarch: false,
   lsdfVolumeSideLength: 5,
-  useKsurf: true
+  useKsurf: false,
+  useAaray: true
 }
 
 export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, preAnimateFuncs) {
@@ -539,7 +540,7 @@ function createGeometry (material) {
     }
   }
 
-  const constructFunc = settings.useKsurf ? constructViaKsurf : constructViaLoct
+  const constructFunc = settings.useAaray ? constructViaAaray : (settings.useKsurf ? constructViaKsurf : constructViaLoct)
   constructFunc(lsdfConfigs, splatBuffer)
 
   const lsdfInstances = lsdfConfigs.map((lsdfConfig) => {
@@ -554,8 +555,65 @@ function createGeometry (material) {
   }
 }
 
+function constructViaAaray (lsdfConfigs, splatBuffer) {
+  console.time('CONSTRUCT - Aaray')
+  let pointCount = 0
+  let sdfCount = 0
+  lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
+    const sdfFuncBase = buildSdfFunc(lsdfConfig)
+    const sdfFunc = (position) => {
+      ++sdfCount
+      return sdfFuncBase(position)
+    }
+    const sdfNormal = (position) => {
+      const eps = 0.01
+      const x0 = sdfFunc(new THREE.Vector3(eps, 0, 0).add(position))
+      const x1 = sdfFunc(new THREE.Vector3(-eps, 0, 0).add(position))
+      const y0 = sdfFunc(new THREE.Vector3(0, eps, 0).add(position))
+      const y1 = sdfFunc(new THREE.Vector3(0, -eps, 0).add(position))
+      const z0 = sdfFunc(new THREE.Vector3(0, 0, eps).add(position))
+      const z1 = sdfFunc(new THREE.Vector3(0, 0, -eps).add(position))
+      return new THREE.Vector3(x0 - x1, y0 - y1, z0 - z1).normalize()
+    }
+
+    const offset = new THREE.Vector3(lsdfConfigIndex, 0, 0)
+    const scale = 0.5
+    const resolution = 2 ** settings.maxDepth
+    const step = (scale * 2) / resolution
+    const halfStep = step / 2
+    const trigger = 0.01
+    const minDist = step
+    const spacing = step
+    const start = -scale + halfStep
+    const stop = scale
+    const direction = new THREE.Vector3(0, 0, 1)
+    for (const ipos = new THREE.Vector2(start, start); ipos.y < stop; ipos.y += step) {
+      for (ipos.x = start; ipos.x < stop; ipos.x += step) {
+        const pos = new THREE.Vector3(ipos.x, ipos.y, start).add(offset)
+        do {
+          const dist = sdfFunc(pos)
+          let distAbs = Math.abs(dist)
+          if (distAbs < trigger) {
+            // const normal = new THREE.Vector3(1, 0, 0)
+            const normal = sdfNormal(pos)
+            addPoint(splatBuffer.buffers, pos, normal)
+            ++pointCount
+            distAbs = Math.max(spacing, distAbs)
+          }
+          distAbs = Math.max(minDist, distAbs)
+          pos.addScaledVector(direction, distAbs)
+        } while (pos.z < stop)
+      }
+    }
+  })
+  console.timeEnd('CONSTRUCT - Aaray')
+  console.log('pointCount: ' + pointCount)
+  console.log('sdfCount: ' + sdfCount)
+  console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
+}
+
 function constructViaKsurf (lsdfConfigs, splatBuffer) {
-  console.time('CONSTRUCT - ksurf')
+  console.time('CONSTRUCT - Ksurf')
   let pointCount = 0
   let sdfCount = 0
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
@@ -590,14 +648,14 @@ function constructViaKsurf (lsdfConfigs, splatBuffer) {
       }
     }
   })
-  console.timeEnd('CONSTRUCT - ksurf')
+  console.timeEnd('CONSTRUCT - Ksurf')
   console.log('pointCount: ' + pointCount)
   console.log('sdfCount: ' + sdfCount)
   console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
 }
 
 function constructViaLoct (lsdfConfigs, splatBuffer) {
-  console.time('CONSTRUCT')
+  console.time('CONSTRUCT - Loct')
   let pointCount = 0
   let sdfCount = 0
   lsdfConfigs.forEach((lsdfConfig, lsdfConfigIndex) => {
@@ -681,7 +739,7 @@ function constructViaLoct (lsdfConfigs, splatBuffer) {
     }
     refineLoctTree({loctTree, maxDepth: settings.maxDepth, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
   })
-  console.timeEnd('CONSTRUCT')
+  console.timeEnd('CONSTRUCT - Loct')
   console.log('pointCount: ' + pointCount)
   console.log('sdfCount: ' + sdfCount)
   console.log('sdfCount/pointCount: ' + (sdfCount / pointCount))
