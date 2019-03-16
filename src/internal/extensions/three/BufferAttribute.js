@@ -66,6 +66,15 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
     })
   }
 
+  upushVector3 (...vector3s) {
+    for (let i = 0; i < vector3s.length; ++i) {
+      const vector3 = vector3s[i]
+      this.array[this.indexCurrent++] = vector3.x
+      this.array[this.indexCurrent++] = vector3.y
+      this.array[this.indexCurrent++] = vector3.z
+    }
+  }
+
   pushVector3 (...vector3s) {
     // return pushBase(this, 3, 'pushVector3', vector3s, (vector3) => {
     //   this.array[this.indexCurrent++] = vector3.x
@@ -74,12 +83,7 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
     // })
 
     this.padSize(this.countCurrent + vector3s.length)
-    for (let i = 0; i < vector3s.length; ++i) {
-      const vector3 = vector3s[i]
-      this.array[this.indexCurrent++] = vector3.x
-      this.array[this.indexCurrent++] = vector3.y
-      this.array[this.indexCurrent++] = vector3.z
-    }
+    this.upushVector3(...vector3s)
   }
 
   pushVector3proto (vector3) {
