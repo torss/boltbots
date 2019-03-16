@@ -6,6 +6,7 @@ import {BufferAttributeExt, BufferAttributeExtIndex} from '../extensions'
 export function conscepterTest (vueInstance, scene, camera, material, renderer, preAnimateFuncs) {
   const bufferSet = new BufferSet()
   testConstruct(bufferSet)
+  for (let i = 0; i < 2; ++i) testConstruct(new BufferSet()) // Timer test
   const mesh = new THREE.Mesh(bufferSet.fitSize().createGeometry(), material)
   scene.add(mesh)
   const material2 = new THREE.MeshStandardMaterial({
@@ -56,7 +57,8 @@ class BufferSet {
 }
 
 function testConstruct (bufferSet) {
-  const csBox = new CsBox(undefined, new THREE.Vector3(0.5, 0.25, 0.5))
+  console.time('testConstruct')
+  const csBox = new CsBox(undefined, new THREE.Vector3(0.3, 0.25, 0.4))
   // csBox.rotation.makeRotationFromEuler(new THREE.Euler(0.25 * Math.PI, 0.25 * Math.PI, 0.25 * Math.PI, 'XYZ'))
   // csBox.rotation.makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 1).normalize(), 0.5 * Math.PI))
   function attachRectRoof (csQuad, flip = false, distance = 1, offset = 0) {
@@ -65,11 +67,26 @@ function testConstruct (bufferSet) {
     csQuad.visible = false
     return csRectRoof
   }
+  function attachCylinder (base, len = 1, radius0 = 0.5, radius1 = undefined) {
+    const csAttSet = new CsAttSet(base)
+    const csAttRel = new CsAttRel(csAttSet)
+    for (const point of base.points) {
+      csAttRel.position.addScaledVector(point, 1 / base.points.length)
+    }
+    const csCylinder = new CsCylinder(csAttRel, len, radius0, radius1)
+    csCylinder.circs[0].visible = false
+    csAttRel.attachment = csCylinder
+    csAttSet.attachments.push(csAttRel)
+    base.attachment = csAttSet
+    return csCylinder
+  }
   // attachRectRoof(attachRectRoof(csBox.quads[0]).quads[0], true, 0.25)
   // attachRectRoof(csBox.quads[2], true, 0.25)
-  attachRectRoof(attachRectRoof(csBox.quads[0], false, 0.5, -0.25).quads[1], false, 0.1)
+  attachRectRoof(attachRectRoof(csBox.quads[0], false, 0.3, -0.2).quads[1], false, 0.05, -0.25)
   attachRectRoof(csBox.quads[1], false, 0.25, 0.5)
+  attachCylinder(csBox.quads[2], 0.2, 0.25, 0.15)
   csBox.addToBufferSet(bufferSet)
+  console.timeEnd('testConstruct')
 }
 
 function addQuad ({index, position, normal, color}, n0, p0, p1, p2, p3) {
@@ -79,6 +96,14 @@ function addQuad ({index, position, normal, color}, n0, p0, p1, p2, p3) {
   const testColor = new THREE.Vector3(1, 0, 0)
   color.upushVector3(testColor, testColor, testColor, testColor)
 }
+
+// function addQuadBent ({index, position, normal, color}, n0, n1, n2, n3, p0, p1, p2, p3) {
+//   index.pushRelative(0, 1, 2, 1, 3, 2) // TODO upushRelative
+//   position.upushVector3(p0, p1, p2, p3)
+//   normal.upushVector3(n0, n1, n2, n3)
+//   const testColor = new THREE.Vector3(1, 0, 0)
+//   color.upushVector3(testColor, testColor, testColor, testColor)
+// }
 
 function addTri ({index, position, normal, color}, n0, p0, p1, p2) {
   index.pushRelative(0, 1, 2) // TODO upushRelative
@@ -90,10 +115,10 @@ function addTri ({index, position, normal, color}, n0, p0, p1, p2) {
 
 class CsQuad {
   constructor (points, normal) {
-    this.points = points
-    this.normal = normal
     this.visible = true
     this.attachment = undefined
+    this.normal = normal
+    this.points = points
   }
 
   addToBufferSet (bufferSet) {
@@ -101,16 +126,16 @@ class CsQuad {
   }
 
   addAttachmentToBufferSet (bufferSet) {
-    if (this.attachment) this.attachment.addToBufferSet(bufferSet, this)
+    if (this.attachment) this.attachment.addToBufferSet(bufferSet)
   }
 }
 
 class CsTri {
   constructor (points, normal) {
-    this.points = points
-    this.normal = normal
     this.visible = true
     this.attachment = undefined
+    this.normal = normal
+    this.points = points
   }
 
   addToBufferSet (bufferSet) {
@@ -118,7 +143,80 @@ class CsTri {
   }
 
   addAttachmentToBufferSet (bufferSet) {
-    if (this.attachment) this.attachment.addToBufferSet(bufferSet, this)
+    if (this.attachment) this.attachment.addToBufferSet(bufferSet)
+  }
+}
+
+function genCirclePoints (segments) {
+  const step = 2 * Math.PI / segments
+  const result = []
+  for (let i = 0, j = 0; j < segments; i += step, ++j) {
+    result.push(new THREE.Vector3(Math.cos(i), Math.sin(i), 0))
+  }
+  return result
+}
+
+class CsCirc {
+  constructor (center, radius, normal) {
+    this.visible = true
+    this.attachment = undefined
+    this.normal = normal
+    this.center = center
+    this.radius = radius
+  }
+
+  get vertexCount () {
+    return 32 * 3 // ! TODO LOD & properly reuse vertices via index
+  }
+
+  addToBufferSet (bufferSet) {
+    const segments = 32 // ! TODO LOD
+    const step = 2 * Math.PI / segments
+    const cur = new THREE.Vector3()
+    const prev = new THREE.Vector3()
+    for (let i = 0, j = 0; j <= segments; i += step, ++j) {
+      cur.copy(this.center)
+      // ! TODO rotation
+      cur.x += Math.cos(i) * this.radius
+      cur.z += Math.sin(i) * this.radius
+      if (i > 0) addTri(bufferSet, this.normal, this.center, cur, prev) // ! TODO properly reuse vertices via index
+      prev.copy(cur)
+    }
+  }
+
+  addAttachmentToBufferSet (bufferSet) {
+    if (this.attachment) this.attachment.addToBufferSet(bufferSet)
+  }
+}
+
+class CsAttSet {
+  constructor (base) {
+    this.base = base
+    this.attachments = []
+  }
+
+  get normal () {
+    return this.base.normal
+  }
+
+  addToBufferSet (bufferSet) {
+    for (const attachment of this.attachments) attachment.addToBufferSet(bufferSet)
+  }
+}
+
+class CsAttRel {
+  constructor (base, position = new THREE.Vector3(), attachment = undefined) {
+    this.base = base
+    this.attachment = attachment
+    this.position = position
+  }
+
+  get normal () {
+    return this.base.normal
+  }
+
+  addToBufferSet (bufferSet) {
+    this.attachment.addToBufferSet(bufferSet)
   }
 }
 
@@ -210,7 +308,7 @@ class CsRectRoof {
     ]
   }
 
-  addToBufferSet (bufferSet, csQuad) {
+  addToBufferSet (bufferSet) {
     let quadCount = 0
     let triCount = 0
     for (let i = 0; i < 2; ++i) {
@@ -227,10 +325,67 @@ class CsRectRoof {
       this.quads[i].addAttachmentToBufferSet(bufferSet)
       this.tris[i].addAttachmentToBufferSet(bufferSet)
     }
-    // addQuad(bufferSet, new THREE.Vector3().crossVectors(span0, span1).normalize(), p0, p1, m0, m1)
-    // addQuad(bufferSet, new THREE.Vector3().crossVectors(span2, span3).normalize(), m0, m1, p2, p3)
-    // const n1 = new THREE.Vector3().crossVectors(span1, span3).normalize()
-    // addTri(bufferSet, n1, p0, m0, p2)
-    // addTri(bufferSet, n1.negate(), p3, m1, p1)
+  }
+}
+
+class CsCylinder {
+  // ! TODO
+  constructor (base, len = 1, radius0 = 0.5, radius1 = undefined) {
+    this.base = base
+    this.len = len
+    this.radius0 = radius0
+    this.radius1 = typeof radius1 === 'number' ? radius1 : radius0
+    this.computeFaces(base)
+  }
+
+  computeFaces (base) {
+    // ! TODO normals
+    this.circs = [
+      new CsCirc(base.position.clone(), this.radius0, new THREE.Vector3(0, -1, 0)),
+      new CsCirc(base.position.clone().addScaledVector(base.normal, this.len), this.radius1, new THREE.Vector3(0, +1, 0))
+    ]
+    // ! TODO lateral surface
+  }
+
+  addToBufferSet (bufferSet) {
+    let vertexCount = 0
+    for (let i = 0; i < 2; ++i) {
+      if (this.circs[i].visible) vertexCount += this.circs[i].vertexCount // TODO define as always equal ?
+    }
+    const segments = 32 // ! TODO LOD
+    vertexCount += segments * 4
+    bufferSet.forEachNonIndex((buffer) => buffer.padSize(buffer.countCurrent + vertexCount)) // TODO index
+
+    const circps = genCirclePoints(segments)
+    const circps0 = []
+    const circps1 = []
+    for (const point of circps) {
+      point.swizzle('x', 'z', 'y')
+      circps0.push(point.clone().multiplyScalar(this.radius0).add(this.base.position))
+      circps1.push(point.clone().multiplyScalar(this.radius1).addScaledVector(this.base.normal, this.len).add(this.base.position))
+    }
+    for (let i = 0; i < segments; ++i) {
+      const j = i > 0 ? i - 1 : segments - 1
+      const n0 = circps[j]
+      const n1 = circps[i]
+      const p0 = circps1[j]
+      const p1 = circps1[i]
+      const p2 = circps0[j]
+      const p3 = circps0[i]
+      // addQuadBent(bufferSet, n0, n1, n0, n1, circps0[i - 1], circps0[i], circps1[i - 1], circps1[i]) // ! TODO properly reuse vertices via index
+      const {index, position, normal, color} = bufferSet
+      index.pushRelative(0, 1, 2, 1, 3, 2) // TODO upushRelative
+      position.upushVector3(p0, p1, p2, p3)
+      normal.upushVector3(n0, n1, n0, n1)
+      const testColor = new THREE.Vector3(1, 0, 0)
+      color.upushVector3(testColor, testColor, testColor, testColor)
+    }
+
+    for (let i = 0; i < 2; ++i) {
+      if (this.circs[i].visible) this.circs[i].addToBufferSet(bufferSet)
+    }
+    for (let i = 0; i < 2; ++i) {
+      this.circs[i].addAttachmentToBufferSet(bufferSet)
+    }
   }
 }
