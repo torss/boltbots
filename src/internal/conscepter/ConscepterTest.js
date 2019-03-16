@@ -17,8 +17,10 @@ export function conscepterTest (vueInstance, scene, camera, material, renderer, 
     envMap: material.envMap,
     envMapIntensity: 1
   })
-  const meshWire = new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry), material2)
-  scene.add(meshWire)
+  // const meshWire = new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry), material2)
+  // scene.add(meshWire)
+  const normalHelper = new THREE.VertexNormalsHelper(mesh, 0.05)
+  scene.add(normalHelper)
 }
 
 class BufferSet {
@@ -70,8 +72,15 @@ function testConstruct (bufferSet) {
   function attachCylinder (base, len = 1, radius0 = 0.5, radius1 = undefined) {
     const csAttSet = new CsAttSet(base)
     const csAttRel = new CsAttRel(csAttSet)
-    for (const point of base.points) {
-      csAttRel.position.addScaledVector(point, 1 / base.points.length)
+    if (base instanceof CsCirc) {
+      csAttRel.position.copy(base.center)
+      if (base.radius === radius0) {
+        base.visible = false
+      }
+    } else {
+      for (const point of base.points) {
+        csAttRel.position.addScaledVector(point, 1 / base.points.length)
+      }
     }
     const csCylinder = new CsCylinder(csAttRel, len, radius0, radius1)
     csCylinder.circs[0].visible = false
@@ -84,7 +93,7 @@ function testConstruct (bufferSet) {
   // attachRectRoof(csBox.quads[2], true, 0.25)
   attachRectRoof(attachRectRoof(csBox.quads[0], false, 0.3, -0.2).quads[1], false, 0.05, -0.25)
   attachRectRoof(csBox.quads[1], false, 0.25, 0.5)
-  attachCylinder(csBox.quads[2], 0.2, 0.25, 0.15)
+  attachCylinder(attachCylinder(attachCylinder(attachCylinder(csBox.quads[2], 0.0125, 0.25, 0.2).circs[1], 0.05, 0.2, 0.25).circs[1], 0.2, 0.25, 0.15).circs[1], 0.0125, 0.14, 0.14)
   csBox.addToBufferSet(bufferSet)
   console.timeEnd('testConstruct')
 }
@@ -363,9 +372,11 @@ class CsCylinder {
     const {index, position, normal, color} = bufferSet
     for (const point of circps) {
       point.swizzle('x', 'z', 'y')
-      const n0 = point // ! TODO rotation
+      // ! TODO rotation
       const p0 = new THREE.Vector3().copy(point).multiplyScalar(this.radius0).add(this.base.position)
       const p1 = new THREE.Vector3().copy(point).multiplyScalar(this.radius1).add(this.base.position).addScaledVector(this.base.normal, this.len)
+      const span0 = new THREE.Vector3().subVectors(p1, p0)
+      const n0 = new THREE.Vector3().crossVectors(span0, point).cross(span0)
       circps0.push(p0)
       circps1.push(p1)
       position.upushVector3(p0)
