@@ -24,7 +24,7 @@ export function init (vueInstance) {
   const width = 1 // vueInstance.$el.clientWidth
   const height = 1 // vueInstance.$el.clientHeight
 
-  const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 100)
+  const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 1000)
   camera.position.set(0, 1, 1)
 
   const scene = new THREE.Scene()
@@ -39,7 +39,7 @@ export function init (vueInstance) {
 
   const sky = new Sky()
   sky.layers.enable(1)
-  sky.scale.setScalar(10)
+  sky.scale.setScalar(990)
   const skyUniforms = sky.material.uniforms
   // skyUniforms.turbidity.value = 10
   // skyUniforms.rayleigh.value = 2
