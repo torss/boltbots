@@ -19,8 +19,8 @@ export function conscepterTest (vueInstance, scene, camera, material, renderer, 
   })
   // const meshWire = new THREE.LineSegments(new THREE.WireframeGeometry(mesh.geometry), material2)
   // scene.add(meshWire)
-  const normalHelper = new THREE.VertexNormalsHelper(mesh, 0.05)
-  scene.add(normalHelper)
+  // const normalHelper = new THREE.VertexNormalsHelper(mesh, 0.05)
+  // scene.add(normalHelper)
 }
 
 class BufferSet {
@@ -83,9 +83,24 @@ function testConstruct (bufferSet) {
       }
     }
     const csCylinder = new CsCylinder(csAttRel, len, radius0, radius1)
+    if (base instanceof CsCirc) {
+      csCylinder.rotation.copy(base.cylinder.rotation)
+    }
     csCylinder.circs[0].visible = false
     csAttRel.attachment = csCylinder
     csAttSet.attachments.push(csAttRel)
+    base.attachment = csAttSet
+    return csCylinder
+  }
+  function attachCylinder2 (base, len = 1, radius0 = 0.5, radius1 = undefined) {
+    const csAttSet = new CsAttSet(base)
+    const csAttCylas = new CsAttCylas(csAttSet, Math.PI * 0.5, 0, 0.85)
+    csAttCylas.normal.set(0, 0, 1)
+    const csCylinder = new CsCylinder(csAttCylas, len, radius0, radius1)
+    csCylinder.rotation.makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.5 * Math.PI))
+    csCylinder.circs[0].visible = false
+    csAttCylas.attachment = csCylinder
+    csAttSet.attachments.push(csAttCylas)
     base.attachment = csAttSet
     return csCylinder
   }
@@ -93,7 +108,11 @@ function testConstruct (bufferSet) {
   // attachRectRoof(csBox.quads[2], true, 0.25)
   attachRectRoof(attachRectRoof(csBox.quads[0], false, 0.3, -0.2).quads[1], false, 0.05, -0.25)
   attachRectRoof(csBox.quads[1], false, 0.25, 0.5)
-  attachCylinder(attachCylinder(attachCylinder(attachCylinder(csBox.quads[2], 0.0125, 0.25, 0.2).circs[1], 0.05, 0.2, 0.25).circs[1], 0.2, 0.25, 0.15).circs[1], 0.0125, 0.14, 0.14)
+  const turretMain = attachCylinder(attachCylinder(attachCylinder(csBox.quads[2], 0.0125, 0.25, 0.2).circs[1], 0.05, 0.2, 0.25).circs[1], 0.2, 0.25, 0.15)
+  attachCylinder(turretMain.circs[1], 0.0125, 0.14, 0.14)
+  const barrelAtt = attachCylinder2(turretMain.latsu, 0.05, 0.05, 0.025)
+  const barrelBase = attachCylinder(barrelAtt.circs[1], 0.4, 0.025, 0.025)
+  attachCylinder(attachCylinder(attachCylinder(barrelBase.circs[1], 0.0125, 0.025, 0.035).circs[1], 0.05, 0.035, 0.035).circs[1], 0.0125, 0.035, 0.025)
   csBox.addToBufferSet(bufferSet)
   console.timeEnd('testConstruct')
 }
@@ -166,17 +185,18 @@ function genCirclePoints (segments) {
 }
 
 class CsCirc {
-  constructor (center, radius, normal) {
+  constructor (cylinder, center, radius, normal) {
     this.visible = true
     this.attachment = undefined
     this.normal = normal
     this.center = center
     this.radius = radius
+    this.cylinder = cylinder
   }
 
-  get vertexCount () {
-    return 32 * 3 // ! TODO LOD & properly reuse vertices via index
-  }
+  // get vertexCount () {
+  //   return 32 * 3 // ! TODO LOD & properly reuse vertices via index
+  // }
 
   addToBufferSet (bufferSet, circpsx) {
     const {index, position, normal, color} = bufferSet
@@ -225,6 +245,28 @@ class CsAttRel {
 
   get normal () {
     return this.base.normal
+  }
+
+  addToBufferSet (bufferSet) {
+    this.attachment.addToBufferSet(bufferSet)
+  }
+}
+
+class CsAttCylas {
+  constructor (base, rotation = 0, offset = 0, radiusMod = 1, attachment = undefined) {
+    this.base = base
+    this.attachment = attachment
+    this.rotation = rotation
+    this.offset = offset
+    this.radiusMod = radiusMod
+    this.position = new THREE.Vector3()
+    this.normal = new THREE.Vector3(1, 0, 0)
+    this.adjust()
+  }
+
+  adjust () {
+    const cylinder = this.base.base.base
+    cylinder.getLasPointAt(this.offset, this.position, this.rotation, this.radiusMod)
   }
 
   addToBufferSet (bufferSet) {
@@ -344,19 +386,37 @@ class CsCylinder {
   // ! TODO
   constructor (base, len = 1, radius0 = 0.5, radius1 = undefined) {
     this.base = base
+    this.rotation = new THREE.Matrix3()
     this.len = len
     this.radius0 = radius0
     this.radius1 = typeof radius1 === 'number' ? radius1 : radius0
     this.computeFaces(base)
   }
 
+  getLasPointAt (offset, positionOut, circRotation, radiusMod) {
+    const cylinder = this
+    offset = offset + 0.5
+    const radius = radiusMod * (cylinder.radius0 * (1 - offset) + cylinder.radius1 * offset)
+    positionOut.x = Math.cos(circRotation) * radius
+    positionOut.y = 0
+    positionOut.z = Math.sin(circRotation) * radius
+    const cbase = cylinder.base
+    positionOut.add(cbase.position).addScaledVector(cbase.normal, cylinder.len * offset)
+  }
+
   computeFaces (base) {
     // ! TODO normals
     this.circs = [
-      new CsCirc(base.position.clone(), this.radius0, new THREE.Vector3(0, -1, 0)),
-      new CsCirc(base.position.clone().addScaledVector(base.normal, this.len), this.radius1, new THREE.Vector3(0, +1, 0))
+      new CsCirc(this, base.position.clone(), this.radius0, base.normal.clone().negate()),
+      new CsCirc(this, base.position.clone().addScaledVector(base.normal, this.len), this.radius1, base.normal.clone())
     ]
-    // ! TODO lateral surface
+    // lateral surface
+    this.latsu = {
+      csType: 'cyLatSu',
+      visible: true,
+      attachment: undefined,
+      base: this
+    }
   }
 
   addToBufferSet (bufferSet) {
@@ -371,12 +431,11 @@ class CsCylinder {
     const circps1 = []
     const {index, position, normal, color} = bufferSet
     for (const point of circps) {
-      point.swizzle('x', 'z', 'y')
-      // ! TODO rotation
+      point.swizzle('x', 'z', 'y').applyMatrix3(this.rotation)
       const p0 = new THREE.Vector3().copy(point).multiplyScalar(this.radius0).add(this.base.position)
       const p1 = new THREE.Vector3().copy(point).multiplyScalar(this.radius1).add(this.base.position).addScaledVector(this.base.normal, this.len)
       const span0 = new THREE.Vector3().subVectors(p1, p0)
-      const n0 = new THREE.Vector3().crossVectors(span0, point).cross(span0)
+      const n0 = new THREE.Vector3().crossVectors(span0, point).cross(span0).normalize()
       circps0.push(p0)
       circps1.push(p1)
       position.upushVector3(p0)
@@ -395,5 +454,6 @@ class CsCylinder {
     if (this.circs[1].visible) this.circs[1].addToBufferSet(bufferSet, circps1)
 
     for (let i = 0; i < 2; ++i) this.circs[i].addAttachmentToBufferSet(bufferSet)
+    if (this.latsu.visible && this.latsu.attachment) this.latsu.attachment.addToBufferSet(bufferSet)
   }
 }
