@@ -2,7 +2,7 @@
 import * as THREE from 'three'
 
 export function testConstruct (bufferSet) {
-  console.time('testConstruct')
+  console.time('testConstruct-0')
   const csBox = new CsBox(undefined, new THREE.Vector3(0.3, 0.25, 0.4))
   // csBox.rotation.makeRotationFromEuler(new THREE.Euler(0.25 * Math.PI, 0.25 * Math.PI, 0.25 * Math.PI, 'XYZ'))
   // csBox.rotation.makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 1).normalize(), 0.5 * Math.PI))
@@ -57,7 +57,7 @@ export function testConstruct (bufferSet) {
   const barrelBase = attachCylinder(barrelAtt.circs[1], 0.4, 0.025, 0.025)
   attachCylinder(attachCylinder(attachCylinder(barrelBase.circs[1], 0.0125, 0.025, 0.035).circs[1], 0.05, 0.035, 0.035).circs[1], 0.0125, 0.035, 0.025)
   csBox.addToBufferSet(bufferSet)
-  console.timeEnd('testConstruct')
+  console.timeEnd('testConstruct-0')
 }
 
 function addQuad ({index, position, normal, color}, n0, p0, p1, p2, p3) {
