@@ -19,6 +19,7 @@
         <q-toolbar-title>
           Bolt Bots
           <div slot="subtitle">Running on Quasar v{{ $q.version }}</div>
+          <div class="toolbarStats" ref="toolbarStats" />
         </q-toolbar-title>
       </q-toolbar>
     </q-layout-header>
@@ -86,4 +87,7 @@ export default {
 
 .logo
   width 50%
+
+.toolbarStats
+  float right
 </style>

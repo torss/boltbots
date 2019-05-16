@@ -2,8 +2,12 @@ import * as THREE from 'three'
 import GLTFLoader from 'three-gltf-loader'
 import {Sky} from './Sky'
 import {OrbitControls} from './OrbitControls'
+import Stats from 'stats.js'
 // import {trackTest} from './TrackTest'
-import {extrudeTest} from './ExtrudeTest'
+// import {extrudeTest} from './ExtrudeTest'
+// import {moctreeTest} from './moctree/MoctreeTest'
+// import {lsdfTest} from './lsdf/LsdfTest'
+import {conscepterTest} from './conscepter/ConscepterTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -20,7 +24,7 @@ export function init (vueInstance) {
   const width = 1 // vueInstance.$el.clientWidth
   const height = 1 // vueInstance.$el.clientHeight
 
-  const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 100)
+  const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 1000)
   camera.position.set(0, 1, 1)
 
   const scene = new THREE.Scene()
@@ -35,7 +39,7 @@ export function init (vueInstance) {
 
   const sky = new Sky()
   sky.layers.enable(1)
-  sky.scale.setScalar(10)
+  sky.scale.setScalar(990)
   const skyUniforms = sky.material.uniforms
   // skyUniforms.turbidity.value = 10
   // skyUniforms.rayleigh.value = 2
@@ -76,23 +80,37 @@ export function init (vueInstance) {
     mesh.scale.multiplyScalar(0.2)
     // scene.add(mesh)
   }, undefined, console.error)
-  extrudeTest(scene, material)
   // trackTest(scene, material)
+  // extrudeTest(scene, material)
+  // moctreeTest(vueInstance, scene, camera, material)
 
-  const renderer = new THREE.WebGLRenderer({canvas, antialias: true})
+  const context = canvas.getContext('webgl2')
+  const renderer = new THREE.WebGLRenderer({canvas, context, antialias: true})
+  renderer.autoClear = false
   renderer.setSize(width, height)
 
-  vueInstance.$resize = ({width, height}) => {
+  const preAnimateFuncs = []
+
+  // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+
+  vueInstance.$onResize.push(({width, height}) => {
     camera.aspect = width / height
     camera.updateProjectionMatrix()
     renderer.setSize(width, height)
-  }
+  })
 
   vueInstance.$isDestroyed = false
+  const stats = new Stats()
+  stats.dom.style.cssText = ''
+  const toolbarStatsParent = vueInstance.$parent.$parent.$parent.$refs.toolbarStats
+  toolbarStatsParent.appendChild(stats.dom)
   function animate () {
     if (vueInstance.$isDestroyed) return
 
     requestAnimationFrame(animate)
+
+    for (const func of preAnimateFuncs) func()
 
     const sunPosTime = new Date().getTime() * 0.00025
     const sunPosTime2 = new Date().getTime() * 0.00015
@@ -106,16 +124,21 @@ export function init (vueInstance) {
     //   mesh.rotation.y += 0.02
     // }
 
+    renderer.clear()
     renderer.render(scene, camera)
+
+    stats.update()
   }
   animate()
 
-  vueInstance.$deinit = () => {
+  vueInstance.$deinit.push(() => {
     vueInstance.$isDestroyed = true
+    toolbarStatsParent.removeChild(stats.dom)
+    controls.dispose()
     if (mesh) {
       mesh.geometry.dispose()
       mesh.material.dispose()
     }
     renderer.dispose()
-  }
+  })
 }
