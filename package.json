@@ -6,6 +6,7 @@
   "cordovaId": "org.cordova.quasar.app",
   "author": "torss <37229901+torss@users.noreply.github.com>",
   "private": true,
+  "license": "MPL-2.0",
   "scripts": {
     "lint": "eslint --ext .js,.vue src",
     "test": "echo \"No test specified\" && exit 0"
