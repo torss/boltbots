@@ -7,7 +7,8 @@ import Stats from 'stats.js'
 // import {extrudeTest} from './ExtrudeTest'
 // import {moctreeTest} from './moctree/MoctreeTest'
 // import {lsdfTest} from './lsdf/LsdfTest'
-import {conscepterTest} from './conscepter/ConscepterTest'
+// import {conscepterTest} from './conscepter/ConscepterTest'
+import {tvoxelTest} from './tvoxel/TvoxelTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -92,7 +93,8 @@ export function init (vueInstance) {
   const preAnimateFuncs = []
 
   // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
-  conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  // conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  tvoxelTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
 
   vueInstance.$onResize.push(({width, height}) => {
     camera.aspect = width / height
