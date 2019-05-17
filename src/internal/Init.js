@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import GLTFLoader from 'three-gltf-loader'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { Sky } from './Sky'
 import { OrbitControls } from './OrbitControls'
 import Stats from 'stats.js'
