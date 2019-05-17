@@ -8,7 +8,7 @@ import Stats from 'stats.js'
 // import {moctreeTest} from './moctree/MoctreeTest'
 // import {lsdfTest} from './lsdf/LsdfTest'
 // import {conscepterTest} from './conscepter/ConscepterTest'
-import { tvoxelTest } from './tvoxel/TvoxelTest'
+// import { tvoxelTest } from './tvoxel/TvoxelTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -27,6 +27,7 @@ export function init (vueInstance) {
 
   const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 1000)
   camera.position.set(0, 1, 1)
+  // camera.up.set(0, 0, 1) // Z up
 
   const scene = new THREE.Scene()
 
@@ -73,8 +74,20 @@ export function init (vueInstance) {
     roughness: 0.20,
     envMap: envCubeCamera.renderTarget.texture
   })
+  const material2 = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.20,
+    roughness: 0.80,
+    envMap: envCubeCamera.renderTarget.texture
+  })
   let mesh
   const gltfLoader = new GLTFLoader()
+  gltfLoader.load('../statics/models/TestCube.glb', (gltf) => {
+    gltf.scene.traverseVisible(obj => {
+      if (obj.isMesh) obj.material = obj.name.endsWith('label') ? material : material2
+    })
+    scene.add(gltf.scene)
+  }, undefined, console.error)
   gltfLoader.load('../statics/DeltaArrow.glb', (gltf) => {
     mesh = gltf.scene.children[0]
     mesh.material = material
@@ -94,7 +107,7 @@ export function init (vueInstance) {
 
   // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
   // conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
-  tvoxelTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  // tvoxelTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
 
   vueInstance.$onResize.push(({ width, height }) => {
     camera.aspect = width / height
