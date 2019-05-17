@@ -19,9 +19,9 @@ THREE.Vector3.prototype.multiplyScalars = function (x, y, z) {
 }
 
 THREE.Vector3.prototype.applyFunction = function (func) {
-  this.x = func({vector: this, value: this.x, axis: 'x', index: 0})
-  this.y = func({vector: this, value: this.y, axis: 'y', index: 1})
-  this.z = func({vector: this, value: this.z, axis: 'z', index: 2})
+  this.x = func({ vector: this, value: this.x, axis: 'x', index: 0 })
+  this.y = func({ vector: this, value: this.y, axis: 'y', index: 1 })
+  this.z = func({ vector: this, value: this.z, axis: 'z', index: 2 })
   return this
 }
 

@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
 import '../extensions/three'
-import {BufferSet} from './BufferSet'
-import {createVoxdar, modVoxdar, voxdarSideLength, meshVoxdar} from '.'
-import {surfaceNets} from './SurfaceNets'
+import { BufferSet } from './BufferSet'
+import { createVoxdar, modVoxdar, voxdarSideLength, meshVoxdar } from '.'
+import { surfaceNets } from './SurfaceNets'
 
 function testConstruct2 (scene) {
   const res = 14

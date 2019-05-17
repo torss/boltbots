@@ -60,7 +60,7 @@ export function testConstruct (bufferSet) {
   console.timeEnd('testConstruct-0')
 }
 
-function addQuad ({index, position, normal, color}, n0, p0, p1, p2, p3) {
+function addQuad ({ index, position, normal, color }, n0, p0, p1, p2, p3) {
   index.pushRelative(0, 1, 2, 1, 3, 2) // TODO upushRelative
   position.upushVector3(p0, p1, p2, p3)
   normal.upushVector3(n0, n0, n0, n0)
@@ -76,7 +76,7 @@ function addQuad ({index, position, normal, color}, n0, p0, p1, p2, p3) {
 //   color.upushVector3(testColor, testColor, testColor, testColor)
 // }
 
-function addTri ({index, position, normal, color}, n0, p0, p1, p2) {
+function addTri ({ index, position, normal, color }, n0, p0, p1, p2) {
   index.pushRelative(0, 1, 2) // TODO upushRelative
   position.upushVector3(p0, p1, p2)
   normal.upushVector3(n0, n0, n0)
@@ -142,7 +142,7 @@ class CsCirc {
   // }
 
   addToBufferSet (bufferSet, circpsx) {
-    const {index, position, normal, color} = bufferSet
+    const { index, position, normal, color } = bufferSet
     const testColor = new THREE.Vector3(1, 0, 0)
     position.upushVector3(this.center)
     normal.upushVector3(this.normal)
@@ -372,7 +372,7 @@ class CsCylinder {
     const circps = genCirclePoints(segments)
     const circps0 = []
     const circps1 = []
-    const {index, position, normal, color} = bufferSet
+    const { index, position, normal, color } = bufferSet
     for (const point of circps) {
       point.swizzle('x', 'z', 'y').applyMatrix3(this.rotation)
       const p0 = new THREE.Vector3().copy(point).multiplyScalar(this.radius0).add(this.base.position)

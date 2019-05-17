@@ -1,4 +1,4 @@
-import {CsCipts} from './CsCipts'
+import { CsCipts } from './CsCipts'
 
 export class CsBuf {
   constructor (bufferSets) {

@@ -125,7 +125,7 @@ const meshVoxdarImpl = wrapXyzIter(voxdarSideLength, function meshVoxdarBody (po
   }
   const vertexCount = 4 * faceCount
   bufferSet.forEachNonIndex((buffer) => buffer.padSize(buffer.countCurrent + vertexCount)) // TODO index
-  const {index, position, normal, color} = bufferSet
+  const { index, position, normal, color } = bufferSet
   for (let i = 0; i < 6; ++i) {
     if (!drawFace[i]) continue
     const meshFace = meshFaces[i]

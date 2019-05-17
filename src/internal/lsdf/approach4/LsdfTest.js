@@ -2,11 +2,11 @@
 import * as THREE from 'three'
 import vertexShader from './sample.vert.glsl'
 import fragmentShader from './sample.frag.glsl'
-import {moctCubeSides, moctOctants} from '../../moctree'
-import {BufferAttributeExtIndex, BufferAttributeExt} from '../../extensions'
+import { moctCubeSides, moctOctants } from '../../moctree'
+import { BufferAttributeExtIndex, BufferAttributeExt } from '../../extensions'
 import '../../extensions/three/Vector3'
-import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
-import {LoctTree} from './LoctTree'
+import { lsdfOpTypes, initTestLsdfConfigs } from '../LsdfOpType'
+import { LoctTree } from './LoctTree'
 
 export function lsdfTest (vueInstance, scene, camera, materialParam) {
   const material = new THREE.RawShaderMaterial({
@@ -121,7 +121,7 @@ function createCubeGeometry (material) {
       }
       ++boxCount
     }
-    refineLoctTree({loctTree, maxDepth: 6, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
+    refineLoctTree({ loctTree, maxDepth: 6, sdfEpsilon: 0, sdfFunc, postSplitFunc }) // sdfEpsilon: 0.000625
   })
   console.log('boxCount: ' + boxCount)
 
@@ -182,7 +182,7 @@ function constructNaiveSdfFunc (lsdfConfig) {
   return (position) => evaluate(position, lsdfConfig)
 }
 
-function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc}) {
+function refineLoctTree ({ loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc }) {
   // if (!leafFunc) leafFunc = (loctNode, loctNodeOrigin) => {}
   if (!postSplitFunc) postSplitFunc = (loctNode, loctNodeOrigin) => {}
   refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree.tln, loctTree.origin.clone())
@@ -325,5 +325,5 @@ function initTestTextureFromLsdfConfigs (lsdfConfigs) {
   }
   const texture = new THREE.DataTexture(data, textureSize.x, textureSize.y, THREE.RGBAFormat, THREE.FloatType)
   texture.needsUpdate = true
-  return {texture, textureSize}
+  return { texture, textureSize }
 }

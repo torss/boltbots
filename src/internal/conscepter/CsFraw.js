@@ -116,7 +116,7 @@ export class CsFraw {
     this.edges = []
     this.corners = []
     this.faces = []
-    const {edges, corners, faces} = this
+    const { edges, corners, faces } = this
     for (let i = 0; i < 12; ++i) edges.push(new CsEdg())
     for (let i = 0; i < 8; ++i) corners.push(new CsCor())
     for (let i = 0; i < 6; ++i) faces.push(new CsFac())
@@ -126,8 +126,8 @@ export class CsFraw {
   }
 
   testConstruct (csBuf) {
-    const {bufferSet} = csBuf
-    const {index, position, normal, color} = bufferSet
+    const { bufferSet } = csBuf
+    const { index, position, normal, color } = bufferSet
 
     const vertexCount = 4 * this.faces.length
     bufferSet.forEachNonIndex((buffer) => buffer.padSize(buffer.countCurrent + vertexCount)) // TODO index

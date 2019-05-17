@@ -5,9 +5,9 @@
  */
 
 import * as THREE from 'three'
-import {MoctNode} from './MoctNode'
-import {MoctLevel} from './MoctLevel'
-import {MoctOctant} from './MoctOctant'
+import { MoctNode } from './MoctNode'
+import { MoctLevel } from './MoctLevel'
+import { MoctOctant } from './MoctOctant'
 
 /**
   * Primary Moctree control structure

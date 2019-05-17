@@ -1,4 +1,4 @@
-import {moctCubeSides} from '../MoctCubeSide'
+import { moctCubeSides } from '../MoctCubeSide'
 
 export class CubeShape {
   meshNode (moctNode, origin, indices, positions, normals) {

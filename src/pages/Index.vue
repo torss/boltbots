@@ -1,14 +1,14 @@
 <template>
   <q-page class="page flex flex-row">
     <div class="canvas-container">
-      <q-resize-observable @resize="onResize" />
+      <q-resize-observer @resize="onResize" />
       <canvas ref="canvas" class="canvas" @mousemove="onMousemove" @mousedown="onMousedown" />
     </div>
   </q-page>
 </template>
 
 <script>
-import {init} from '../internal/Init'
+import { init } from '../internal/Init'
 
 export default {
   name: 'PageIndex',

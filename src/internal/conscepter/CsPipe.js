@@ -67,8 +67,8 @@ export class CsPipe {
   }
 
   compCircleBase (csBuf) {
-    const {curSegments} = this
-    const {ciptsBase, ciptsTmp0, ciptsTmp1, ciptsTmp2} = csBuf
+    const { curSegments } = this
+    const { ciptsBase, ciptsTmp0, ciptsTmp1, ciptsTmp2 } = csBuf
     ciptsBase.gen(curSegments)
     ciptsTmp0.resize(curSegments)
     ciptsTmp1.resize(curSegments)
@@ -80,8 +80,8 @@ export class CsPipe {
   }
 
   compCircleBaseRotated (csBuf) {
-    const {curRotation} = this
-    const {ciptsBase, ciptsTmp2} = csBuf
+    const { curRotation } = this
+    const { ciptsBase, ciptsTmp2 } = csBuf
     for (let i = 0; i < ciptsBase.size; ++i) {
       const basePoint = ciptsBase.pts[i]
       ciptsTmp2.pts[i].copy(basePoint).applyMatrix3(curRotation)
@@ -89,8 +89,8 @@ export class CsPipe {
   }
 
   compCirclePoints (csBuf) {
-    const {curPosition, curRadius} = this
-    const {ciptsTmp1, ciptsTmp2} = csBuf
+    const { curPosition, curRadius } = this
+    const { ciptsTmp1, ciptsTmp2 } = csBuf
     for (let i = 0; i < ciptsTmp2.size; ++i) {
       const basePoint = ciptsTmp2.pts[i]
       ciptsTmp1.pts[i].copy(basePoint).multiplyScalar(curRadius).add(curPosition)
@@ -98,8 +98,8 @@ export class CsPipe {
   }
 
   constructLateralFaces (csBuf) {
-    const {ciptsTmp0, ciptsTmp1, ciptsTmp2, bufferSet} = csBuf
-    const {index, position, normal, color} = bufferSet
+    const { ciptsTmp0, ciptsTmp1, ciptsTmp2, bufferSet } = csBuf
+    const { index, position, normal, color } = bufferSet
 
     const segments = ciptsTmp1.size
     const vertexCount = segments * 4

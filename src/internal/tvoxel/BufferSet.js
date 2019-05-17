@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import {BufferAttributeExt, BufferAttributeExtIndex} from '../extensions'
+import { BufferAttributeExt, BufferAttributeExtIndex } from '../extensions'
 
 export class BufferSet {
   constructor () {

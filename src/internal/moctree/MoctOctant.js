@@ -5,7 +5,7 @@
  */
 
 import * as THREE from 'three'
-import {MoctCubeSide} from './MoctCubeSide'
+import { MoctCubeSide } from './MoctCubeSide'
 
 export const moctOctants = []
 

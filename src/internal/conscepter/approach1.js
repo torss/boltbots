@@ -1,8 +1,8 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
-import {CsBuf} from './CsBuf'
-import {CsPipe, CsPipeCmd} from './CsPipe'
-import {CsFraw} from './CsFraw'
+import { CsBuf } from './CsBuf'
+import { CsPipe, CsPipeCmd } from './CsPipe'
+import { CsFraw } from './CsFraw'
 
 export function testConstruct (bufferSet) {
   testConstruct2(bufferSet)
@@ -10,7 +10,7 @@ export function testConstruct (bufferSet) {
 
 export function testConstruct1 (bufferSet) {
   console.time('testConstruct-1-1')
-  const csBuf = new CsBuf({default: bufferSet})
+  const csBuf = new CsBuf({ default: bufferSet })
   const rotation = new THREE.Matrix3().makeRotationFromQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.5 * Math.PI))
   new CsPipe(128).runCmds(csBuf, [
     new CsPipeCmd().makeBase(undefined, rotation),
@@ -33,7 +33,7 @@ export function testConstruct1 (bufferSet) {
 
 export function testConstruct2 (bufferSet) {
   console.time('testConstruct-1-2')
-  const csBuf = new CsBuf({default: bufferSet})
+  const csBuf = new CsBuf({ default: bufferSet })
   new CsFraw().testConstruct(csBuf) // TODO
   console.timeEnd('testConstruct-1-2')
 }

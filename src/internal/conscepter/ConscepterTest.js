@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 import * as THREE from 'three'
 import '../extensions/three'
-import {BufferSet} from './BufferSet'
+import { BufferSet } from './BufferSet'
 // import {testConstruct} from './approach0'
-import {testConstruct} from './approach1'
+import { testConstruct } from './approach1'
 
 export function conscepterTest (vueInstance, scene, camera, material, renderer, preAnimateFuncs) {
   const bufferSet = new BufferSet()

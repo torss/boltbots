@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import {RrtGpu} from './RrtGpu'
+import { RrtGpu } from './RrtGpu'
 import vertexShader from './sdfops.vert.glsl'
 import fragmentShader from './sdfops.frag.glsl'
-import {lsdfOpTypes} from '../LsdfOpType'
+import { lsdfOpTypes } from '../LsdfOpType'
 
 export class LsdfGpu extends RrtGpu {
   constructor (renderer, renderTargetSize) {

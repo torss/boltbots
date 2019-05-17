@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import '../extensions/Number'
 import '../extensions/three/Vector3'
 import * as SimplexNoise from 'simplex-noise'
-import {Moctree, MoctOctant, MoctMesher, shapeSingletons} from '.'
+import { Moctree, MoctOctant, MoctMesher, shapeSingletons } from '.'
 
 export function moctreeTest (vueInstance, scene, camera, materialParam) {
   const moctree = new Moctree()
@@ -37,7 +37,7 @@ class MoctreeTestMesher {
   }
 
   remesh () {
-    const {scene, moctree, material, material2} = this
+    const { scene, moctree, material, material2 } = this
     console.time('meshMoctree')
     const geometry = new MoctMesher(moctree).mesh()
     console.timeEnd('meshMoctree')
@@ -252,9 +252,9 @@ class MoctRaycast {
       moctNode = this.moctree.tln
       nodeOrigin = this.moctree.origin
     }
-    if (moctNode.isLeaf) return acceptWhen(moctNode) ? {ray, moctNode, nodeOrigin, axisChain: [], rayOriginChain: [], nodeOriginChain: [], sidesChain: [], distancesChain: [], orderChain: []} : undefined
-    const sides = new THREE.Vector3().subVectors(ray.origin, nodeOrigin).applyFunction(({value}) => value >= 0)
-    const distances = new THREE.Vector3().applyFunction(({axis}) => {
+    if (moctNode.isLeaf) return acceptWhen(moctNode) ? { ray, moctNode, nodeOrigin, axisChain: [], rayOriginChain: [], nodeOriginChain: [], sidesChain: [], distancesChain: [], orderChain: [] } : undefined
+    const sides = new THREE.Vector3().subVectors(ray.origin, nodeOrigin).applyFunction(({ value }) => value >= 0)
+    const distances = new THREE.Vector3().applyFunction(({ axis }) => {
       if (sides[axis] === (ray.direction[axis] < 0)) {
         const normal = new THREE.Vector3()
         normal[axis] = -1

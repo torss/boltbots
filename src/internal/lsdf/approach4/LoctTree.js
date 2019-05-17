@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import {LoctNode} from './LoctNode'
-import {LoctLevel} from './LoctLevel'
+import { LoctNode } from './LoctNode'
+import { LoctLevel } from './LoctLevel'
 
 export class LoctTree {
   constructor () {
