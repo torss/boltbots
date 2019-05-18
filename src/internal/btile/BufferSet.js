@@ -6,7 +6,7 @@ export class BufferSet {
     this.index = new BufferAttributeExtIndex()
     this.position = new BufferAttributeExt(new Float32Array(), 3)
     this.normal = new BufferAttributeExt(new Float32Array(), 3)
-    this.color = new BufferAttributeExt(new Float32Array(), 3)
+    this.color = new BufferAttributeExt(new Float32Array(), 4)
   }
 
   forEachNonIndex (func) {

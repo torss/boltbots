@@ -23,6 +23,7 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     const tiTy = new TiTy(new TiSh(gltf.scene))
     const tiMa = new TiMa(new Dim(copyDim, undefined, 4))
     tiMa.materials.default = material
+    material.vertexColors = THREE.VertexColors
     tiMa.dim.iterate((pos, i) => {
       if (pos.y > pos.x) return
       tiMa.tiEns[i] = new TiEn(tiTy)

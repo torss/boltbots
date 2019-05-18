@@ -55,9 +55,10 @@ export class TiMa {
 function appendGeom (toBufferSet, posAdd, frGeometry) {
   copyAppendMod(frGeometry, toBufferSet, 'position', pos => pos.add(posAdd))
   copyAppendMod(frGeometry, toBufferSet, 'normal')
-  const vertexCount = frGeometry.getAttribute('position').count
-  toBufferSet.color.padSize(toBufferSet.color.countCurrent + vertexCount)
-  for (let i = 0; i < vertexCount; ++i) toBufferSet.color.upushVector3(new THREE.Vector3(1, 0, 0))
+  copyAppendMod(frGeometry, toBufferSet, 'color')
+  // const vertexCount = frGeometry.getAttribute('position').count
+  // toBufferSet.color.padSize(toBufferSet.color.countCurrent + vertexCount)
+  // for (let i = 0; i < vertexCount; ++i) toBufferSet.color.upushVector3(new THREE.Vector3(1, 0, 0))
   toBufferSet.index.pushRelative(...frGeometry.index.array)
 }
 
