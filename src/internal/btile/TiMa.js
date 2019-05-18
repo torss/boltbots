@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { BufferSet } from './BufferSet'
+import { oppositeSideNames } from './Sides'
 
 const defaultMaterial = new THREE.MeshBasicMaterial({
   vertexColors: THREE.VertexColors
@@ -33,10 +34,11 @@ export class TiMa {
       const tiEn = tiEns[i]
       if (!tiEn) return
       const tiSh = tiEn.tiTy.tiSh
-      tiSh.sides.iterate((sideName, shapes) => {
+      tiSh.sides.iterate((sideName, side) => {
         const iterSide = iterSides[sideName]
-        if (iterSide.valid && tiEns[iterSide.i]) return
-        for (const shape of shapes) {
+        const occluded = iterSide.valid && tiEns[iterSide.i] && !tiEns[iterSide.i].tiTy.tiSh.sides[oppositeSideNames[sideName]].partial
+        for (const shape of side.shapes) {
+          if (occluded && !shape.always) continue
           const frGeometry = shape.geometry
           const toBufferSet = this.getBufferSet(shape.materialKey)
           appendGeom(toBufferSet, pos, frGeometry)

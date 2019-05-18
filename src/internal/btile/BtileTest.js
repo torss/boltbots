@@ -9,6 +9,50 @@ import { TiSh } from './TiSh'
 import { TiEn } from './TiEn'
 
 export function btileTest (vueInstance, scene, camera, material, renderer, preAnimateFuncs) {
+  const gltfLoader = new GLTFLoader()
+
+  const tiTys = {}
+  const tiTysList = []
+  const tilePaths = [
+    'Cube',
+    'CubeQuarter'
+  ]
+
+  for (const tilePath of tilePaths) {
+    gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
+      tiTys[tilePath] = new TiTy(new TiSh(gltf.scene))
+      tiTysList.push(tiTys[tilePath])
+
+      if (tiTysList.length === tilePaths.length) {
+        // const tiMa = new TiMa(new Dim(Math.ceil(Math.sqrt(tilePaths.length)), undefined, 1))
+        // tiMa.materials.default = material
+        // tiMa.dim.iterate((pos, i) => {
+        //   const tiTy = tiTysList[i]
+        //   if (!tiTy) return
+        //   tiMa.tiEns[i] = new TiEn(tiTy)
+        // })
+
+        const tiMa = new TiMa(new Dim(16, undefined, 2))
+        tiMa.materials.default = material
+        const tiTyByZ = [
+          tiTys['Cube'],
+          tiTys['CubeQuarter']
+        ]
+        tiMa.dim.iterate((pos, i) => {
+          const tiTy = tiTyByZ[pos.z]
+          if (!tiTy) return
+          tiMa.tiEns[i] = new TiEn(tiTy)
+        })
+
+        for (const mesh of Object.values(tiMa.remesh())) {
+          scene.add(mesh)
+        }
+      }
+    })
+  }
+}
+
+export function btileTestOld (vueInstance, scene, camera, material, renderer, preAnimateFuncs) {
   const material2 = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     metalness: 0.20,
@@ -16,7 +60,7 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     envMap: material.envMap
   })
   const gltfLoader = new GLTFLoader()
-  gltfLoader.load('../statics/models/TestCube.glb', (gltf) => {
+  gltfLoader.load('../statics/models/TestCube(flawed-pos).glb', (gltf) => {
     // // window.scene = gltf.scene
     const copyDim = 3
 

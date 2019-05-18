@@ -18,6 +18,10 @@ export class Sides {
   // }
 }
 
+export const oppositeSideNames = Object.freeze(new Sides(sideName => {
+  return sideName[0] + (sideName[1] === '+' ? '-' : '+')
+}))
+
 // export const nameIsSide = new Sides(true).freeze()
 // export const nameIsSide = sideNames.reduce((obj, side) => {
 //   obj[side] = true
