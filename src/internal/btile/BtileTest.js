@@ -22,33 +22,33 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
       tiTys[tilePath] = new TiTy(new TiSh(gltf.scene))
       tiTysList.push(tiTys[tilePath])
-
-      if (tiTysList.length === tilePaths.length) {
-        // const tiMa = new TiMa(new Dim(Math.ceil(Math.sqrt(tilePaths.length)), undefined, 1))
-        // tiMa.materials.default = material
-        // tiMa.dim.iterate((pos, i) => {
-        //   const tiTy = tiTysList[i]
-        //   if (!tiTy) return
-        //   tiMa.tiEns[i] = new TiEn(tiTy)
-        // })
-
-        const tiMa = new TiMa(new Dim(16))
-        tiMa.materials.default = material
-        const tiTyByZ = [
-          tiTys['Cube'],
-          tiTys['CubeQuarter']
-        ]
-        tiMa.dim.iterate((pos, i) => {
-          const tiTy = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
-          if (!tiTy) return
-          tiMa.tiEns[i] = new TiEn(tiTy)
-        })
-
-        for (const mesh of Object.values(tiMa.remesh())) {
-          scene.add(mesh)
-        }
-      }
     })
+  }
+
+  THREE.DefaultLoadingManager.onLoad = () => {
+    // const tiMa = new TiMa(new Dim(Math.ceil(Math.sqrt(tilePaths.length)), undefined, 1))
+    // tiMa.materials.default = material
+    // tiMa.dim.iterate((pos, i) => {
+    //   const tiTy = tiTysList[i]
+    //   if (!tiTy) return
+    //   tiMa.tiEns[i] = new TiEn(tiTy)
+    // })
+
+    const tiMa = new TiMa(new Dim(16))
+    tiMa.materials.default = material
+    const tiTyByZ = [
+      tiTys['Cube'],
+      tiTys['CubeQuarter']
+    ]
+    tiMa.dim.iterate((pos, i) => {
+      const tiTy = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
+      if (!tiTy) return
+      tiMa.tiEns[i] = new TiEn(tiTy)
+    })
+
+    for (const mesh of Object.values(tiMa.remesh())) {
+      scene.add(mesh)
+    }
   }
 }
 
