@@ -32,14 +32,14 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
         //   tiMa.tiEns[i] = new TiEn(tiTy)
         // })
 
-        const tiMa = new TiMa(new Dim(16, undefined, 2))
+        const tiMa = new TiMa(new Dim(16))
         tiMa.materials.default = material
         const tiTyByZ = [
           tiTys['Cube'],
           tiTys['CubeQuarter']
         ]
         tiMa.dim.iterate((pos, i) => {
-          const tiTy = tiTyByZ[pos.z]
+          const tiTy = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
           if (!tiTy) return
           tiMa.tiEns[i] = new TiEn(tiTy)
         })

@@ -36,7 +36,20 @@ export class TiMa {
       const tiSh = tiEn.tiTy.tiSh
       tiSh.sides.iterate((sideName, side) => {
         const iterSide = iterSides[sideName]
-        const occluded = iterSide.valid && tiEns[iterSide.i] && !tiEns[iterSide.i].tiTy.tiSh.sides[oppositeSideNames[sideName]].partial
+        let occluded
+        if (iterSide.valid && tiEns[iterSide.i]) {
+          const opSide = tiEns[iterSide.i].tiTy.tiSh.sides[oppositeSideNames[sideName]]
+          if (opSide.partialFull) {
+            occluded = false
+          } else {
+            occluded = opSide.partialStart > opSide.partialEnd ||
+              (side.partialStart < side.partialEnd &&
+              side.partialStart >= opSide.partialStart &&
+              side.partialEnd <= opSide.partialEnd)
+          }
+        } else {
+          occluded = false
+        }
         for (const shape of side.shapes) {
           if (occluded && !shape.always) continue
           const frGeometry = shape.geometry
