@@ -192,9 +192,9 @@ function adjustLsdfFragmentShader (material, lsdfTypeTree) {
   for (let i = 0; i < lsdfTypeTree.typeMapIndexMax; ++i) {
     shaderCodePre += 'vec4 tm' + i + ' = texture(typeMap, vec2(vShapeType.x + (' + i + '. * typeMapTexelSize.x), vShapeType.y));\n'
   }
-  window.waw = lsdfTypeTree.lsdfTypeLeaves // FIXME debug only
-  window.shaderCode = shaderCode // FIXME debug only
-  window.shaderCodePre = shaderCodePre // FIXME debug only
+  // window.lsdfTypeLeaves = lsdfTypeTree.lsdfTypeLeaves // debug only
+  // window.shaderCode = shaderCode // debug only
+  // window.shaderCodePre = shaderCodePre // debug only
   material.fragmentShader = fragmentShader.replace('// [LSDF TYPE TARGET] //', shaderCode)
     .replace('// [LSDF PRE TARGET] //', shaderCodePre)
 }
