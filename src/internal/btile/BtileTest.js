@@ -23,14 +23,21 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     vertexColors: THREE.VertexColors
   })
 
-  const light = new THREE.PointLight(0xffffff, 1, 100)
-  light.position.set(-5, 3, -5)
+  // const light = new THREE.PointLight(0xffffff, 1, 100)
+  // light.shadow.camera.near = 0.1 // default 0.5
+  // light.shadow.camera.far = 500 // default
+  // light.position.set(-5, 3, -5)
+  const light = new THREE.DirectionalLight(0xffffff, 1)
+  light.position.set(-5, 2, -5)
   light.castShadow = true // default false
-  light.shadow.mapSize.width = 1024 // default 512
-  light.shadow.mapSize.height = 1024 // default 512
-  light.shadow.camera.near = 0.1 // default 0.5
-  light.shadow.camera.far = 500 // default
+  light.shadow.mapSize.width = 2048 // default 512
+  light.shadow.mapSize.height = 2048 // default 512
+  light.shadow.camera.top = 15
+  light.shadow.camera.left = -15
+  light.shadow.camera.right = 15
   scene.add(light)
+  // const helper = new THREE.CameraHelper(light.shadow.camera)
+  // scene.add(helper)
 
   const gltfLoader = new GLTFLoader()
 
@@ -42,7 +49,8 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     'Wall0',
     'Wall1',
     'Floor0',
-    'ConveyorSingle0'
+    'ConveyorSingle0',
+    'ConveyorDouble0'
   ]
   const dim = new Dim(16)
 
@@ -99,6 +107,8 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
           tiTyKey = 'Wall1'
         } else if (pos.z === 4) {
           tiTyKey = 'ConveyorSingle0'
+        } else if (pos.z === 5) {
+          tiTyKey = 'ConveyorDouble0'
         }
       }
       const tiTy = tiTys[tiTyKey]
