@@ -13,6 +13,25 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
   material.roughness = 0.8
   material.metalness = 0.2
   material.envMapIntensity = 10
+
+  const material2 = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    metalness: 0.90,
+    roughness: 0.20,
+    envMap: material.envMap,
+    envMapIntensity: 1,
+    vertexColors: THREE.VertexColors
+  })
+
+  const light = new THREE.PointLight(0xffffff, 1, 100)
+  light.position.set(-5, 3, -5)
+  light.castShadow = true // default false
+  light.shadow.mapSize.width = 1024 // default 512
+  light.shadow.mapSize.height = 1024 // default 512
+  light.shadow.camera.near = 0.1 // default 0.5
+  light.shadow.camera.far = 500 // default
+  scene.add(light)
+
   const gltfLoader = new GLTFLoader()
 
   const tiTys = {}
@@ -20,9 +39,11 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
   const tilePaths = [
     'Cube',
     'CubeQuarter',
+    'Wall0',
+    'Wall1',
     'Floor0'
   ]
-  const dim = new Dim(8)
+  const dim = new Dim(16)
 
   for (const tilePath of tilePaths) {
     gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
@@ -33,7 +54,11 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
 
   gltfLoader.load('../statics/models/vehicle/TestTank.glb', (gltf) => {
     gltf.scene.traverseVisible(obj => {
-      if (obj.isMesh) obj.material = material
+      if (obj.isMesh) {
+        obj.material = material
+        obj.castShadow = true
+        obj.receiveShadow = true
+      }
     })
     gltf.scene.lookAt(new THREE.Vector3(0, 0, -1))
     gltf.scene.position.y = 1
@@ -46,7 +71,8 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     tiTys['Ground'] = new TiTy(tiTys['Cube'].tiSh)
     tiTys['Ground'].color = new THREE.Vector4(173 / 255, 131 / 255, 83 / 255, 1)
     tiTys['Pavement'] = new TiTy(tiTys['Floor0'].tiSh)
-    tiTys['Pavement'].color = new THREE.Vector4(196 / 255, 196 / 255, 196 / 255, 1)
+    // tiTys['Pavement'].color = new THREE.Vector4(196 / 255, 196 / 255, 196 / 255, 1)
+    tiTys['Pavement'].color = new THREE.Vector4(1, 1, 1, 1)
 
     // const tiMa = new TiMa(new Dim(Math.ceil(Math.sqrt(tilePaths.length)), undefined, 1))
     // tiMa.materials.default = material
@@ -57,19 +83,26 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     // })
 
     const tiMa = new TiMa(dim)
-    tiMa.materials.default = material
+    tiMa.materials.default = material2 // material
     const tiTyByZ = [
-      tiTys['Ground'],
-      tiTys['Pavement']
+      'Ground',
+      'Pavement'
     ]
     tiMa.dim.iterate((pos, i) => {
-      // const tiTy = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
-      const tiTy = tiTyByZ[pos.y]
-      if (!tiTy) return
+      // let tiTyKey = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
+      let tiTyKey = tiTyByZ[pos.y]
+      if (!tiTyKey) return
+      if (tiTyKey === 'Pavement' && (pos.x === 0 || pos.z === 0 || pos.x === dim.x - 1 || pos.z === dim.z - 1)) {
+        // tiTyKey = pos.x !== pos.z ? 'Wall1' : 'Wall0'
+        tiTyKey = 'Wall1'
+      }
+      const tiTy = tiTys[tiTyKey]
       tiMa.tiEns[i] = new TiEn(tiTy)
     })
 
     for (const mesh of Object.values(tiMa.remesh())) {
+      mesh.castShadow = true
+      mesh.receiveShadow = true
       scene.add(mesh)
     }
   }

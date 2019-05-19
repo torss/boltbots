@@ -90,6 +90,7 @@ export function init (vueInstance) {
   const context = canvas.getContext('webgl2')
   const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: true })
   renderer.autoClear = false
+  renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
 
   const preAnimateFuncs = []
