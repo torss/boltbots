@@ -9,6 +9,10 @@ import { TiSh } from './TiSh'
 import { TiEn } from './TiEn'
 
 export function btileTest (vueInstance, scene, camera, material, renderer, preAnimateFuncs) {
+  material.vertexColors = THREE.VertexColors
+  material.roughness = 0.2
+  material.metalness = 0.8
+  material.envMapIntensity = 2
   const gltfLoader = new GLTFLoader()
 
   const tiTys = {}
@@ -24,6 +28,15 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
       tiTysList.push(tiTys[tilePath])
     })
   }
+
+  gltfLoader.load('../statics/models/vehicle/TestTank.glb', (gltf) => {
+    gltf.scene.traverseVisible(obj => {
+      if (obj.isMesh) obj.material = material
+    })
+    gltf.scene.lookAt(new THREE.Vector3(0, 0, -1))
+    gltf.scene.position.y = 1
+    scene.add(gltf.scene)
+  })
 
   THREE.DefaultLoadingManager.onLoad = () => {
     // const tiMa = new TiMa(new Dim(Math.ceil(Math.sqrt(tilePaths.length)), undefined, 1))
