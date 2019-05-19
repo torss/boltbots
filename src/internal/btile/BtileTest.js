@@ -41,7 +41,8 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     'CubeQuarter',
     'Wall0',
     'Wall1',
-    'Floor0'
+    'Floor0',
+    'ConveyorSingle0'
   ]
   const dim = new Dim(16)
 
@@ -92,9 +93,13 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
       // let tiTyKey = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
       let tiTyKey = tiTyByZ[pos.y]
       if (!tiTyKey) return
-      if (tiTyKey === 'Pavement' && (pos.x === 0 || pos.z === 0 || pos.x === dim.x - 1 || pos.z === dim.z - 1)) {
-        // tiTyKey = pos.x !== pos.z ? 'Wall1' : 'Wall0'
-        tiTyKey = 'Wall1'
+      if (tiTyKey === 'Pavement') {
+        if (pos.x === 0 || pos.z === 0 || pos.x === dim.x - 1 || pos.z === dim.z - 1) {
+          // tiTyKey = pos.x !== pos.z ? 'Wall1' : 'Wall0'
+          tiTyKey = 'Wall1'
+        } else if (pos.z === 4) {
+          tiTyKey = 'ConveyorSingle0'
+        }
       }
       const tiTy = tiTys[tiTyKey]
       tiMa.tiEns[i] = new TiEn(tiTy)

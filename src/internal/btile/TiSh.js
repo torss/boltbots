@@ -23,6 +23,7 @@ export class TiSh {
           if (userData.partialEnd > side.partialEnd) side.partialEnd = userData.partialEnd
           const always = !!userData.always
           side.shapes.push({ geometry: obj.geometry, materialKey: 'default', always })
+          return true
         })
         return false
       }
