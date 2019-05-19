@@ -112,7 +112,11 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
         }
       }
       const tiTy = tiTys[tiTyKey]
-      tiMa.tiEns[i] = new TiEn(tiTy)
+      const tiEn = new TiEn(tiTy)
+      tiMa.tiEns[i] = tiEn
+      if (tiTyKey === 'ConveyorSingle0') {
+        tiEn.rotation = ['X+', 'X-', 'Z+', 'Z-'][Math.floor(Math.random() * 4)]
+      }
     })
 
     for (const mesh of Object.values(tiMa.remesh())) {

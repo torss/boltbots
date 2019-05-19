@@ -53,7 +53,7 @@ export class TiMa {
         }
         for (const shape of side.shapes) {
           if (occluded && !shape.always) continue
-          const frGeometry = shape.geometry
+          const frGeometry = shape.obtainGeometry(tiEn.rotation)
           const toBufferSet = this.getBufferSet(shape.materialKey)
           appendGeom(frGeometry, toBufferSet, pos, tiTy.color)
         }
