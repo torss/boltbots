@@ -33,7 +33,8 @@ export class TiMa {
     dim.iterate((pos, i, iterSides) => {
       const tiEn = tiEns[i]
       if (!tiEn) return
-      const tiSh = tiEn.tiTy.tiSh
+      const tiTy = tiEn.tiTy
+      const tiSh = tiTy.tiSh
       tiSh.sides.iterate((sideName, side) => {
         const iterSide = iterSides[sideName]
         let occluded
@@ -54,7 +55,7 @@ export class TiMa {
           if (occluded && !shape.always) continue
           const frGeometry = shape.geometry
           const toBufferSet = this.getBufferSet(shape.materialKey)
-          appendGeom(toBufferSet, pos, frGeometry)
+          appendGeom(frGeometry, toBufferSet, pos, tiTy.color)
         }
       })
     })
@@ -67,13 +68,16 @@ export class TiMa {
   }
 }
 
-function appendGeom (toBufferSet, posAdd, frGeometry) {
+function appendGeom (frGeometry, toBufferSet, posAdd, colorCustom) {
   copyAppendMod(frGeometry, toBufferSet, 'position', pos => pos.add(posAdd))
   copyAppendMod(frGeometry, toBufferSet, 'normal')
-  copyAppendMod(frGeometry, toBufferSet, 'color')
-  // const vertexCount = frGeometry.getAttribute('position').count
-  // toBufferSet.color.padSize(toBufferSet.color.countCurrent + vertexCount)
-  // for (let i = 0; i < vertexCount; ++i) toBufferSet.color.upushVector3(new THREE.Vector3(1, 0, 0))
+  if (!colorCustom) {
+    copyAppendMod(frGeometry, toBufferSet, 'color')
+  } else {
+    const vertexCount = frGeometry.getAttribute('position').count
+    toBufferSet.color.padSize(toBufferSet.color.countCurrent + vertexCount)
+    for (let i = 0; i < vertexCount; ++i) toBufferSet.color.upushVector4(colorCustom)
+  }
   toBufferSet.index.pushRelative(...frGeometry.index.array)
 }
 

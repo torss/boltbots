@@ -10,17 +10,19 @@ import { TiEn } from './TiEn'
 
 export function btileTest (vueInstance, scene, camera, material, renderer, preAnimateFuncs) {
   material.vertexColors = THREE.VertexColors
-  material.roughness = 0.2
-  material.metalness = 0.8
-  material.envMapIntensity = 2
+  material.roughness = 0.8
+  material.metalness = 0.2
+  material.envMapIntensity = 10
   const gltfLoader = new GLTFLoader()
 
   const tiTys = {}
   const tiTysList = []
   const tilePaths = [
     'Cube',
-    'CubeQuarter'
+    'CubeQuarter',
+    'Floor0'
   ]
+  const dim = new Dim(8)
 
   for (const tilePath of tilePaths) {
     gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
@@ -35,10 +37,17 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     })
     gltf.scene.lookAt(new THREE.Vector3(0, 0, -1))
     gltf.scene.position.y = 1
+    gltf.scene.position.x = dim.x / 2
+    gltf.scene.position.z = dim.z / 2
     scene.add(gltf.scene)
   })
 
   THREE.DefaultLoadingManager.onLoad = () => {
+    tiTys['Ground'] = new TiTy(tiTys['Cube'].tiSh)
+    tiTys['Ground'].color = new THREE.Vector4(173 / 255, 131 / 255, 83 / 255, 1)
+    tiTys['Pavement'] = new TiTy(tiTys['Floor0'].tiSh)
+    tiTys['Pavement'].color = new THREE.Vector4(196 / 255, 196 / 255, 196 / 255, 1)
+
     // const tiMa = new TiMa(new Dim(Math.ceil(Math.sqrt(tilePaths.length)), undefined, 1))
     // tiMa.materials.default = material
     // tiMa.dim.iterate((pos, i) => {
@@ -47,14 +56,15 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     //   tiMa.tiEns[i] = new TiEn(tiTy)
     // })
 
-    const tiMa = new TiMa(new Dim(16))
+    const tiMa = new TiMa(dim)
     tiMa.materials.default = material
     const tiTyByZ = [
-      tiTys['Cube'],
-      tiTys['CubeQuarter']
+      tiTys['Ground'],
+      tiTys['Pavement']
     ]
     tiMa.dim.iterate((pos, i) => {
-      const tiTy = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
+      // const tiTy = tiTyByZ[pos.y > pos.x ? pos.y - pos.x : 0]
+      const tiTy = tiTyByZ[pos.y]
       if (!tiTy) return
       tiMa.tiEns[i] = new TiEn(tiTy)
     })
