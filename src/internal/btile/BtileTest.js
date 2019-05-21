@@ -50,7 +50,8 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
     'Wall1',
     'Floor0',
     'ConveyorSingle0',
-    'ConveyorDouble0'
+    'ConveyorDouble0',
+    'ControlTower0'
   ]
   const dim = new Dim(16)
 
@@ -109,6 +110,8 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
           tiTyKey = 'ConveyorSingle0'
         } else if (pos.z === 5) {
           tiTyKey = 'ConveyorDouble0'
+        } else if (pos.x === 3 && pos.z === 3) { // (pos.x === Math.floor(dim.x / 2) && pos.z === 9) {
+          tiTyKey = 'ControlTower0'
         }
       }
       const tiTy = tiTys[tiTyKey]

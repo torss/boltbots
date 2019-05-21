@@ -71,6 +71,9 @@ export class TiMa {
 function appendGeom (frGeometry, toBufferSet, posAdd, colorCustom) {
   copyAppendMod(frGeometry, toBufferSet, 'position', pos => pos.add(posAdd))
   copyAppendMod(frGeometry, toBufferSet, 'normal')
+  if (!colorCustom && frGeometry.getAttribute('color') === undefined) {
+    colorCustom = new THREE.Vector4(1, 1, 1, 1)
+  }
   if (!colorCustom) {
     copyAppendMod(frGeometry, toBufferSet, 'color')
   } else {
