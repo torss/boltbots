@@ -68,3 +68,15 @@ THREE.Vector3.prototype.rsub = function (v) {
   this.z = v.z - this.z
   return this
 }
+
+THREE.Vector3.prototype.iterXyz = function (func) {
+  const { x, y, z } = this
+  for (this.z = 0; this.z < z; ++this.z) {
+    for (this.y = 0; this.y < y; ++this.y) {
+      for (this.x = 0; this.x < x; ++this.x) {
+        func(this)
+      }
+    }
+  }
+  return this
+}

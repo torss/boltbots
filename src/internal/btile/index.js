@@ -1,0 +1,6 @@
+export { Dim } from './Dim'
+export { TiMa } from './TiMa'
+export { TiTy } from './TiTy'
+export { TiSh } from './TiSh'
+export { TiEn } from './TiEn'
+export { btileInit } from './Init'

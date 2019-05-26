@@ -38,4 +38,8 @@ export class Dim extends THREE.Vector3 {
       }
     }
   }
+
+  resolve (pos) {
+    return pos.x + pos.y * this.x + pos.z * this.sq
+  }
 }

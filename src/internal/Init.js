@@ -9,7 +9,7 @@ import Stats from 'stats.js'
 // import {lsdfTest} from './lsdf/LsdfTest'
 // import {conscepterTest} from './conscepter/ConscepterTest'
 // import { tvoxelTest } from './tvoxel/TvoxelTest'
-import { btileTest } from './btile/BtileTest'
+// import { btileTest } from './btile/BtileTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -98,7 +98,7 @@ export function init (vueInstance) {
   // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
   // conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
   // tvoxelTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
-  btileTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  // btileTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
 
   vueInstance.$onResize.push(({ width, height }) => {
     camera.aspect = width / height
@@ -147,4 +147,9 @@ export function init (vueInstance) {
     }
     renderer.dispose()
   })
+
+  return {
+    scene,
+    material
+  }
 }

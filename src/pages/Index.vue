@@ -1,17 +1,22 @@
 <template>
-  <q-page class="page flex flex-row">
+  <q-page class="page flex row">
     <div class="canvas-container">
       <q-resize-observer @resize="onResize" />
       <canvas ref="canvas" class="canvas" @mousemove="onMousemove" @mousedown="onMousedown" />
     </div>
+    <CtrlFooter />
   </q-page>
 </template>
 
 <script>
-import { init } from '../internal/Init'
+import { glos } from '../internal/Glos'
+import CtrlFooter from '../components/CtrlFooter'
 
 export default {
   name: 'PageIndex',
+  components: {
+    CtrlFooter
+  },
   created () {
     this.$deinit = []
     this.$onResize = []
@@ -21,7 +26,7 @@ export default {
     this.$onKeydown = []
   },
   mounted () {
-    init(this)
+    glos.init(this)
     document.addEventListener('wheel', this.onWheel, true)
     document.addEventListener('keydown', this.onKeydown)
   },
