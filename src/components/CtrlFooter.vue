@@ -18,24 +18,12 @@
 
 <script>
 import { glos } from '../internal/Glos'
-import { Match, Player, CardSlot, Card, CardType } from '../internal/game'
 
 export default {
   name: 'CtrlFooter',
   data () {
-    const match = new Match()
-    const player = new Player()
-    glos.game.match = match
-    match.playerSelf = player
-    for (let i = 0; i < 5; ++i) {
-      const cardType = new CardType('Forward ' + i)
-      const card = new Card(cardType)
-      const cardSlot = new CardSlot()
-      if (i < 3) cardSlot.card = card
-      player.cardSlots.push(cardSlot)
-    }
     return {
-      cardSlots: player.cardSlots
+      vueGlos: glos.vueGlos
     }
   },
   methods: {
@@ -44,7 +32,14 @@ export default {
       event.preventDefault()
     },
     endTurn () {
-      console.log('TEST')
+      console.log('TEST endTurn')
+      const match = glos.game.match
+      match.nextTurn()
+    }
+  },
+  computed: {
+    cardSlots () {
+      return this.vueGlos.cardSlots
     }
   }
 }

@@ -1,5 +1,6 @@
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import { TiSh } from './TiSh'
+// import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { LoaderItem } from '../LoaderControl'
+// import { TiSh } from './TiSh'
 
 const tilePaths = [
   'Cube',
@@ -12,20 +13,24 @@ const tilePaths = [
   'ControlTower0'
 ]
 
-export function btileInit (...funcs) {
-  const gltfLoader = new GLTFLoader()
-
-  const tiShs = {}
-
-  for (const tilePath of tilePaths) {
-    gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
-      tiShs[tilePath] = new TiSh(gltf.scene)
-
-      if (Object.keys(tiShs).length === tilePaths.length) {
-        for (const func of funcs) {
-          func({ tiShs })
-        }
-      }
-    })
-  }
+export function btileLoaderItemsCreate () {
+  return tilePaths.map((tilePath) => new LoaderItem('../statics/models/tiles/' + tilePath + '.glb', tilePath))
 }
+
+// export function btileInit (...funcs) {
+//   const gltfLoader = new GLTFLoader()
+
+//   const tiShs = {}
+
+//   for (const tilePath of tilePaths) {
+//     gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
+//       tiShs[tilePath] = new TiSh(gltf.scene)
+
+//       if (Object.keys(tiShs).length === tilePaths.length) {
+//         for (const func of funcs) {
+//           func({ tiShs })
+//         }
+//       }
+//     })
+//   }
+// }
