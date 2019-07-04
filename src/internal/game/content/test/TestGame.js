@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import { mapGens } from '..'
-import { Match, Player, CardType, Card, CardSlot } from '../..'
+import { mapGens, cardTypes } from '..'
+import { Match, Player, Card, CardSlot } from '../..'
 
 export function initTestGame (game) {
   const scene = game.scene
@@ -24,10 +24,12 @@ export function initTestGame (game) {
 
 function addPlayerCards (player) {
   for (let i = 0; i < 5; ++i) {
-    const cardType = new CardType('Forward ' + (i + 1))
-    const card = new Card(cardType)
     const cardSlot = new CardSlot()
-    if (i < 3) cardSlot.card = card
+    if (i < 3) {
+      const cardType = cardTypes['forward-' + (i + 1)]
+      const card = new Card(cardType)
+      cardSlot.card = card
+    }
     player.cardSlots.push(cardSlot)
   }
 }
@@ -35,7 +37,8 @@ function addPlayerCards (player) {
 function initBot (game, bot) {
   const obj = game.models['Bot']
   bot.object3d = obj
-  obj.lookAt(new THREE.Vector3(0, 0, -1))
+  bot.directionKey = 'N'
+  // obj.lookAt(new THREE.Vector3(0, 0, -1))
   obj.position.y = 2
   obj.position.x = 7 // dim.x / 2
   obj.position.z = 7 // dim.z / 2

@@ -1,7 +1,9 @@
 import * as THREE from 'three'
+import * as TWEEN from '@tweenjs/tween.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { Sky } from './Sky'
 import { OrbitControls } from './OrbitControls'
+import { glos } from './Glos'
 import Stats from 'stats.js'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
@@ -39,6 +41,7 @@ export function init (vueInstance) {
   scene.add(axesHelper)
 
   const controls = new OrbitControls(camera)
+  glos.threejsControls = controls
 
   const sky = new Sky()
   sky.layers.enable(1)
@@ -116,6 +119,8 @@ export function init (vueInstance) {
 
     requestAnimationFrame(animate)
 
+    TWEEN.update()
+
     for (const func of preAnimateFuncs) func()
 
     const sunPosTime = new Date().getTime() * 0.00025
@@ -124,7 +129,7 @@ export function init (vueInstance) {
     skyUniforms.sunPosition.value.x = sunPosFactor * Math.cos(sunPosTime)
     skyUniforms.sunPosition.value.z = sunPosFactor * Math.sin(sunPosTime)
     envCubeCamera.update(renderer, scene)
-    controls.update()
+    if (controls) controls.update()
     // if (mesh) {
     //   mesh.rotation.x += 0.01
     //   mesh.rotation.y += 0.02
@@ -140,7 +145,7 @@ export function init (vueInstance) {
   vueInstance.$deinit.push(() => {
     vueInstance.$isDestroyed = true
     toolbarStatsParent.removeChild(stats.dom)
-    controls.dispose()
+    if (controls) controls.dispose()
     if (mesh) {
       mesh.geometry.dispose()
       mesh.material.dispose()

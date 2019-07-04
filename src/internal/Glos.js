@@ -7,6 +7,7 @@ import { Game } from './game'
 class Glos {
   constructor () {
     this.game = new Game()
+    this.threejsControls = undefined
     this.vueGlos = {
       cardSlots: []
     }

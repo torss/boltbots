@@ -10,17 +10,4 @@ export class Match {
   get turnPlayer () {
     return this.players[this.turnPlayerIndex]
   }
-
-  nextTurn () {
-    this.progressTurn()
-    // TODO
-  }
-
-  /**
-   * Progress within turn (next player)
-   */
-  progressTurn () {
-    this.turnPlayer.bot.object3d.position.z += 1
-    // TODO
-  }
 }

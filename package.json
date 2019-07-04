@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
+    "@tweenjs/tween.js": "^17.4.0",
     "axios": "^0.18.0",
     "quasar": "^1.0.0-beta.0",
     "stats.js": "^0.17.0",
     "three": "^0.104.0",
-    "vue-i18n": "^7.3.3"
+    "vue-i18n": "^7.3.3",
+    "vuedraggable": "^2.23.0"
   },
   "devDependencies": {
     "@quasar/app": "^1.0.0-beta.0",

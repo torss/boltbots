@@ -47,6 +47,25 @@ export class Game {
     //   this.ready = true
     // })
   }
+
+  nextTurn () {
+    const match = this.match
+    match.turnPlayerIndex = -1
+    this.progressTurn()
+    // TODO
+  }
+
+  /**
+   * Progress within turn (next player)
+   */
+  progressTurn () {
+    const match = this.match
+    ++match.turnPlayerIndex
+    // match.turnPlayer.bot.object3d.position.z += 1
+    const card = match.turnPlayer.cardSlots[0].card
+    if (card) card.invoke(this)
+    // TODO
+  }
 }
 
 function finishTankLoaderItem (loaderItem, game) {
