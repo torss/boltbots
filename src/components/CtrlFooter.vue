@@ -6,15 +6,17 @@
     </template>
     </q-card> -->
 
-    <draggable class="flex row" :list="cardSlots" group="cards" :move="checkCardMove" @end="onMouseup">
-      <q-btn class="card flex flex-center column" v-for="(cardSlot, index) in cardSlots" :key="index" :push="!!cardSlot.card" :color="cardSlot.card ? 'primary' : undefined" :rounded="true" no-caps>
-        <template v-if="cardSlot.card">
-          <span>{{ cardSlot.card.cardType.title }}</span>
-        </template>
-      </q-btn>
-    </draggable>
-    <div class="flex flex-center column">
-      <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="endTurn" />
+    <div class="card-slots">
+      <draggable class="card-slots" :list="cardSlots" group="cards" :move="checkCardMove" @end="onMouseup">
+          <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlot.card ? 'primary' : undefined" :rounded="true" no-caps>
+            <template v-if="cardSlot.card">
+              <span>{{ cardSlot.card.cardType.title }}</span>
+            </template>
+          </q-btn>
+      </draggable>
+      <div class="flex flex-center column">
+        <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="endTurn" />
+      </div>
     </div>
   </div>
 </template>
@@ -69,9 +71,14 @@ export default {
   width 100%
   height 25vh
   background-color rgba(64, 64, 64, 0.5)
+  overflow-y auto
 
 .card
   background-color rgba(16, 16, 16, 0.75)
   width 10em
   margin 1em
+
+.card-slots
+  display flex
+  flex-wrap none
 </style>

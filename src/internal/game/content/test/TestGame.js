@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { mapGens, cardTypes } from '..'
+import { mapGens, cardTypeList } from '..'
 import { Match, Player, Card, CardSlot } from '../..'
 
 export function initTestGame (game) {
@@ -23,17 +23,10 @@ export function initTestGame (game) {
 }
 
 function addPlayerCards (player) {
-  for (let i = 0; i < 5; ++i) {
+  for (const cardType of cardTypeList) {
     const cardSlot = new CardSlot()
-    if (i < 3) {
-      const cardType = cardTypes[i === 0 ? 'u-turn' : 'forward-' + (i + 1)]
-      const card = new Card(cardType)
-      cardSlot.card = card
-    } else {
-      const cardType = cardTypes['rotate-' + (i % 2 === 0 ? 'right' : 'left')]
-      const card = new Card(cardType)
-      cardSlot.card = card
-    }
+    const card = new Card(cardType)
+    cardSlot.card = card
     player.cardSlots.push(cardSlot)
   }
 }

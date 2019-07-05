@@ -3,19 +3,22 @@ import { CardType } from '../../CardType'
 
 export const cardTypeList = []
 
-for (let i = 1; i <= 3; ++i) {
-  cardTypeList.push(new CardType('forward-' + i, 'Forward x' + i, (game) => {
+function createStraightMoveFunc (factor) {
+  return (game) => {
     const match = game.match
     const bot = match.turnPlayer.bot
     const object3d = bot.object3d
 
     // for (let step = 0; step < i; ++step) bot.object3d.position.add(bot.direction)
-    const tween = new TWEEN.Tween(object3d.position).to(object3d.position.clone().addScaledVector(bot.direction, i), 1000 + i * 100)
+    const tween = new TWEEN.Tween(object3d.position).to(object3d.position.clone().addScaledVector(bot.direction, factor), 1000 + factor * 100)
     // tween.easing(TWEEN.Easing.Back.InOut)
     tween.easing(tweenEasingStraight)
     tween.start()
-  }))
+  }
 }
+
+for (let i = 1; i <= 3; ++i) cardTypeList.push(new CardType('forward-' + i, 'Forward x' + i, createStraightMoveFunc(i)))
+for (let i = 1; i <= 2; ++i) cardTypeList.push(new CardType('backward-' + i, 'Backward x' + i, createStraightMoveFunc(-i)))
 
 // Based on TWEEN.Easing.Back.InOut https://github.com/tweenjs/tween.js/blob/master/src/Tween.js#L741
 function tweenEasingStraight (k) {
