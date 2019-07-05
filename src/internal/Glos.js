@@ -8,6 +8,8 @@ class Glos {
   constructor () {
     this.game = new Game()
     this.threejsControls = undefined
+    this.skyUniforms = undefined
+    this.preAnimateFuncs = []
     this.vueGlos = {
       cardSlots: []
     }

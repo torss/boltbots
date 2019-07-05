@@ -1,15 +1,18 @@
 import * as THREE from 'three'
 import { mapGens, cardTypeList } from '..'
 import { Match, Player, Card, CardSlot } from '../..'
+import { glos } from '../../../Glos'
 
 export function initTestGame (game) {
   const scene = game.scene
-  initDirectionalLight(scene)
 
   const mapGen = mapGens['TestGen0']
   const map = mapGen.func(game.tiTys)
   initMapMaterial(map, game.envMap)
   map.remesh(scene)
+  game.map = map
+
+  initDirectionalLight(game)
 
   initModels(game, game.envMap)
 
@@ -63,14 +66,37 @@ function initMapMaterial (map, envMap) {
   })
 }
 
-function initDirectionalLight (scene) {
+function initDirectionalLight (game) {
+  const scene = game.scene
+
   const light = new THREE.DirectionalLight(0xffffff, 1)
   light.position.set(-5, 2, -5)
   light.castShadow = true // default false
   light.shadow.mapSize.width = 2048 // default 512
   light.shadow.mapSize.height = 2048 // default 512
-  light.shadow.camera.top = 15
-  light.shadow.camera.left = -15
-  light.shadow.camera.right = 15
+
+  const dim = game.map.tiMa.dim
+  const dimHalf = new THREE.Vector3().copy(dim).multiplyScalar(0.5)
+  light.shadow.camera.top = dim.length()
+  light.shadow.camera.left = -Math.max(dim.x, dim.z)
+  light.shadow.camera.right = -light.shadow.camera.left
+  light.target.position.copy(dimHalf)
+  light.target.position.y = light.shadow.camera.top * -0.5
+
   scene.add(light)
+  scene.add(light.target)
+  // const helper = new THREE.CameraHelper(light.shadow.camera)
+  // scene.add(helper)
+
+  glos.preAnimateFuncs.push(() => {
+    const sunPos = glos.skyUniforms.sunPosition.value
+    const lightPos = light.position
+    const dim = game.map.tiMa.dim
+    const dimAdj = new THREE.Vector3().copy(dim)
+    dimAdj.y = 0
+    const dimHalfAdj = new THREE.Vector3().copy(dimAdj).multiplyScalar(0.5)
+    const sunPosAdj = new THREE.Vector3().copy(sunPos).normalize().multiplyScalar(dim.length()).add(dimHalfAdj)
+    lightPos.copy(sunPosAdj)
+    // light.target.position.copy(dimHalf).y *= -0.5
+  })
 }

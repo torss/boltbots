@@ -47,6 +47,7 @@ export function init (vueInstance) {
   sky.layers.enable(1)
   sky.scale.setScalar(990)
   const skyUniforms = sky.material.uniforms
+  glos.skyUniforms = skyUniforms
   // skyUniforms.turbidity.value = 10
   // skyUniforms.rayleigh.value = 2
   // skyUniforms.luminance.value = 1
@@ -96,7 +97,7 @@ export function init (vueInstance) {
   renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
 
-  const preAnimateFuncs = []
+  const preAnimateFuncs = glos.preAnimateFuncs
 
   // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
   // conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
