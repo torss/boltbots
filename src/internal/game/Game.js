@@ -63,8 +63,7 @@ export class Game {
     const match = this.match
     ++match.turnPlayerIndex
     // match.turnPlayer.bot.object3d.position.z += 1
-    const card = match.turnPlayer.cardSlots[0].card
-    if (card) card.invoke(this)
+    match.turnPlayer.bot.cardStart()
     // TODO
   }
 }

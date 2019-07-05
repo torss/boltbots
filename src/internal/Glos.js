@@ -7,11 +7,13 @@ import { Game } from './game'
 class Glos {
   constructor () {
     this.game = new Game()
+    this.dragged = undefined
     this.threejsControls = undefined
     this.skyUniforms = undefined
     this.preAnimateFuncs = []
     this.vueGlos = {
-      cardSlots: []
+      cardSlots: [],
+      hand: []
     }
   }
 
@@ -21,7 +23,10 @@ class Glos {
     game.scene = game.threeTest.scene
     game.envMap = game.threeTest.material.envMap
     game.readyFunc = (game) => {
-      this.vueGlos.cardSlots = game.match.playerSelf.cardSlots
+      const vueGlos = this.vueGlos
+      const playerSelf = game.match.playerSelf
+      vueGlos.cardSlots = playerSelf.bot.cardSlots
+      vueGlos.hand = playerSelf.hand
     }
     game.asyncInit()
   }

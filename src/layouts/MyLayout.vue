@@ -29,6 +29,14 @@
         <div class="flex flex-center">
           <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg">
         </div>
+        <q-item-label header>Hand</q-item-label>
+        <q-list class="q-gutter-sm" @mousedown="onMousedown">
+          <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
+              <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @dragstart="dragCard(card)">
+                <span>{{ card.cardType.title }}</span>
+              </q-btn>
+          </draggable>
+        </q-list>
         <q-item-label header>Essential Links</q-item-label>
         <q-item clickable tag="a" target="_blank" href="http://v1.quasar-framework.org">
           <q-item-section avatar>
@@ -86,16 +94,37 @@
 
 <script>
 import { openURL } from 'quasar'
+import draggable from 'vuedraggable'
+import { glos } from '../internal/Glos'
 
 export default {
   name: 'MyLayout',
+  components: {
+    draggable
+  },
   data () {
     return {
-      leftDrawerOpen: this.$q.platform.is.desktop
+      leftDrawerOpen: this.$q.platform.is.desktop,
+      vueGlos: glos.vueGlos
     }
   },
   methods: {
-    openURL
+    openURL,
+    dragCard (card) {
+      glos.dragged = card
+    },
+    onMousedown () {
+      if (glos.threejsControls) glos.threejsControls.enabled = false
+      document.addEventListener('mouseup', () => this.onMouseup(), { once: true })
+    },
+    onMouseup () {
+      if (glos.threejsControls) glos.threejsControls.enabled = true
+    }
+  },
+  computed: {
+    hand () {
+      return this.vueGlos.hand
+    }
   }
 }
 </script>

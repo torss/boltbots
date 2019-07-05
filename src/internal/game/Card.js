@@ -3,7 +3,7 @@ export class Card {
     this.cardType = cardType
   }
 
-  invoke (game) {
-    this.cardType.func(game)
+  invoke (bot) {
+    this.cardType.func(bot)
   }
 }

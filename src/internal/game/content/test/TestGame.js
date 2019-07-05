@@ -18,7 +18,7 @@ export function initTestGame (game) {
 
   const match = new Match()
   game.match = match
-  const player = new Player()
+  const player = new Player(game)
   addPlayerCards(player)
   match.playerSelf = player
   match.players.push(player)
@@ -27,11 +27,13 @@ export function initTestGame (game) {
 
 function addPlayerCards (player) {
   for (const cardType of cardTypeList) {
-    const cardSlot = new CardSlot()
     const card = new Card(cardType)
-    cardSlot.card = card
-    player.cardSlots.push(cardSlot)
+    player.hand.push(card)
+    // const cardSlot = new CardSlot()
+    // cardSlot.card = card
+    // player.bot.cardSlots.push(cardSlot)
   }
+  for (let i = 0; i < 5; ++i) player.bot.cardSlots.push(new CardSlot())
 }
 
 function initBot (game, bot) {

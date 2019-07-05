@@ -22,7 +22,10 @@ const directionsAngle = {
  * (Currently each player has only one bot.)
  */
 export class Bot {
-  constructor () {
+  constructor (game) {
+    this.game = game
+    this.cardSlots = []
+    this.cardIndex = 0
     this._object3d = undefined
     this._directionKey = 'N'
   }
@@ -68,10 +71,32 @@ export class Bot {
         .onUpdate(() => {
           this.object3d.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), angleNow.angle)
         })
+        .onComplete(() => this.cardDone())
         .start()
     } else {
       this.directionKey = directionKeyString[indexNext]
     }
+  }
+
+  cardAllDone () {
+    this.cardIndex = -1
+  }
+
+  cardDone () {
+    this.cardSlots[this.cardIndex].active = false
+    this.cardNext()
+  }
+
+  cardNext () {
+    ++this.cardIndex
+    const cardSlot = this.cardSlots[this.cardIndex]
+    if (cardSlot) cardSlot.invoke(this)
+    else this.cardAllDone()
+  }
+
+  cardStart () {
+    this.cardIndex = -1
+    this.cardNext()
   }
 }
 

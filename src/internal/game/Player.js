@@ -1,9 +1,10 @@
 import { Bot } from './Bot'
 
 export class Player {
-  constructor (uid) {
+  constructor (game, uid) {
+    this.game = game
+    this.hand = [] // Cards
     this.uid = uid
-    this.cardSlots = []
     this.bot = new Bot()
   }
 }

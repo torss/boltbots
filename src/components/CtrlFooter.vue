@@ -7,8 +7,8 @@
     </q-card> -->
 
     <div class="card-slots">
-      <draggable class="card-slots" :list="cardSlots" group="cards" :move="checkCardMove" @end="onMouseup">
-          <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlot.card ? 'primary' : undefined" :rounded="true" no-caps>
+      <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
+          <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot)" rounded no-caps @drop="dropCard(cardSlot)">
             <template v-if="cardSlot.card">
               <span>{{ cardSlot.card.cardType.title }}</span>
             </template>
@@ -24,6 +24,7 @@
 <script>
 import draggable from 'vuedraggable'
 import { glos } from '../internal/Glos'
+import { Card } from '../internal/game'
 
 export default {
   name: 'CtrlFooter',
@@ -36,10 +37,10 @@ export default {
     }
   },
   methods: {
-    stopEvent (event) {
-      event.stopPropagation()
-      event.preventDefault()
-    },
+    // stopEvent (event) {
+    //   event.stopPropagation()
+    //   event.preventDefault()
+    // },
     endTurn () {
       console.log('TEST endTurn')
       glos.game.nextTurn()
@@ -54,6 +55,14 @@ export default {
     checkCardMove (event) {
       if (!event.draggedContext.element.card) return false
       if (!event.relatedContext.element.card) return false
+    },
+    cardSlotToColor (cardSlot) {
+      return cardSlot.card ? (cardSlot.active ? 'light-blue-6' : 'primary') : undefined
+    },
+    dropCard (cardSlot) {
+      if (glos.dragged instanceof Card && !cardSlot.card) {
+        cardSlot.card = glos.dragged
+      }
     }
   },
   computed: {

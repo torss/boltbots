@@ -23,6 +23,7 @@ function fixCubeCameraLayers (cubeCamera) {
 }
 
 export function init (vueInstance) {
+  const renderingEnabled = true
   const canvas = vueInstance.$refs.canvas
 
   const width = 1 // vueInstance.$el.clientWidth
@@ -129,15 +130,17 @@ export function init (vueInstance) {
     const sunPosFactor = 100 * Math.cos(sunPosTime2)
     skyUniforms.sunPosition.value.x = sunPosFactor * Math.cos(sunPosTime)
     skyUniforms.sunPosition.value.z = sunPosFactor * Math.sin(sunPosTime)
-    envCubeCamera.update(renderer, scene)
+    if (renderingEnabled) envCubeCamera.update(renderer, scene)
     if (controls) controls.update()
     // if (mesh) {
     //   mesh.rotation.x += 0.01
     //   mesh.rotation.y += 0.02
     // }
 
-    renderer.clear()
-    renderer.render(scene, camera)
+    if (renderingEnabled) {
+      renderer.clear()
+      renderer.render(scene, camera)
+    }
 
     stats.update()
   }
