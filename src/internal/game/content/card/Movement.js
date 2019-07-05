@@ -4,13 +4,14 @@ import { CardType } from '../../CardType'
 export const cardTypeList = []
 
 function createStraightMoveFunc (factor) {
+  const duration = 1000 + Math.abs(factor) * 100
   return (game) => {
     const match = game.match
     const bot = match.turnPlayer.bot
     const object3d = bot.object3d
 
     // for (let step = 0; step < i; ++step) bot.object3d.position.add(bot.direction)
-    const tween = new TWEEN.Tween(object3d.position).to(object3d.position.clone().addScaledVector(bot.direction, factor), 1000 + factor * 100)
+    const tween = new TWEEN.Tween(object3d.position).to(object3d.position.clone().addScaledVector(bot.direction, factor), duration)
     // tween.easing(TWEEN.Easing.Back.InOut)
     tween.easing(tweenEasingStraight)
     tween.start()
