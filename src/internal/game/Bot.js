@@ -1,4 +1,7 @@
 import * as THREE from 'three'
+import * as TWEEN from '@tweenjs/tween.js'
+
+const directionKeyString = 'NESW'
 
 const directions = {
   N: new THREE.Vector3(+1, 0, 0),
@@ -50,4 +53,32 @@ export class Bot {
   get direction () {
     return directions[this.directionKey]
   }
+
+  rotate (indexChange, animated = true) {
+    const index = directionKeyString.indexOf(this.directionKey)
+    let indexNext = (index + indexChange) % directionKeyString.length
+    if (indexNext < 0) indexNext += directionKeyString.length
+    if (animated) {
+      const angleNow = { angle: directionsAngle[this.directionKey] }
+      this._directionKey = directionKeyString[indexNext]
+      const angleTarget = { angle: angleNow.angle - indexChange * 0.5 * Math.PI } // { angle: directionsAngle[this.directionKey] }
+      new TWEEN.Tween(angleNow)
+        .to(angleTarget, 1000)
+        .easing(tweenEasingRotate)
+        .onUpdate(() => {
+          this.object3d.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), angleNow.angle)
+        })
+        .start()
+    } else {
+      this.directionKey = directionKeyString[indexNext]
+    }
+  }
+}
+
+// Based on TWEEN.Easing.Back.InOut https://github.com/tweenjs/tween.js/blob/master/src/Tween.js#L741
+function tweenEasingRotate (k) {
+  const customFactor = 0.5
+  const s = 1.70158 * 1.525 * customFactor
+  if ((k *= 2) < 1) return 0.5 * (k * k * ((s + 1) * k - s))
+  return 0.5 * ((k -= 2) * k * ((s + 1) * k + s) + 2)
 }

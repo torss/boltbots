@@ -29,6 +29,10 @@ function addPlayerCards (player) {
       const cardType = cardTypes['forward-' + (i + 1)]
       const card = new Card(cardType)
       cardSlot.card = card
+    } else {
+      const cardType = cardTypes['rotate-' + (i % 2 === 0 ? 'right' : 'left')]
+      const card = new Card(cardType)
+      cardSlot.card = card
     }
     player.cardSlots.push(cardSlot)
   }
