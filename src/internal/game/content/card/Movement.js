@@ -36,3 +36,9 @@ for (const { what, value } of [{ what: 'right', value: +1 }, { what: 'left', val
     bot.rotate(value)
   }))
 }
+
+cardTypeList.push(new CardType('u-turn', 'U-Turn', (game) => {
+  const match = game.match
+  const bot = match.turnPlayer.bot
+  bot.rotate(Math.random() > 0.5 ? 2 : -2)
+}))

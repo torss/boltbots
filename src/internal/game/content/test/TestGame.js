@@ -26,7 +26,7 @@ function addPlayerCards (player) {
   for (let i = 0; i < 5; ++i) {
     const cardSlot = new CardSlot()
     if (i < 3) {
-      const cardType = cardTypes['forward-' + (i + 1)]
+      const cardType = cardTypes[i === 0 ? 'u-turn' : 'forward-' + (i + 1)]
       const card = new Card(cardType)
       cardSlot.card = card
     } else {
