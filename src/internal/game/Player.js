@@ -1,10 +1,14 @@
+import { assignNewVueObserver } from '../Dereactivate'
 import { Bot } from './Bot'
 
 export class Player {
-  constructor (game, uid) {
+  constructor (game, uid, name) {
+    this.name = name
+    assignNewVueObserver(this)
+
     this.game = game
-    this.hand = [] // Cards
     this.uid = uid
-    this.bot = new Bot()
+    this.hand = [] // Cards
+    this.bot = new Bot(game)
   }
 }

@@ -1,6 +1,7 @@
 import { btileLoaderItemsCreate, TiSh } from '../btile'
 import { LoaderControl, LoaderItem } from '../LoaderControl'
 import { initTiTys, initTestGame } from './content'
+import { assignNewVueObserver } from '../Dereactivate'
 
 /**
  * Primary game managing instance.
@@ -8,11 +9,13 @@ import { initTiTys, initTestGame } from './content'
 export class Game {
   constructor () {
     this.ready = false
+    this.match = undefined
+    assignNewVueObserver(this)
+
     this.readyFunc = undefined
     this.tiTys = undefined
     this.models = {}
     this.map = undefined
-    this.match = undefined
     this.scene = undefined // THREE.Scene
     this.envMap = undefined // THREE
     this.threeTest = undefined // THREE.* test data (envMap)
@@ -53,7 +56,6 @@ export class Game {
     const match = this.match
     match.turnPlayerIndex = -1
     this.progressTurn()
-    // TODO
   }
 
   /**
@@ -62,9 +64,14 @@ export class Game {
   progressTurn () {
     const match = this.match
     ++match.turnPlayerIndex
-    // match.turnPlayer.bot.object3d.position.z += 1
-    match.turnPlayer.bot.cardStart()
-    // TODO
+    if (match.turnPlayer) {
+      // match.turnPlayer.bot.object3d.position.z += 1
+      match.turnPlayer.bot.cardStart()
+    }
+  }
+
+  cardAllDone (bot) {
+    this.progressTurn()
   }
 }
 

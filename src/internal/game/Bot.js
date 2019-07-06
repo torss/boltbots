@@ -80,6 +80,7 @@ export class Bot {
 
   cardAllDone () {
     this.cardIndex = -1
+    this.game.cardAllDone(this)
   }
 
   cardDone () {
@@ -90,8 +91,7 @@ export class Bot {
   cardNext () {
     ++this.cardIndex
     const cardSlot = this.cardSlots[this.cardIndex]
-    if (cardSlot) cardSlot.invoke(this)
-    else this.cardAllDone()
+    if (!cardSlot || !cardSlot.invoke(this)) this.cardAllDone()
   }
 
   cardStart () {

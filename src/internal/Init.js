@@ -30,7 +30,7 @@ export function init (vueInstance) {
   const height = 1 // vueInstance.$el.clientHeight
 
   const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 1000)
-  camera.position.set(0, 1, 1)
+  camera.position.set(12, 4, 12)
   // camera.up.set(0, 0, 1) // Z up
 
   const scene = new THREE.Scene()

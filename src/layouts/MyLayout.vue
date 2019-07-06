@@ -29,12 +29,20 @@
         <div class="flex flex-center">
           <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg">
         </div>
+        <q-item-label header>Players</q-item-label>
+        <q-list class="q-gutter-sm" @mousedown="onMousedown">
+          <q-item v-for="(player, index) in players" :key="index" v-ripple dense @click.native="clickPlayer(player)">
+            <q-item-section>
+              <q-item-label>{{ player.name }}</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
         <q-item-label header>Hand</q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
-              <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @dragstart="dragCard(card)">
-                <span>{{ card.cardType.title }}</span>
-              </q-btn>
+            <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @dragstart="dragCard(card)">
+              <span>{{ card.cardType.title }}</span>
+            </q-btn>
           </draggable>
         </q-list>
         <q-item-label header>Essential Links</q-item-label>
@@ -105,13 +113,17 @@ export default {
   data () {
     return {
       leftDrawerOpen: this.$q.platform.is.desktop,
-      vueGlos: glos.vueGlos
+      glos
     }
   },
   methods: {
     openURL,
     dragCard (card) {
       glos.dragged = card
+    },
+    clickPlayer (player) {
+      glos.game.match.playerSelf = player // TODO debug only
+      glos.adjustPlayerSelf()
     },
     onMousedown () {
       if (glos.threejsControls) glos.threejsControls.enabled = false
@@ -122,8 +134,14 @@ export default {
     }
   },
   computed: {
+    match () {
+      return this.glos.game && this.glos.game.match
+    },
     hand () {
-      return this.vueGlos.hand
+      return this.glos.hand // this.match && this.match.playerSelf.hand
+    },
+    players () {
+      return this.match ? this.match.players : []
     }
   }
 }

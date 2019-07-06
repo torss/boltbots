@@ -18,11 +18,14 @@ export function initTestGame (game) {
 
   const match = new Match()
   game.match = match
-  const player = new Player(game)
-  addPlayerCards(player)
-  match.playerSelf = player
-  match.players.push(player)
-  initBot(game, player.bot)
+
+  for (let i = 0; i < 4; ++i) {
+    const player = new Player(game, undefined, 'Player-' + (i + 1))
+    addPlayerCards(player)
+    initBot(game, player.bot, i)
+    match.players.push(player)
+  }
+  match.playerSelf = match.players[0]
 }
 
 function addPlayerCards (player) {
@@ -36,14 +39,41 @@ function addPlayerCards (player) {
   for (let i = 0; i < 5; ++i) player.bot.cardSlots.push(new CardSlot())
 }
 
-function initBot (game, bot) {
-  const obj = game.models['Bot']
+function initBot (game, bot, i) {
+  const obj = game.models['Bot'].clone()
+
+  const material = obj.children[0].material.clone()
+  const color = material.color
+  const colors = [
+    new THREE.Color(1, 1, 0),
+    new THREE.Color(1, 0.25, 0),
+    new THREE.Color(1, 0, 0),
+    new THREE.Color(0.25, 0, 0),
+    //
+    new THREE.Color(1, 1, 1),
+    new THREE.Color(0, 0, 0.25),
+    new THREE.Color(0, 0, 0.5),
+    new THREE.Color(0, 0, 0),
+    new THREE.Color(0, 1, 0),
+    new THREE.Color(0.75, 0.75, 0),
+    new THREE.Color(0.25, 0, 1)
+  ]
+  color.add(colors[i % colors.length].multiplyScalar(2))
+  // color.r = 1 + (i % 4 === 0) * 2
+  // color.g = 1 + (i % 4 === 1) * 2
+  // color.b = 1 + (i % 4 === 2) * 2
+  obj.traverseVisible(obj => {
+    if (obj.isMesh) {
+      obj.material = material
+    }
+  })
+
   bot.object3d = obj
   bot.directionKey = 'N'
   // obj.lookAt(new THREE.Vector3(0, 0, -1))
   obj.position.y = 2
   obj.position.x = 7 // dim.x / 2
-  obj.position.z = 7 // dim.z / 2
+  obj.position.z = 4 + i * 2 // dim.z / 2
   game.scene.add(obj)
 }
 

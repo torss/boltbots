@@ -33,7 +33,7 @@ export default {
   },
   data () {
     return {
-      vueGlos: glos.vueGlos
+      glos
     }
   },
   methods: {
@@ -67,7 +67,7 @@ export default {
   },
   computed: {
     cardSlots () {
-      return this.vueGlos.cardSlots
+      return this.glos.cardSlots // this.glos.game && this.glos.game.match && this.glos.game.match.playerSelf.bot.cardSlots
     }
   }
 }

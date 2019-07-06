@@ -1,5 +1,6 @@
 import { init } from './Init'
 import { Game } from './game'
+import { assignNewVueObserver } from './Dereactivate'
 
 /**
  * Global State
@@ -7,14 +8,18 @@ import { Game } from './game'
 class Glos {
   constructor () {
     this.game = new Game()
+    this.cardSlots = []
+    this.hand = []
+    // this.vueGlos = {
+    //   cardSlots: [],
+    //   hand: []
+    // }
+    assignNewVueObserver(this)
+
     this.dragged = undefined
     this.threejsControls = undefined
     this.skyUniforms = undefined
     this.preAnimateFuncs = []
-    this.vueGlos = {
-      cardSlots: [],
-      hand: []
-    }
   }
 
   init (vueInstance) {
@@ -23,12 +28,16 @@ class Glos {
     game.scene = game.threeTest.scene
     game.envMap = game.threeTest.material.envMap
     game.readyFunc = (game) => {
-      const vueGlos = this.vueGlos
-      const playerSelf = game.match.playerSelf
-      vueGlos.cardSlots = playerSelf.bot.cardSlots
-      vueGlos.hand = playerSelf.hand
+      this.adjustPlayerSelf()
     }
     game.asyncInit()
+  }
+
+  adjustPlayerSelf () {
+    const playerSelf = this.game.match.playerSelf
+    const vueGlos = this // .vueGlos
+    vueGlos.cardSlots = playerSelf.bot.cardSlots
+    vueGlos.hand = playerSelf.hand
   }
 }
 
