@@ -22,7 +22,7 @@
 
     <q-drawer
       v-model="leftDrawerOpen"
-      bordered
+      bordered no-swipe-close behavior="desktop"
       content-class="bg-grey-2"
     >
       <q-list>
@@ -32,13 +32,23 @@
         <q-item-label header>Players</q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <q-item v-for="(player, index) in players" :key="index" v-ripple dense @click.native="clickPlayer(player)">
+            <q-item-section avatar>
+              <q-item-label class="player-name">{{ player.name }}</q-item-label>
+              <q-tooltip>Player name</q-tooltip>
+            </q-item-section>
             <q-item-section>
-              <q-item-label>{{ player.name }}</q-item-label>
+              <q-linear-progress stripe rounded style="height: 20px" :value="player.bot.health" color="red" />
+              <q-tooltip>Bot health: {{ (player.bot.health * 100).toFixed(0) }}%</q-tooltip>
+            </q-item-section>
+            <q-item-section side>
+              <q-item-label class="tower-distance">{{ player.bot.towerDistance.toFixed(2) }}m</q-item-label>
+              <q-tooltip>Distance to control tower</q-tooltip>
             </q-item-section>
           </q-item>
         </q-list>
         <q-item-label header>Hand</q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
+          <q-tooltip>Drag these cards onto the slots at the bottom to program your bot.</q-tooltip>
           <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
             <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @dragstart="dragCard(card)">
               <span>{{ card.cardType.title }}</span>
@@ -153,4 +163,11 @@ export default {
 
 .toolbarStats
   float right
+
+.player-name
+  min-width 4em
+
+.tower-distance
+  min-width 3.5em
+  text-align right
 </style>

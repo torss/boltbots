@@ -7,12 +7,13 @@ export function initTestGame (game) {
   const scene = game.scene
 
   const mapGen = mapGens['TestGen0']
-  const map = mapGen.func(game.tiTys)
+  const { map, controlTowerTilePosition } = mapGen.func(game.tiTys)
   initMapMaterial(map, game.envMap)
   map.remesh(scene)
   const match = new Match()
   game.match = match
   match.map = map
+  match.controlTower.position.copy(controlTowerTilePosition).addScalar(0.5)
 
   initDirectionalLight(game)
 

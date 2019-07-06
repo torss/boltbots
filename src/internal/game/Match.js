@@ -1,3 +1,5 @@
+import { ControlTower } from './ControlTower'
+
 export class Match {
   constructor () {
     this.map = undefined
@@ -6,6 +8,7 @@ export class Match {
     this.playerSelf = undefined
     this.turn = 0
     this.turnPlayerIndex = 0
+    this.controlTower = new ControlTower()
   }
 
   get turnPlayer () {

@@ -12,6 +12,9 @@
             <template v-if="cardSlot.card">
               <span>{{ cardSlot.card.cardType.title }}</span>
             </template>
+            <template v-else>
+              <span class="text-grey-8">Slot {{ index + 1 }}</span>
+            </template>
           </q-btn>
       </draggable>
       <div class="flex flex-center column">

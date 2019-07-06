@@ -24,7 +24,10 @@ const directionsAngle = {
  */
 export class Bot {
   constructor (game, player) {
+    this.health = 1
+    this.towerDistance = -1
     assignNewVueObserver(this)
+
     this.game = game
     this.player = player
     this.cardSlots = []
@@ -109,8 +112,10 @@ export class Bot {
   }
 
   enterOnMap () {
-    const map = this.game.match.map
-    map.enterBot(this.object3d.position, this)
+    const { map, controlTower } = this.game.match
+    const position = this.object3d.position
+    map.enterBot(position, this)
+    this.towerDistance = controlTower.position.distanceTo(position.clone().floor().addScalar(0.5))
   }
 
   cleanupVisitedTiles () {

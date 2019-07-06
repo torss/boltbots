@@ -37,7 +37,11 @@ mapGenList.push(MapGen.createV0('TestGen0', (tiTys) => {
     }
   })
 
-  tiMa.tiEns[dim.resolve(new THREE.Vector3(0, groundHeight + outerWallHeight, 0))] = new TiEn(tiTys['ControlTower0'])
+  const controlTowerTilePosition = new THREE.Vector3(0, groundHeight + outerWallHeight, 0)
+  tiMa.tiEns[dim.resolve(controlTowerTilePosition)] = new TiEn(tiTys['ControlTower0'])
 
-  return map
+  return {
+    map,
+    controlTowerTilePosition
+  }
 }))
