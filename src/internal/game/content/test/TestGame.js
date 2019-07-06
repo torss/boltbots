@@ -68,13 +68,18 @@ function initBot (game, bot, i) {
   })
 
   bot.object3d = obj
-  bot.directionKey = 'W' // 'N'
+  bot.directionKey = 'N'
   // obj.lookAt(new THREE.Vector3(0, 0, -1))
   obj.position.y = 2
   obj.position.x = 7 // dim.x / 2
   obj.position.z = 4 + i * 2 // dim.z / 2
-  game.scene.add(obj)
 
+  const lazorOrb = game.models['lazor-orb'].clone()
+  lazorOrb.position.y = 0.07
+  lazorOrb.position.z = 0.23
+  obj.add(lazorOrb)
+
+  game.scene.add(obj)
   bot.enterOnMap()
 }
 

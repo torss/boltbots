@@ -1,3 +1,5 @@
+import * as THREE from 'three'
+import * as TWEEN from '@tweenjs/tween.js'
 import { btileLoaderItemsCreate, TiSh } from '../btile'
 import { LoaderControl, LoaderItem } from '../LoaderControl'
 import { initTiTys, initTestGame } from './content'
@@ -21,6 +23,23 @@ export class Game {
   }
 
   asyncInit () {
+    // Lazor Orb
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      emissive: new THREE.Color(0.5, 0.25, 0),
+      metalness: 0.99,
+      roughness: 0.01,
+      envMapIntensity: 1
+    })
+    this.models['lazor-orb'] = new THREE.Mesh(new THREE.SphereBufferGeometry(0.020, 32, 32), material)
+    new TWEEN.Tween(material.emissive)
+      .to(new THREE.Color(0.75, 0.5, 0.1), 750)
+      .repeat(Infinity)
+      .yoyo(true)
+      .easing(TWEEN.Easing.Bounce.InOut)
+      .start()
+    // - //
+
     const btileLoaderItems = btileLoaderItemsCreate()
     const tankLoaderItem = new LoaderItem('../statics/models/vehicle/TestTank.glb', 'Bot')
     const loaderItems = [...btileLoaderItems, tankLoaderItem]
