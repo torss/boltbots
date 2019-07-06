@@ -42,4 +42,8 @@ export class Dim extends THREE.Vector3 {
   resolve (pos) {
     return pos.x + pos.y * this.x + pos.z * this.sq
   }
+
+  check (pos) {
+    return pos.x >= 0 && pos.y >= 0 && pos.z >= 0 && pos.x < this.x && pos.y < this.y && pos.z < this.z
+  }
 }

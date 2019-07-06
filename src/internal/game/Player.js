@@ -9,6 +9,6 @@ export class Player {
     this.game = game
     this.uid = uid
     this.hand = [] // Cards
-    this.bot = new Bot(game)
+    this.bot = new Bot(game, this)
   }
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
+import { assignNewVueObserver } from '../Dereactivate'
 
 const directionKeyString = 'NESW'
 
@@ -22,10 +23,13 @@ const directionsAngle = {
  * (Currently each player has only one bot.)
  */
 export class Bot {
-  constructor (game) {
+  constructor (game, player) {
+    assignNewVueObserver(this)
     this.game = game
+    this.player = player
     this.cardSlots = []
     this.cardIndex = 0
+    this.tiEns = [] // Occupied tiles
     this._object3d = undefined
     this._directionKey = 'N'
   }
@@ -84,7 +88,12 @@ export class Bot {
   }
 
   cardDone () {
-    this.cardSlots[this.cardIndex].active = false
+    const cardSlot = this.cardSlots[this.cardIndex]
+    if (!cardSlot) {
+      console.warn('Broken cardDone call, cardIndex:', this.cardIndex)
+      return
+    }
+    cardSlot.active = false
     this.cardNext()
   }
 
@@ -97,6 +106,24 @@ export class Bot {
   cardStart () {
     this.cardIndex = -1
     this.cardNext()
+  }
+
+  enterOnMap () {
+    const map = this.game.match.map
+    map.enterBot(this.object3d.position, this)
+  }
+
+  cleanupVisitedTiles () {
+    this.tiEns = this.tiEns.filter((tiEn) => {
+      const visited = tiEn.visited
+      tiEn.visited = false
+      if (visited) {
+        return true
+      } else {
+        tiEn.entity = undefined
+        return false
+      }
+    })
   }
 }
 

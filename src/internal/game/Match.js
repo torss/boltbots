@@ -1,5 +1,6 @@
 export class Match {
   constructor () {
+    this.map = undefined
     this.players = []
     // this.playerSelfUid = -1
     this.playerSelf = undefined

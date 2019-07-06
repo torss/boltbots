@@ -15,7 +15,6 @@ export class Game {
     this.readyFunc = undefined
     this.tiTys = undefined
     this.models = {}
-    this.map = undefined
     this.scene = undefined // THREE.Scene
     this.envMap = undefined // THREE
     this.threeTest = undefined // THREE.* test data (envMap)

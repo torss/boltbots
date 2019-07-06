@@ -10,14 +10,13 @@ export function initTestGame (game) {
   const map = mapGen.func(game.tiTys)
   initMapMaterial(map, game.envMap)
   map.remesh(scene)
-  game.map = map
+  const match = new Match()
+  game.match = match
+  match.map = map
 
   initDirectionalLight(game)
 
   initModels(game, game.envMap)
-
-  const match = new Match()
-  game.match = match
 
   for (let i = 0; i < 4; ++i) {
     const player = new Player(game, undefined, 'Player-' + (i + 1))
@@ -69,12 +68,14 @@ function initBot (game, bot, i) {
   })
 
   bot.object3d = obj
-  bot.directionKey = 'N'
+  bot.directionKey = 'W' // 'N'
   // obj.lookAt(new THREE.Vector3(0, 0, -1))
   obj.position.y = 2
   obj.position.x = 7 // dim.x / 2
   obj.position.z = 4 + i * 2 // dim.z / 2
   game.scene.add(obj)
+
+  bot.enterOnMap()
 }
 
 function initModels (game, envMap) {
@@ -107,7 +108,7 @@ function initDirectionalLight (game) {
   light.shadow.mapSize.width = 2048 // default 512
   light.shadow.mapSize.height = 2048 // default 512
 
-  const dim = game.map.tiMa.dim
+  const dim = game.match.map.tiMa.dim
   const dimHalf = new THREE.Vector3().copy(dim).multiplyScalar(0.5)
   light.shadow.camera.top = dim.length()
   light.shadow.camera.left = -Math.max(dim.x, dim.z)
@@ -123,7 +124,7 @@ function initDirectionalLight (game) {
   glos.preAnimateFuncs.push(() => {
     const sunPos = glos.skyUniforms.sunPosition.value
     const lightPos = light.position
-    const dim = game.map.tiMa.dim
+    const dim = game.match.map.tiMa.dim
     const dimAdj = new THREE.Vector3().copy(dim)
     dimAdj.y = 0
     const dimHalfAdj = new THREE.Vector3().copy(dimAdj).multiplyScalar(0.5)
