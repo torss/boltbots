@@ -5,16 +5,10 @@ import { Match, Player, Card, CardSlot } from '../..'
 import { glos } from '../../../Glos'
 
 export function initTestGame (game) {
-  const scene = game.scene
-
-  const mapGen = mapGens['TestGen0']
-  const { map, controlTowerTilePosition } = mapGen.func(game.tiTys)
-  initMapMaterial(map, game.envMap)
-  map.remesh(scene)
   const match = new Match()
   game.match = match
-  match.map = map
-  match.controlTower.position.copy(controlTowerTilePosition).addScalar(0.5)
+
+  regenerateTestMap(game)
 
   initDirectionalLight(game)
 
@@ -30,6 +24,16 @@ export function initTestGame (game) {
   }
   match.turnPlayers = [...match.players]
   match.playerSelf = match.players[0]
+}
+
+function regenerateTestMap (game) {
+  const { scene, match } = game
+  const mapGen = mapGens['TestGen0']
+  const { map, controlTowerTilePosition } = mapGen.func(game)
+  initMapMaterial(map, game.envMap)
+  map.remesh(scene)
+  match.map = map
+  match.controlTower.position.copy(controlTowerTilePosition).addScalar(0.5)
 }
 
 function addPlayerCards (player) {

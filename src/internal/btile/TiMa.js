@@ -35,6 +35,7 @@ export class TiMa {
       if (!tiEn) return
       const tiTy = tiEn.tiTy
       const tiSh = tiTy.tiSh
+      // NOTE doesn't fully rotations atm (e.g. of walls)
       tiSh.sides.iterate((sideName, side) => {
         const iterSide = iterSides[sideName]
         let occluded

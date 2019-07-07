@@ -13,6 +13,7 @@ export function initTiTys (tiShs) {
 
   let tiTy = addTiTy(tiShs['Cube'], 'Ground')
   tiTy.color = new THREE.Vector4(173 / 255, 131 / 255, 83 / 255, 1)
+  tiTy.wall = true
 
   tiTy = addTiTy(tiShs['Floor0'], 'Pavement')
   // tiTy.color = new THREE.Vector4(196 / 255, 196 / 255, 196 / 255, 1)

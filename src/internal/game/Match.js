@@ -25,6 +25,7 @@ export class Match {
     this.remainingActionCount = 0
     this.controlTower = new ControlTower()
     this.rng = new Random(0, 0) // Primary rng
+    this.rngMapGen = new Random(0, 0) // MapGen rng
     this.rngCosmetic = new Random(0, 0) // Unimportant rng
   }
 

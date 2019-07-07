@@ -7,9 +7,15 @@ import { assignNewVueObserver } from './Dereactivate'
  */
 class Glos {
   constructor () {
-    this.darkMode = localStorage.getItem('darkMode') === 'true'
-    this.muteAudio = localStorage.getItem('muteAudio') === 'true'
-    this.masterVolume = parseInt(localStorage.getItem('masterVolume')) || 100
+    const getLsOrDefault = (key, conv, def) => {
+      const ls = localStorage.getItem(key)
+      if (ls === null) return def
+      return conv(ls)
+    }
+    const lsConvBool = ls => ls === 'true'
+    this.darkMode = getLsOrDefault('darkMode', lsConvBool, true)
+    this.muteAudio = getLsOrDefault('muteAudio', lsConvBool, false)
+    this.masterVolume = getLsOrDefault('masterVolume', parseInt, 100)
 
     this.game = new Game()
     this.cardSlots = []
