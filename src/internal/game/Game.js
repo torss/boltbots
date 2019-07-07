@@ -5,6 +5,7 @@ import { btileLoaderItemsCreate, TiSh } from '../btile'
 import { LoaderControl, LoaderItem } from '../LoaderControl'
 import { initTiTys, initTestGame } from './content'
 import { Sfxf } from '../Sfxf'
+import { ExplosionShader } from '../shaders'
 
 /**
  * Primary game managing instance.
@@ -23,6 +24,8 @@ export class Game {
     this.envMap = undefined // THREE
     this.audioListener = undefined // THREEE.AudioListener
     this.threeTest = undefined // THREE.* test data (envMap)
+    this.explosionMaterial = undefined
+    this.clock = new THREE.Clock()
   }
 
   asyncInit () {
@@ -41,6 +44,22 @@ export class Game {
       .yoyo(true)
       .easing(TWEEN.Easing.Bounce.InOut)
       .start()
+    // - //
+    // Explosion material
+    this.explosionMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        tExplosion: {
+          type: 't',
+          value: new THREE.TextureLoader().load('../statics/textures/explosion/explosion.png')
+        },
+        time: {
+          type: 'f',
+          value: 0.0
+        }
+      },
+      vertexShader: ExplosionShader.vertexShader,
+      fragmentShader: ExplosionShader.fragmentShader
+    })
     // - //
 
     const btileLoaderItems = btileLoaderItemsCreate()
@@ -93,6 +112,39 @@ export class Game {
 
   cardAllDone (bot) {
     this.progressTurn()
+  }
+
+  preAnimateFunc () {
+    this.explosionMaterial.uniforms[ 'time' ].value = this.clock.getElapsedTime()
+  }
+
+  createExplosionObj (size = 1) {
+    const obj = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(20, 4),
+      this.explosionMaterial
+    )
+    obj.scale.setScalar(0.025 * size)
+    obj.bloom = true
+    return obj
+  }
+
+  createExplosion (funcMax, size = 1, duration = 750) {
+    const sizeCur = { size: 0.01 }
+    const obj = this.createExplosionObj(sizeCur.size)
+    new TWEEN.Tween(sizeCur).to({ size }, duration)
+      .onUpdate(() => {
+        obj.scale.setScalar(0.025 * sizeCur.size)
+      })
+      .yoyo(true)
+      .repeat(1)
+      .easing(TWEEN.Easing.Quartic.InOut)
+      .onComplete(() => {
+        if (obj.parent) obj.parent.remove(obj)
+      })
+      .onRepeat(funcMax)
+      .start()
+    this.scene.add(obj)
+    return obj
   }
 }
 

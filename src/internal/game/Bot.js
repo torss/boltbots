@@ -232,14 +232,15 @@ export class Bot {
     if (!this.player.markAsDead(killer)) return false
     this.alive = false
     this.health = 0
-    this.object3d.visible = false
     for (const tiEn of this.tiEns) tiEn.entity = undefined
     this.tiEns = []
     this.towerDistance = -1
     this.clearCardSlots()
     this.engineSoundGen.stop()
     this.object3d.add(this.game.sfxf.cpasExplode())
-    // TODO explosions!
+    this.game.createExplosion(() => {
+      this.object3d.visible = false
+    }).position.copy(this.object3d.position)
     return true
   }
 

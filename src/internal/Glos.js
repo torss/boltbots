@@ -34,6 +34,10 @@ class Glos {
     game.audioListener = game.threeTest.audioListener
     game.readyFunc = (game) => {
       this.adjustPlayerSelf()
+      this.game.clock.start()
+      this.preAnimateFuncs.push(() => {
+        this.game.preAnimateFunc()
+      })
     }
     game.asyncInit()
   }
