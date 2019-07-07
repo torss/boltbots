@@ -128,8 +128,8 @@ export function init (vueInstance) {
 
     for (const func of preAnimateFuncs) func()
 
-    const sunPosTime = new Date().getTime() * 0.00025
-    const sunPosTime2 = new Date().getTime() * 0.00015
+    const sunPosTime = new Date().getTime() * 0.000025
+    const sunPosTime2 = new Date().getTime() * 0.000015
     const sunPosFactor = 100 * Math.cos(sunPosTime2)
     skyUniforms.sunPosition.value.x = sunPosFactor * Math.cos(sunPosTime)
     skyUniforms.sunPosition.value.z = sunPosFactor * Math.sin(sunPosTime)
