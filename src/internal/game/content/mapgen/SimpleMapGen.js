@@ -82,7 +82,7 @@ function generateContent (game, map, groundHeight) {
     }
   }
 
-  // Test enclosure
+  // // Debug only: Test enclosure
   // const testEnclosureSize = 3
   // for (let i = 0; i < testEnclosureSize; ++i) {
   //   for (const coord of ['xz', 'zx']) {
@@ -192,24 +192,4 @@ function generateContent (game, map, groundHeight) {
   //   ++i
   // }
   //
-
-  // // Old
-  // let floorCount = 0
-  // let  = new THREE.Vector3(1, groundHeight, 1)
-  // for (let z = 1; z < dim.z - 1; ++z) {
-  //   for (let x = 1; x < dim.x - 1; ++x) {
-  //     const pos = new THREE.Vector3(x, groundHeight, z)
-  //     if (!tiEns[dim.resolve(pos)].wall) ++floorCount
-  //   }
-  // }
-  // const pos = new THREE.Vector3(1, groundHeight, 1)
-  // const pending = [new THREE.Vector3(1, groundHeight, 1)]
-  // const visited = []
-  // while (true) {
-  //   const tiEn = tiEns[dim.resolve(pos)]
-  //   if (tiEn.visited) continue
-  //   tiEn.visited = true
-  //   visited.push(pos.clone())
-  //   if (!tiEn.wall) --floorCount
-  // }
 }
