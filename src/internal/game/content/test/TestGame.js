@@ -25,6 +25,7 @@ export function initTestGame (game) {
     initBot(game, player.bot, i)
     match.players.push(player)
   }
+  match.turnPlayers = [...match.players]
   match.playerSelf = match.players[0]
 }
 

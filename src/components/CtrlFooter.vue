@@ -18,7 +18,7 @@
           </q-btn>
       </draggable>
       <div class="flex flex-center column">
-        <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="endTurn" />
+        <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="startTurn" :disable="turnInProgress" />
       </div>
     </div>
   </div>
@@ -44,9 +44,8 @@ export default {
     //   event.stopPropagation()
     //   event.preventDefault()
     // },
-    endTurn () {
-      console.log('TEST endTurn')
-      glos.game.nextTurn()
+    startTurn () {
+      glos.game.match.startTurn()
     },
     onMousedown () {
       if (glos.threejsControls) glos.threejsControls.enabled = false
@@ -71,6 +70,9 @@ export default {
   computed: {
     cardSlots () {
       return this.glos.cardSlots // this.glos.game && this.glos.game.match && this.glos.game.match.playerSelf.bot.cardSlots
+    },
+    turnInProgress () {
+      return glos.game.match && glos.game.match.turnInProgress
     }
   }
 }

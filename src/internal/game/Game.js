@@ -70,23 +70,23 @@ export class Game {
     // })
   }
 
-  nextTurn () {
-    const match = this.match
-    match.turnPlayerIndex = -1
-    this.progressTurn()
-  }
+  // nextTurn () {
+  //   const match = this.match
+  //   match.turnPlayerIndex = -1
+  //   this.progressTurn()
+  // }
 
-  /**
-   * Progress within turn (next player)
-   */
-  progressTurn () {
-    const match = this.match
-    ++match.turnPlayerIndex
-    if (match.turnPlayer) {
-      // match.turnPlayer.bot.object3d.position.z += 1
-      match.turnPlayer.bot.cardStart()
-    }
-  }
+  // /**
+  //  * Progress within turn (next player)
+  //  */
+  // progressTurn () {
+  //   const match = this.match
+  //   ++match.turnPlayerIndex
+  //   if (match.turnPlayer) {
+  //     // match.turnPlayer.bot.object3d.position.z += 1
+  //     match.turnPlayer.bot.cardStart()
+  //   }
+  // }
 
   cardAllDone (bot) {
     this.progressTurn()

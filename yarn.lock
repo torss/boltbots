@@ -6399,6 +6399,11 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
     hash-base "^3.0.0"
     inherits "^2.0.1"
 
+rng.js@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/rng.js/-/rng.js-1.0.2.tgz#f2689729ae843523c63d4165396f8583b1a430dd"
+  integrity sha512-oZTpmoqexnRZyLqYi2Noek2FJTXOZ/3osb5IDQATHxpVJhy0vJALy9i5oWDsyGt5NnKJwdXCleJNbOcvud106Q==
+
 rtlcss@^2.4.0:
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/rtlcss/-/rtlcss-2.4.0.tgz#482ea28f2b9fe06dd0ab3057997be9af13da84c1"

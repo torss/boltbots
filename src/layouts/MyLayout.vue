@@ -151,7 +151,7 @@ export default {
       return this.glos.hand // this.match && this.match.playerSelf.hand
     },
     players () {
-      return this.match ? this.match.players : []
+      return this.match ? this.match.turnPlayers : []
     }
   }
 }

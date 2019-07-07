@@ -85,31 +85,44 @@ export class Bot {
     }
   }
 
-  cardAllDone () {
-    this.cardIndex = -1
-    this.game.cardAllDone(this)
+  invokeCardSlot (index) {
+    this.cardIndex = index
+    const cardSlot = this.cardSlots[index]
+    if (!cardSlot || !cardSlot.invoke(this)) return false
+    return true
   }
 
   cardDone () {
     const cardSlot = this.cardSlots[this.cardIndex]
-    if (!cardSlot) {
-      console.warn('Broken cardDone call, cardIndex:', this.cardIndex)
-      return
-    }
-    cardSlot.active = false
-    this.cardNext()
+    if (cardSlot) cardSlot.active = false
+    this.game.match.progressTurn()
   }
 
-  cardNext () {
-    ++this.cardIndex
-    const cardSlot = this.cardSlots[this.cardIndex]
-    if (!cardSlot || !cardSlot.invoke(this)) this.cardAllDone()
-  }
+  // cardAllDone () {
+  //   this.cardIndex = -1
+  //   this.game.cardAllDone(this)
+  // }
 
-  cardStart () {
-    this.cardIndex = -1
-    this.cardNext()
-  }
+  // cardDone () {
+  //   const cardSlot = this.cardSlots[this.cardIndex]
+  //   if (!cardSlot) {
+  //     console.warn('Broken cardDone call, cardIndex:', this.cardIndex)
+  //     return
+  //   }
+  //   cardSlot.active = false
+  //   this.cardNext()
+  // }
+
+  // cardNext () {
+  //   ++this.cardIndex
+  //   const cardSlot = this.cardSlots[this.cardIndex]
+  //   if (!cardSlot || !cardSlot.invoke(this)) this.cardAllDone()
+  // }
+
+  // cardStart () {
+  //   this.cardIndex = -1
+  //   this.cardNext()
+  // }
 
   enterOnMap () {
     const { map, controlTower } = this.game.match
