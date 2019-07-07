@@ -8,14 +8,14 @@
 
     <div class="card-slots">
       <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
-          <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot)" rounded no-caps @drop="dropCard(cardSlot)">
-            <template v-if="cardSlot.card">
-              <span>{{ cardSlot.card.cardType.title }}</span>
-            </template>
-            <template v-else>
-              <span class="text-grey-8">Slot {{ index + 1 }}</span>
-            </template>
-          </q-btn>
+        <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="turnInProgress" @click="removeCard(cardSlot)">
+          <template v-if="cardSlot.card">
+            <span>{{ cardSlot.card.cardType.title }}</span>
+          </template>
+          <template v-else>
+            <span class="text-grey-8">Slot {{ index + 1 }}</span>
+          </template>
+        </q-btn>
       </draggable>
       <div class="flex flex-center column">
         <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="startTurn" :disable="turnInProgress" />
@@ -27,7 +27,7 @@
 <script>
 import draggable from 'vuedraggable'
 import { glos } from '../internal/Glos'
-import { Card } from '../internal/game'
+import { Card, CardSlot } from '../internal/game'
 
 export default {
   name: 'CtrlFooter',
@@ -55,15 +55,35 @@ export default {
       if (glos.threejsControls) glos.threejsControls.enabled = true
     },
     checkCardMove (event) {
-      if (!event.draggedContext.element.card) return false
-      if (!event.relatedContext.element.card) return false
+      // if (!event.draggedContext.element.card) return false
+      // if (!event.relatedContext.element.card) return false
+      return false
     },
     cardSlotToColor (cardSlot) {
       return cardSlot.card ? (cardSlot.active ? 'light-blue-6' : 'primary') : undefined
     },
+    dragCard (cardSlot) {
+      glos.dragged = cardSlot
+    },
+    dragCardStop () {
+      glos.dragged = undefined
+    },
     dropCard (cardSlot) {
-      if (glos.dragged instanceof Card && !cardSlot.card) {
+      if (glos.dragged instanceof CardSlot) {
+        const card = glos.dragged.card
+        glos.dragged.card = cardSlot.card
+        cardSlot.card = card
+      } else if (glos.dragged instanceof Card && !cardSlot.card) {
         cardSlot.card = glos.dragged
+        glos.dragged.removeFromHand()
+      }
+      glos.dragged = undefined
+    },
+    removeCard (cardSlot) {
+      const card = cardSlot.card
+      if (card) {
+        cardSlot.card = undefined
+        glos.hand.push(card)
       }
     }
   },

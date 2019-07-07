@@ -38,7 +38,7 @@
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <q-tooltip>Drag these cards onto the slots at the bottom to program your bot.</q-tooltip>
           <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
-            <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @dragstart="dragCard(card)">
+            <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @click="useCard(card)" @dragstart="dragCard(card)" @dragend="dragCardStop" :disable="turnInProgress">
               <span>{{ card.cardType.title }}</span>
             </q-btn>
           </draggable>
@@ -125,8 +125,20 @@ export default {
   },
   methods: {
     openURL,
+    useCard (card) {
+      for (const cardSlot of glos.cardSlots) {
+        if (!cardSlot.card) {
+          cardSlot.card = card
+          card.removeFromHand()
+          return
+        }
+      }
+    },
     dragCard (card) {
       glos.dragged = card
+    },
+    dragCardStop () {
+      glos.dragged = undefined
     },
     clickPlayer (player) {
       glos.game.match.playerSelf = player // TODO debug only
@@ -155,6 +167,9 @@ export default {
     },
     turn () {
       return this.match ? glos.game.match.turn : 0
+    },
+    turnInProgress () {
+      return glos.game.match && glos.game.match.turnInProgress
     }
   }
 }
