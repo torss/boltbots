@@ -24,6 +24,7 @@ const directionsAngle = {
  */
 export class Bot {
   constructor (game, player) {
+    this.alive = true
     this.health = 1
     this.towerDistance = -1
     assignNewVueObserver(this)
@@ -171,8 +172,7 @@ export class Bot {
         new TWEEN.Tween(shotPos)
           .to(targetPos, shotPos.distanceTo(targetPos) * 125)
           .onComplete(() => {
-            target.health -= 0.2
-            if (target.health < Number.EPSILON) target.explode(this.player)
+            target.damage(match.damageLazor, this.player)
             this.object3d.add(lazorOrb)
             shotPos.copy(origPos)
             match.actionDone()
@@ -183,9 +183,16 @@ export class Bot {
     }
   }
 
+  damage (amount, attacker) {
+    this.health -= amount
+    if (this.health < Number.EPSILON) return this.explode(attacker)
+    return false
+  }
+
   explode (killer) {
-    if (!this.player.markAsDead(killer)) return
+    if (!this.player.markAsDead(killer)) return false
     const { map } = this.game.match
+    this.alive = false
     this.health = 0
     this.object3d.visible = false
     const position = this.object3d.position
@@ -193,6 +200,7 @@ export class Bot {
     this.towerDistance = -1
     this.clearCardSlots()
     // TODO explosions!
+    return true
   }
 
   clearCardSlots () {

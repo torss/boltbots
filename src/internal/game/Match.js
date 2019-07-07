@@ -10,9 +10,12 @@ export class Match {
     this.turnPlayers = [] // These players must be alive
     this.deadPlayers = []
     this.playerSelf = undefined
-    this.turn = 0
+    this.turn = 1
     this.turnInProgress = false
     this.handSize = 8
+    this.damageLazor = 0.20
+    this.damageShove = 0.05
+    this.damageCrush = 0.15
     assignNewVueObserver(this)
 
     this.map = undefined
