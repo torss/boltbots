@@ -7,6 +7,10 @@ import { assignNewVueObserver } from './Dereactivate'
  */
 class Glos {
   constructor () {
+    this.darkMode = localStorage.getItem('darkMode') === 'true'
+    this.muteAudio = localStorage.getItem('muteAudio') === 'true'
+    this.masterVolume = parseInt(localStorage.getItem('masterVolume')) || 100
+
     this.game = new Game()
     this.cardSlots = []
     this.hand = []
@@ -39,6 +43,11 @@ class Glos {
     const vueGlos = this // .vueGlos
     vueGlos.cardSlots = playerSelf.bot.cardSlots
     vueGlos.hand = playerSelf.hand
+  }
+
+  adjustAudioVolume () {
+    if (!this.game.audioListener) return
+    this.game.audioListener.setMasterVolume(this.muteAudio ? 0 : this.masterVolume / 100)
   }
 }
 

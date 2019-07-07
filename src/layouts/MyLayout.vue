@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated :class="bgClassHeader">
+    <q-header elevated :class="bgClassHeader" @mousedown="onMousedown">
       <q-toolbar>
         <q-btn
           flat
@@ -16,6 +16,15 @@
           Bolt Bots
           <q-tooltip>Running on Quasar v{{ $q.version }}</q-tooltip>
         </q-toolbar-title>
+
+        <q-btn :icon="glos.muteAudio ? 'mdi-volume-off' : 'mdi-volume-high'" flat round @click="glos.muteAudio = !glos.muteAudio">
+          <q-tooltip>Toggle audio mute</q-tooltip>
+        </q-btn>
+        <span class="volume-slider">
+          <q-slider v-model="glos.masterVolume" :min="0" :max="200" color="white" /> <!--  label :label-value="glos.masterVolume + '%'" -->
+          <q-tooltip>Master volume: {{ glos.masterVolume }}%</q-tooltip>
+        </span>
+
         <div class="toolbarStats" ref="toolbarStats" />
       </q-toolbar>
     </q-header>
@@ -25,9 +34,9 @@
       no-swipe-close behavior="desktop"
       :content-class="bgClassDrawer" elevated
     >
-      <q-list :dark="this.darkMode">
+      <q-list :dark="glos.darkMode">
         <div class="flex flex-center">
-          <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg" @click="darkMode = !darkMode">
+          <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg" @click="glos.darkMode = !glos.darkMode">
           <q-tooltip>Click to toggle dark mode.</q-tooltip>
         </div>
         <q-item-label header class="text-center text-bold">Turn {{ turn }}</q-item-label>
@@ -119,11 +128,9 @@ export default {
     PlayerListItem
   },
   data () {
-    const darkMode = localStorage.getItem('darkMode') === 'true'
     return {
       leftDrawerOpen: this.$q.platform.is.desktop,
       bgClassDark: 'bg-blue-grey-10',
-      darkMode,
       glos
     }
   },
@@ -150,7 +157,7 @@ export default {
     },
     onMousedown () {
       if (glos.threejsControls) glos.threejsControls.enabled = false
-      document.addEventListener('mouseup', () => this.onMouseup(), { once: true })
+      document.addEventListener('mouseup', () => this.onMouseup(), { once: true, capture: true })
     },
     onMouseup () {
       if (glos.threejsControls) glos.threejsControls.enabled = true
@@ -176,15 +183,23 @@ export default {
       return glos.game.match && glos.game.match.turnInProgress
     },
     bgClassDrawer () {
-      return this.darkMode ? this.bgClassDark : 'bg-grey-2'
+      return this.glos.darkMode ? this.bgClassDark : 'bg-grey-2'
     },
     bgClassHeader () {
-      return this.darkMode ? this.bgClassDark : 'bg-primary'
+      return this.glos.darkMode ? this.bgClassDark : 'bg-primary'
     }
   },
   watch: {
-    darkMode (newValue) {
+    'glos.darkMode' (newValue) {
       localStorage.setItem('darkMode', newValue)
+    },
+    'glos.muteAudio' (newValue) {
+      localStorage.setItem('muteAudio', newValue)
+      glos.adjustAudioVolume()
+    },
+    'glos.masterVolume' (newValue) {
+      localStorage.setItem('masterVolume', newValue)
+      glos.adjustAudioVolume()
     }
   }
 }
@@ -196,4 +211,8 @@ export default {
 
 .toolbarStats
   float right
+
+.volume-slider
+  min-width 10em
+  margin-right 1em
 </style>

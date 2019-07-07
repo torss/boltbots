@@ -88,7 +88,7 @@ function initBot (game, bot, i) {
   obj.add(lazorOrb)
 
   const sound = new THREE.PositionalAudio(game.audioListener)
-  game.audioListener.setMasterVolume(1)
+  glos.adjustAudioVolume()
   const oscillator = game.audioListener.context.createOscillator()
   oscillator.type = 'square'
   oscillator.frequency.setValueAtTime(6, sound.context.currentTime)
