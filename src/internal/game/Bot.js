@@ -33,6 +33,7 @@ export class Bot {
     this.cardSlots = []
     this.cardIndex = 0
     this.tiEns = [] // Occupied tiles
+    this.guiColor = new THREE.Color(1, 1, 1)
     this._object3d = undefined
     this._directionKey = 'N'
   }

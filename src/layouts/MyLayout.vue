@@ -32,6 +32,9 @@
         <q-item-label header>Players</q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <q-item v-for="(player, index) in players" :key="index" v-ripple dense @click.native="clickPlayer(player)">
+            <q-item-section side>
+              <q-icon :name="'mdi-' + player.icon" :style="'color: #' + player.bot.guiColor.getHexString()" />
+            </q-item-section>
             <q-item-section avatar>
               <q-item-label class="player-name">{{ player.name }}</q-item-label>
               <q-tooltip>Player name</q-tooltip>

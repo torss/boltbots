@@ -19,8 +19,10 @@ export function initTestGame (game) {
 
   initModels(game, game.envMap)
 
+  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings']
   for (let i = 0; i < 4; ++i) {
     const player = new Player(game, undefined, 'Player-' + (i + 1))
+    player.icon = playerIcons[i % playerIcons.length]
     addPlayerCards(player)
     initBot(game, player.bot, i)
     match.players.push(player)
@@ -59,7 +61,9 @@ function initBot (game, bot, i) {
     new THREE.Color(0.75, 0.75, 0),
     new THREE.Color(0.25, 0, 1)
   ]
-  color.add(colors[i % colors.length].multiplyScalar(2))
+  const selectedColor = colors[i % colors.length].multiplyScalar(2)
+  bot.guiColor.copy(selectedColor)
+  color.add(selectedColor)
   // color.r = 1 + (i % 4 === 0) * 2
   // color.g = 1 + (i % 4 === 1) * 2
   // color.b = 1 + (i % 4 === 2) * 2

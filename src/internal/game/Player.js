@@ -11,5 +11,6 @@ export class Player {
     this.hand = [] // Cards
     this.bot = new Bot(game, this)
     this.tieBreaker = 0
+    this.icon = 'robot'
   }
 }
