@@ -1,19 +1,25 @@
 import Random from 'rng.js'
 import { ControlTower } from './ControlTower'
+import { assignNewVueObserver } from '../Dereactivate'
 
 export class Match {
   constructor () {
-    this.map = undefined
     this.players = []
-    this.turnPlayers = []
-    // this.playerSelfUid = -1
+    this.turnPlayers = [] // These players must be alive
+    this.deadPlayers = []
     this.playerSelf = undefined
     this.turn = 0
     this.turnInProgress = false
+    assignNewVueObserver(this)
+
+    this.map = undefined
+    // this.playerSelfUid = -1
     this.turnCardIndex = 0
     this.turnPlayerIndex = 0
+    this.remainingActionCount = 0
     this.controlTower = new ControlTower()
     this.rng = new Random(0, 0) // Primary rng
+    this.rngCosmetic = new Random(0, 0) // Unimportant rng
   }
 
   get turnPlayer () {
@@ -22,7 +28,7 @@ export class Match {
 
   startTurn () {
     this.turnInProgress = true
-    this.turnPlayers = [...this.players]
+    this.turnPlayers = this.players.filter(player => player.alive)
     this.turnCardIndex = 0
     this.turnPlayerIndex = -1
     this.prepareTurnPlayers()
@@ -30,12 +36,27 @@ export class Match {
   }
 
   completeTurn () {
+    ++this.turn
     this.turnInProgress = false
   }
 
   prepareTurnPlayers () {
     for (const player of this.turnPlayers) player.tieBreaker = this.rng.nextNumber()
     this.turnPlayers.sort((a, b) => (a.bot.towerDistance === b.bot.towerDistance) ? a.tieBreaker - b.tieBreaker : a.bot.towerDistance - b.bot.towerDistance)
+  }
+
+  actionDone () {
+    --this.remainingActionCount
+    if (this.remainingActionCount <= 0) {
+      this.progressTurnNextCardSlot()
+    }
+  }
+
+  progressTurnNextCardSlot () {
+    ++this.turnCardIndex
+    this.turnPlayerIndex = -1
+    this.prepareTurnPlayers()
+    this.progressTurn()
   }
 
   progressTurn () {
@@ -62,10 +83,12 @@ export class Match {
           return
         }
       } else {
-        // Next card slot
-        ++this.turnCardIndex
-        this.turnPlayerIndex = -1
-        this.prepareTurnPlayers()
+        if (this.turnPlayers.length > 0) {
+          // Fire lazors!
+          this.remainingActionCount += this.turnPlayers.length
+          for (const player of this.turnPlayers) player.bot.shoot()
+          return
+        } else this.progressTurnNextCardSlot()
       }
     }
   }

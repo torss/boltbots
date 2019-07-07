@@ -29,25 +29,10 @@
         <div class="flex flex-center">
           <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg">
         </div>
+        <q-item-label header class="text-center text-bold">Turn {{ turn }}</q-item-label>
         <q-item-label header>Players</q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
-          <q-item v-for="(player, index) in players" :key="index" v-ripple dense @click.native="clickPlayer(player)">
-            <q-item-section side>
-              <q-icon :name="'mdi-' + player.icon" :style="'color: #' + player.bot.guiColor.getHexString()" />
-            </q-item-section>
-            <q-item-section avatar>
-              <q-item-label class="player-name">{{ player.name }}</q-item-label>
-              <q-tooltip>Player name</q-tooltip>
-            </q-item-section>
-            <q-item-section>
-              <q-linear-progress stripe rounded style="height: 20px" :value="player.bot.health" color="red" />
-              <q-tooltip>Bot health: {{ (player.bot.health * 100).toFixed(0) }}%</q-tooltip>
-            </q-item-section>
-            <q-item-section side>
-              <q-item-label class="tower-distance">{{ player.bot.towerDistance.toFixed(2) }}m</q-item-label>
-              <q-tooltip>Distance to control tower</q-tooltip>
-            </q-item-section>
-          </q-item>
+          <PlayerListItem v-for="(player, index) in players" :player="player" :key="index" @click.native="clickPlayer(player)" />
         </q-list>
         <q-item-label header>Hand</q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
@@ -58,6 +43,13 @@
             </q-btn>
           </draggable>
         </q-list>
+        <template v-if="deadPlayers.length > 0">
+          <q-item-label header>Graveyard</q-item-label>
+          <q-list class="q-gutter-sm" @mousedown="onMousedown">
+            <PlayerListItem v-for="(player, index) in deadPlayers" :player="player" :key="index" />
+          </q-list>
+        </template>
+
         <q-item-label header>Essential Links</q-item-label>
         <q-item clickable tag="a" target="_blank" href="http://v1.quasar-framework.org">
           <q-item-section avatar>
@@ -116,12 +108,14 @@
 <script>
 import { openURL } from 'quasar'
 import draggable from 'vuedraggable'
+import PlayerListItem from '../components/PlayerListItem'
 import { glos } from '../internal/Glos'
 
 export default {
   name: 'MyLayout',
   components: {
-    draggable
+    draggable,
+    PlayerListItem
   },
   data () {
     return {
@@ -155,6 +149,12 @@ export default {
     },
     players () {
       return this.match ? this.match.turnPlayers : []
+    },
+    deadPlayers () {
+      return this.match ? this.match.deadPlayers : []
+    },
+    turn () {
+      return this.match ? glos.game.match.turn : 0
     }
   }
 }
@@ -166,11 +166,4 @@ export default {
 
 .toolbarStats
   float right
-
-.player-name
-  min-width 4em
-
-.tower-distance
-  min-width 3.5em
-  text-align right
 </style>

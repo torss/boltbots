@@ -19,7 +19,7 @@ export function initTestGame (game) {
 
   initModels(game, game.envMap)
 
-  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings']
+  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings', 'face-agent', 'alien', 'laptop', 'desktop-classic', 'account-badge', 'account-card-details', 'pirate', 'target', 'target', 'target-variant', 'emoticon-devil']
   for (let i = 0; i < 4; ++i) {
     const player = new Player(game, undefined, 'Player-' + (i + 1))
     player.icon = playerIcons[i % playerIcons.length]
@@ -83,6 +83,7 @@ function initBot (game, bot, i) {
   const lazorOrb = game.models['lazor-orb'].clone()
   lazorOrb.position.y = 0.07
   lazorOrb.position.z = 0.23
+  bot.lazorOrb = lazorOrb
   obj.add(lazorOrb)
 
   game.scene.add(obj)

@@ -34,6 +34,7 @@ export class Bot {
     this.cardIndex = 0
     this.tiEns = [] // Occupied tiles
     this.guiColor = new THREE.Color(1, 1, 1)
+    this.lazorOrb = undefined
     this._object3d = undefined
     this._directionKey = 'N'
   }
@@ -143,6 +144,54 @@ export class Bot {
         return false
       }
     })
+  }
+
+  shoot () {
+    const match = this.game.match
+    const map = match.map
+    const position = this.object3d.position
+    const scanPos = position.clone().floor()
+    while (true) {
+      scanPos.add(this.direction)
+      const tiEn = map.getTiEnAt(scanPos)
+      if (!tiEn || tiEn.tiTy.wall) {
+        match.actionDone()
+        return
+      }
+      if (tiEn.entity) {
+        const lazorOrb = this.lazorOrb
+        const shotPos = lazorOrb.position
+        const origPos = lazorOrb.position.clone()
+        const shotPosWorld = lazorOrb.getWorldPosition(new THREE.Vector3())
+        this.game.scene.add(lazorOrb)
+        shotPos.copy(shotPosWorld)
+        const target = tiEn.entity
+        const targetPos = target.object3d.position.clone().floor()
+        // TODO SFX: Lazor
+        new TWEEN.Tween(shotPos)
+          .to(targetPos, shotPos.distanceTo(targetPos) * 125)
+          .onComplete(() => {
+            target.health -= 0.2
+            if (target.health < Number.EPSILON) target.explode(this.player)
+            this.object3d.add(lazorOrb)
+            shotPos.copy(origPos)
+            match.actionDone()
+          })
+          .start()
+        return
+      }
+    }
+  }
+
+  explode (killer) {
+    if (!this.player.markAsDead(killer)) return
+    const { map } = this.game.match
+    this.health = 0
+    this.object3d.visible = false
+    const position = this.object3d.position
+    map.getTiEnAt(position).entity = undefined
+    this.towerDistance = -1
+    // TODO explosions!
   }
 }
 
