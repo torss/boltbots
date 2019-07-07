@@ -1,6 +1,8 @@
 import Random from 'rng.js'
-import { ControlTower } from './ControlTower'
 import { assignNewVueObserver } from '../Dereactivate'
+import { ControlTower } from './ControlTower'
+import { Card } from './Card'
+import { cardTypeList } from './content'
 
 export class Match {
   constructor () {
@@ -10,6 +12,7 @@ export class Match {
     this.playerSelf = undefined
     this.turn = 0
     this.turnInProgress = false
+    this.handSize = 8
     assignNewVueObserver(this)
 
     this.map = undefined
@@ -36,7 +39,15 @@ export class Match {
   }
 
   completeTurn () {
-    for (const player of this.turnPlayers) player.bot.clearCardSlots()
+    for (const player of this.turnPlayers) {
+      // Clear used cards
+      player.bot.clearCardSlots()
+      // Refill hands
+      for (let i = player.hand.length; i < this.handSize; ++i) {
+        const cardType = cardTypeList[Math.floor(this.rng.nextNumber() * cardTypeList.length)]
+        player.hand.push(new Card(cardType))
+      }
+    }
     ++this.turn
     this.turnInProgress = false
   }
