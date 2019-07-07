@@ -46,7 +46,7 @@ export function init (vueInstance) {
 
   const controls = new OrbitControls(camera)
   controls.maxDistance = 100
-  controls.minDistance = 16
+  controls.minDistance = 14
   controls.maxPolarAngle = 0.4 * Math.PI
   controls.enableKeys = false
   controls.enablePan = false

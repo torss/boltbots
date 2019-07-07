@@ -174,11 +174,13 @@ export class Bot {
         shotPos.copy(shotPosWorld)
         const target = tiEn.entity
         const targetPos = target.object3d.position.clone().floor()
-        // TODO SFX: Lazor
+
+        lazorOrb.add(this.game.sfxf.cpasShoot())
+
         new TWEEN.Tween(shotPos)
           .to(targetPos, shotPos.distanceTo(targetPos) * 125)
           .onComplete(() => {
-            target.damage(match.damageLazor, this.player)
+            target.damage('lazor', this.player)
             this.object3d.add(lazorOrb)
             shotPos.copy(origPos)
             match.actionDone()
@@ -189,7 +191,25 @@ export class Bot {
     }
   }
 
-  damage (amount, attacker) {
+  damage (type, attacker) {
+    if (!this.alive) return
+    const { game, object3d } = this
+    const { match, sfxf } = game
+    let amount = 0
+    switch (type) {
+      case 'lazor':
+        amount = match.damageLazor
+        object3d.add(sfxf.cpasHit())
+        break
+      case 'shove':
+        amount = match.damageShove
+        object3d.add(sfxf.cpasShove())
+        break
+      case 'crush':
+        amount = match.damageCrush
+        object3d.add(sfxf.cpasCrush())
+        break
+    }
     this.health -= amount
     if (this.health < Number.EPSILON) return this.explode(attacker)
     return false
@@ -205,6 +225,8 @@ export class Bot {
     map.getTiEnAt(position).entity = undefined
     this.towerDistance = -1
     this.clearCardSlots()
+    this.engineSoundGen.stop()
+    this.object3d.add(this.game.sfxf.cpasExplode())
     // TODO explosions!
     return true
   }

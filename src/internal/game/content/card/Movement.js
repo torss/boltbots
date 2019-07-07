@@ -25,7 +25,7 @@ function straightMove (bot, factor) {
   const finishShoving = (crush = false) => {
     if (shoving.length > 0) {
       for (const entity of shoving) {
-        entity.damage(bot.game.match.damageCrush, bot.player)
+        if (crush) entity.damage('crush', bot.player)
         entity.cleanupVisitedTiles()
       }
       shoving = shoving.filter(entity => entity.alive)
@@ -101,7 +101,7 @@ function straightMove (bot, factor) {
     if (obstacle) {
       if (collide) {
         if (canShove) {
-          if (frontEntity !== obstacle && !obstacle.damage(bot.game.match.damageShove, bot.player)) shoving.push(obstacle)
+          if (frontEntity !== obstacle && !obstacle.damage('shove', bot.player)) shoving.push(obstacle)
         } else {
           tween.stop()
           new TWEEN.Tween(bot.object3d.position).to(bot.object3d.position.clone().floor().addScaledVector(bot.direction, -factorSign), 500)

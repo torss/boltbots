@@ -1,9 +1,10 @@
 import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
+import { assignNewVueObserver } from '../Dereactivate'
 import { btileLoaderItemsCreate, TiSh } from '../btile'
 import { LoaderControl, LoaderItem } from '../LoaderControl'
 import { initTiTys, initTestGame } from './content'
-import { assignNewVueObserver } from '../Dereactivate'
+import { Sfxf } from '../Sfxf'
 
 /**
  * Primary game managing instance.
@@ -14,6 +15,7 @@ export class Game {
     this.match = undefined
     assignNewVueObserver(this)
 
+    this.sfxf = new Sfxf(this)
     this.readyFunc = undefined
     this.tiTys = undefined
     this.models = {}
