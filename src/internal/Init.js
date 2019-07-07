@@ -45,6 +45,12 @@ export function init (vueInstance) {
   scene.add(axesHelper)
 
   const controls = new OrbitControls(camera)
+  controls.maxDistance = 100
+  controls.minDistance = 16
+  controls.maxPolarAngle = 0.4 * Math.PI
+  controls.enableKeys = false
+  controls.enablePan = false
+  controls.target.set(8, 0, 8)
   glos.threejsControls = controls
 
   const sky = new Sky()
