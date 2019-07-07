@@ -191,6 +191,18 @@ export class Bot {
     }
   }
 
+  damageFlash () {
+    const { object3d } = this
+    object3d.traverseVisible(obj => {
+      if (obj.isMesh && !obj.bloom) obj.bloom = 'tmp'
+    })
+    new TWEEN.Tween({}).to({}, 100).onComplete(() => {
+      object3d.traverseVisible(obj => {
+        if (obj.bloom === 'tmp') obj.bloom = false
+      })
+    }).start()
+  }
+
   damage (type, attacker) {
     if (!this.alive) return
     const { game, object3d } = this
@@ -200,6 +212,7 @@ export class Bot {
       case 'lazor':
         amount = match.damageLazor
         object3d.add(sfxf.cpasHit())
+        this.damageFlash()
         break
       case 'shove':
         amount = match.damageShove

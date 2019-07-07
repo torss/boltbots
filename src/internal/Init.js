@@ -5,6 +5,8 @@ import { Sky } from './Sky'
 import { OrbitControls } from './OrbitControls'
 import { glos } from './Glos'
 import Stats from 'stats.js'
+import { RenderPass, UnrealBloomPass, EffectComposer, ShaderPass } from './postprocessing'
+import { BloomFinalShader } from './shaders'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
 // import {moctreeTest} from './moctree/MoctreeTest'
@@ -41,8 +43,8 @@ export function init (vueInstance) {
   // const gridHelper = new THREE.GridHelper(10, 2, 0xffffff, 0xffffff)
   // scene.add(gridHelper)
 
-  const axesHelper = new THREE.AxesHelper(1) // "The X axis is red. The Y axis is green. The Z axis is blue."
-  scene.add(axesHelper)
+  // const axesHelper = new THREE.AxesHelper(1) // "The X axis is red. The Y axis is green. The Z axis is blue."
+  // scene.add(axesHelper)
 
   const controls = new OrbitControls(camera)
   controls.maxDistance = 100
@@ -107,6 +109,37 @@ export function init (vueInstance) {
   renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
 
+  // Post-Processing (EffectComposer) setup //
+  // renderer.toneMapping = THREE.ReinhardToneMapping
+  renderer.toneMappingExposure = Math.pow(1.1, 4.0)
+
+  const scenePass = new RenderPass(scene, camera)
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 10.0, 0.0, 0.0)
+
+  const composerBloom = new EffectComposer(renderer)
+  composerBloom.renderToScreen = false
+  composerBloom.addPass(scenePass)
+  composerBloom.addPass(bloomPass)
+
+  const finalPass = new ShaderPass(
+    new THREE.ShaderMaterial({
+      uniforms: {
+        baseTexture: { value: null },
+        bloomTexture: { value: composerBloom.renderTarget2.texture }
+      },
+      vertexShader: BloomFinalShader.vertexShader,
+      fragmentShader: BloomFinalShader.fragmentShader
+    }), 'baseTexture'
+  )
+  finalPass.needsSwap = true
+
+  const composerFinal = new EffectComposer(renderer)
+  composerFinal.addPass(scenePass)
+  composerFinal.addPass(finalPass)
+
+  const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' })
+  // - //
+
   const preAnimateFuncs = glos.preAnimateFuncs
 
   // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
@@ -118,7 +151,11 @@ export function init (vueInstance) {
     camera.aspect = width / height
     camera.updateProjectionMatrix()
     renderer.setSize(width, height)
+    composerBloom.setSize(width, height)
+    composerFinal.setSize(width, height)
   })
+
+  // TODO ? vueInstance.$deinit
 
   vueInstance.$isDestroyed = false
   const stats = new Stats()
@@ -139,7 +176,6 @@ export function init (vueInstance) {
     const sunPosFactor = 100 * Math.cos(sunPosTime2)
     skyUniforms.sunPosition.value.x = sunPosFactor * Math.cos(sunPosTime)
     skyUniforms.sunPosition.value.z = sunPosFactor * Math.sin(sunPosTime)
-    if (renderingEnabled) envCubeCamera.update(renderer, scene)
     if (controls) controls.update()
     // if (mesh) {
     //   mesh.rotation.x += 0.01
@@ -147,8 +183,27 @@ export function init (vueInstance) {
     // }
 
     if (renderingEnabled) {
-      renderer.clear()
-      renderer.render(scene, camera)
+      envCubeCamera.update(renderer, scene)
+      // renderer.clear()
+      // renderer.render(scene, camera)
+
+      scene.traverseVisible(obj => {
+        if (obj.isMesh) {
+          if (!obj.bloom) {
+            obj.tmp = obj.material
+            obj.material = darkMaterial
+          }
+        } else {
+          obj.tmp = false
+        }
+      })
+      sky.visible = false
+      composerBloom.render()
+      sky.visible = true
+      scene.traverseVisible(obj => {
+        if (obj.tmp) obj.material = obj.tmp
+      })
+      composerFinal.render()
     }
 
     stats.update()

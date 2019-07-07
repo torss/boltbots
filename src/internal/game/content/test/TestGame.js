@@ -84,6 +84,7 @@ function initBot (game, bot, i) {
   const lazorOrb = game.models['lazor-orb'].clone()
   lazorOrb.position.y = 0.07
   lazorOrb.position.z = 0.23
+  lazorOrb.bloom = true
   bot.lazorOrb = lazorOrb
   obj.add(lazorOrb)
 
