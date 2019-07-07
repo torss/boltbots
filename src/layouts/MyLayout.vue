@@ -44,7 +44,10 @@
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <PlayerListItem v-for="(player, index) in players" :player="player" :key="index" @click.native="clickPlayer(player)" />
         </q-list>
-        <q-item-label header>Hand</q-item-label>
+        <q-item-label header>
+          Hand {{ hand.length }}/{{ handSize }}
+          <q-tooltip>You can hold at most {{ handSize }} cards.</q-tooltip>
+        </q-item-label>
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <q-tooltip>Drag these cards onto the slots at the bottom to program your bot.</q-tooltip>
           <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
@@ -181,6 +184,9 @@ export default {
     },
     turnInProgress () {
       return glos.game.match && glos.game.match.turnInProgress
+    },
+    handSize () {
+      return glos.game.match && glos.game.match.handSize
     },
     bgClassDrawer () {
       return this.glos.darkMode ? this.bgClassDark : 'bg-grey-2'
