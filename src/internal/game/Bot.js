@@ -217,12 +217,11 @@ export class Bot {
 
   explode (killer) {
     if (!this.player.markAsDead(killer)) return false
-    const { map } = this.game.match
     this.alive = false
     this.health = 0
     this.object3d.visible = false
-    const position = this.object3d.position
-    map.getTiEnAt(position).entity = undefined
+    for (const tiEn of this.tiEns) tiEn.entity = undefined
+    this.tiEns = []
     this.towerDistance = -1
     this.clearCardSlots()
     this.engineSoundGen.stop()

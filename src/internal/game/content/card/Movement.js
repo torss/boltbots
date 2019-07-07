@@ -25,8 +25,8 @@ function straightMove (bot, factor) {
   const finishShoving = (crush = false) => {
     if (shoving.length > 0) {
       for (const entity of shoving) {
-        if (crush) entity.damage('crush', bot.player)
         entity.cleanupVisitedTiles()
+        if (crush) entity.damage('crush', bot.player)
       }
       shoving = shoving.filter(entity => entity.alive)
       if (crush) shoving.unshift(bot)
