@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
 import { CardType } from '../../CardType'
 import { Bot } from '../../Bot'
@@ -15,23 +16,24 @@ function straightMove (bot, factor) {
     bot.enterOnMap()
     bot.cardDone()
   }
+  const posTileCrush = new THREE.Vector3()
   const finishShoving = (crush = false) => {
     if (shoving.length > 0) {
       if (crush) shoving.unshift(bot)
-      const frontEntity = shoving[shoving.length - 1]
-      const frontPos = frontEntity.object3d.position.clone().floor()
+      // const frontEntity = shoving[shoving.length - 1]
+      // const frontPos = frontEntity.object3d.position.clone().floor().addScalar(0.5)
       for (let i = 0; i < shoving.length; ++i) {
         const k = shoving.length - 1 - i
         const j = crush ? i : k
         const last = i === shoving.length - 1
         const entity = shoving[j]
-        const posTile = crush ? frontPos.clone().addScaledVector(bot.direction, factorSign > 0 ? -k - 1 : k) : bot.object3d.position.clone().floor().addScaledVector(bot.direction, factorSign * (j + 1))
+        entity.cleanupVisitedTiles()
+        const posTile = crush ? posTileCrush.clone().addScaledVector(bot.direction, factorSign > 0 ? -k - 1 : k) : bot.object3d.position.clone().floor().addScaledVector(bot.direction, factorSign * (j + 1))
         new TWEEN.Tween(entity.object3d.position).to(posTile, 1100)
           .delay(i * 250)
           .easing(TWEEN.Easing.Quartic.InOut)
           .onComplete(() => {
             entity.enterOnMap()
-            entity.cleanupVisitedTiles()
             if (last) finishMove()
           })
           .start()
@@ -42,7 +44,7 @@ function straightMove (bot, factor) {
   }
   const finish = finishShoving
   const targetPos = object3d.position.clone().addScaledVector(bot.direction, factor)
-  const originalTilePos = object3d.position.clone().floor()
+  const originalTilePos = object3d.position.clone() // .floor().addScalar(0.5)
   let tween = new TWEEN.Tween(object3d.position).to(targetPos, duration)
   let mustCrush = false
   let canShove = true
@@ -54,11 +56,11 @@ function straightMove (bot, factor) {
     const frontEntity = shoving[shoving.length - 1] || bot
     let pos = frontEntity.object3d.position.clone().addScalar(0.5).addScaledVector(bot.direction, factorSign * distFactor)
     if (shoving.length > 0 && !mustCrush) {
-      const posTile = bot.object3d.position.clone().floor()
+      const posTile = bot.object3d.position.clone() // .floor().addScalar(0.5)
       const traveledDistance = originalTilePos.distanceTo(posTile)
-      const remainingDistance = (factor > 0 ? factor + 1 : -factor) - traveledDistance
+      const remainingDistance = (factor > 0 ? factor : -factor) - traveledDistance
       const shovable = remainingDistance > shoving.length
-      const posTileCrush = pos.clone().floor() // posTile.clone().addScaledVector(bot.direction, factorSign * shoving.length)
+      posTileCrush.copy(pos).floor() // const posTileCrush = pos.clone().floor() // posTile.clone().addScaledVector(bot.direction, factorSign * shoving.length)
       const obstacleCrush = map.checkObstacle(posTileCrush, frontEntity)
       if (shovable ? obstacleCrush === 'wall' : obstacleCrush) {
         canShove = false
