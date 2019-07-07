@@ -36,6 +36,7 @@ export class Match {
   }
 
   completeTurn () {
+    for (const player of this.turnPlayers) player.bot.clearCardSlots()
     ++this.turn
     this.turnInProgress = false
   }

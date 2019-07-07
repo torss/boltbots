@@ -191,7 +191,12 @@ export class Bot {
     const position = this.object3d.position
     map.getTiEnAt(position).entity = undefined
     this.towerDistance = -1
+    this.clearCardSlots()
     // TODO explosions!
+  }
+
+  clearCardSlots () {
+    for (const cardSlot of this.cardSlots) cardSlot.clear()
   }
 }
 

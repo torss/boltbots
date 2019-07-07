@@ -12,4 +12,9 @@ export class CardSlot {
     }
     return false
   }
+
+  clear () {
+    this.card = undefined
+    this.active = false
+  }
 }
