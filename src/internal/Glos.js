@@ -27,6 +27,7 @@ class Glos {
     game.threeTest = init(vueInstance)
     game.scene = game.threeTest.scene
     game.envMap = game.threeTest.material.envMap
+    game.audioListener = game.threeTest.audioListener
     game.readyFunc = (game) => {
       this.adjustPlayerSelf()
     }

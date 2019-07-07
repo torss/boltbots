@@ -19,6 +19,7 @@ export class Game {
     this.models = {}
     this.scene = undefined // THREE.Scene
     this.envMap = undefined // THREE
+    this.audioListener = undefined // THREEE.AudioListener
     this.threeTest = undefined // THREE.* test data (envMap)
   }
 

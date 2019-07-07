@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+// import * as TWEEN from '@tweenjs/tween.js'
 import { mapGens, cardTypeList } from '..'
 import { Match, Player, Card, CardSlot } from '../..'
 import { glos } from '../../../Glos'
@@ -85,6 +86,23 @@ function initBot (game, bot, i) {
   lazorOrb.position.z = 0.23
   bot.lazorOrb = lazorOrb
   obj.add(lazorOrb)
+
+  const sound = new THREE.PositionalAudio(game.audioListener)
+  game.audioListener.setMasterVolume(1)
+  const oscillator = game.audioListener.context.createOscillator()
+  oscillator.type = 'square'
+  oscillator.frequency.setValueAtTime(6, sound.context.currentTime)
+  oscillator.start(0)
+  // const oscillatorCtrl = { freq: 6 }
+  // new TWEEN.Tween(oscillatorCtrl).to({ freq: 64 }, 2000).repeat(Infinity).yoyo(true).easing(TWEEN.Easing.Bounce.InOut).onUpdate(() => {
+  //   oscillator.frequency.setValueAtTime(oscillatorCtrl.freq, sound.context.currentTime)
+  // }).start()
+  sound.setNodeSource(oscillator)
+  sound.setRefDistance(1)
+  sound.setVolume(0.01)
+  bot.engineSound = sound
+  bot.engineSoundGen = oscillator
+  obj.add(sound)
 
   game.scene.add(obj)
   bot.enterOnMap()

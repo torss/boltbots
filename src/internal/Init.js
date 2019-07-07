@@ -33,6 +33,9 @@ export function init (vueInstance) {
   camera.position.set(12, 4, 12)
   // camera.up.set(0, 0, 1) // Z up
 
+  const audioListener = new THREE.AudioListener()
+  camera.add(audioListener)
+
   const scene = new THREE.Scene()
 
   // const gridHelper = new THREE.GridHelper(10, 2, 0xffffff, 0xffffff)
@@ -159,6 +162,7 @@ export function init (vueInstance) {
 
   return {
     scene,
-    material
+    material,
+    audioListener
   }
 }

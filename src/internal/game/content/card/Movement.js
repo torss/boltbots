@@ -13,6 +13,11 @@ function straightMove (bot, factor) {
   const prevPos = object3d.position.clone()
   let shoving = []
   const finishMove = () => {
+    const sound = bot.engineSound
+    bot.engineSoundGen.frequency.setValueAtTime(6, sound.context.currentTime)
+    sound.setVolume(0.01)
+
+    bot.cleanupVisitedTiles()
     bot.enterOnMap()
     bot.cardDone()
   }
@@ -55,6 +60,11 @@ function straightMove (bot, factor) {
   const update = () => {
     const distFactor = 0.325
     const map = bot.game.match.map
+    const deltaPos = bot.object3d.position.clone().sub(prevPos)
+
+    const sound = bot.engineSound
+    bot.engineSoundGen.frequency.setValueAtTime(6 + deltaPos.length() * 100, sound.context.currentTime)
+    sound.setVolume(1)
 
     // Next
     const frontEntity = shoving[shoving.length - 1] || bot
@@ -106,7 +116,6 @@ function straightMove (bot, factor) {
     bot.cleanupVisitedTiles()
 
     if (shoving.length > 0) {
-      const deltaPos = bot.object3d.position.clone().sub(prevPos)
       for (const entity of shoving) {
         entity.object3d.position.add(deltaPos)
         entity.enterOnMap()

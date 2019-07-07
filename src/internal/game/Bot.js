@@ -35,6 +35,8 @@ export class Bot {
     this.cardIndex = 0
     this.tiEns = [] // Occupied tiles
     this.guiColor = new THREE.Color(1, 1, 1)
+    this.engineSound = undefined
+    this.engineSoundGen = undefined
     this.lazorOrb = undefined
     this._object3d = undefined
     this._directionKey = 'N'
@@ -72,6 +74,7 @@ export class Bot {
     let indexNext = (index + indexChange) % directionKeyString.length
     if (indexNext < 0) indexNext += directionKeyString.length
     if (animated) {
+      this.engineSound.setVolume(1)
       const angleNow = { angle: directionsAngle[this.directionKey] }
       this._directionKey = directionKeyString[indexNext]
       const angleTarget = { angle: angleNow.angle - indexChange * 0.5 * Math.PI } // { angle: directionsAngle[this.directionKey] }
@@ -81,7 +84,10 @@ export class Bot {
         .onUpdate(() => {
           this.object3d.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), angleNow.angle)
         })
-        .onComplete(() => this.cardDone())
+        .onComplete(() => {
+          this.engineSound.setVolume(0.01)
+          this.cardDone()
+        })
         .start()
     } else {
       this.directionKey = directionKeyString[indexNext]
