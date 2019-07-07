@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
+    <q-header elevated :class="bgClassHeader">
       <q-toolbar>
         <q-btn
           flat
@@ -22,12 +22,13 @@
 
     <q-drawer
       v-model="leftDrawerOpen"
-      bordered no-swipe-close behavior="desktop"
-      content-class="bg-grey-2"
+      no-swipe-close behavior="desktop"
+      :content-class="bgClassDrawer" elevated
     >
-      <q-list>
+      <q-list :dark="this.darkMode">
         <div class="flex flex-center">
-          <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg">
+          <img class="logo" alt="Bolt Bots logo" src="~assets/boltbots-logo.svg" @click="darkMode = !darkMode">
+          <q-tooltip>Click to toggle dark mode.</q-tooltip>
         </div>
         <q-item-label header class="text-center text-bold">Turn {{ turn }}</q-item-label>
         <q-item-label header>Players</q-item-label>
@@ -118,8 +119,11 @@ export default {
     PlayerListItem
   },
   data () {
+    const darkMode = localStorage.getItem('darkMode') === 'true'
     return {
       leftDrawerOpen: this.$q.platform.is.desktop,
+      bgClassDark: 'bg-blue-grey-10',
+      darkMode,
       glos
     }
   },
@@ -166,10 +170,21 @@ export default {
       return this.match ? this.match.deadPlayers : []
     },
     turn () {
-      return this.match ? glos.game.match.turn : 0
+      return this.match ? glos.game.match.turn : 1
     },
     turnInProgress () {
       return glos.game.match && glos.game.match.turnInProgress
+    },
+    bgClassDrawer () {
+      return this.darkMode ? this.bgClassDark : 'bg-grey-2'
+    },
+    bgClassHeader () {
+      return this.darkMode ? this.bgClassDark : 'bg-primary'
+    }
+  },
+  watch: {
+    darkMode (newValue) {
+      localStorage.setItem('darkMode', newValue)
     }
   }
 }
