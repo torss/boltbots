@@ -26,6 +26,7 @@ export class Game {
     this.audioListener = undefined // THREEE.AudioListener
     this.threeTest = undefined // THREE.* test data (envMap)
     this.explosionMaterial = undefined
+    this.explosionGeometry = undefined
     this.clock = new THREE.Clock()
   }
 
@@ -46,7 +47,7 @@ export class Game {
       .easing(TWEEN.Easing.Bounce.InOut)
       .start()
     // - //
-    // Explosion material
+    // Explosion material & geometry
     this.explosionMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tExplosion: {
@@ -61,6 +62,7 @@ export class Game {
       vertexShader: ExplosionShader.vertexShader,
       fragmentShader: ExplosionShader.fragmentShader
     })
+    this.explosionGeometry = new THREE.IcosahedronGeometry(20, 4)
     // - //
 
     const btileLoaderItems = btileLoaderItemsCreate()
@@ -124,7 +126,7 @@ export class Game {
 
   createExplosionObj (size = 1) {
     const obj = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(20, 4),
+      this.explosionGeometry,
       this.explosionMaterial
     )
     obj.scale.setScalar(0.025 * size)
