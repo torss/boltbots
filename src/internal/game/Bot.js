@@ -1,10 +1,11 @@
 import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
 import { assignNewVueObserver } from '../Dereactivate'
+import { straightMove } from './content/card/Movement'
 
 const directionKeyString = 'NESW'
 
-const directions = {
+export const directions = {
   N: new THREE.Vector3(+1, 0, 0),
   S: new THREE.Vector3(-1, 0, 0),
   E: new THREE.Vector3(0, 0, +1),
@@ -16,6 +17,20 @@ const directionsAngle = {
   S: 1.5 * Math.PI,
   E: 0.0 * Math.PI,
   W: 1.0 * Math.PI
+}
+
+export const directionsAxis = {
+  N: 'x',
+  S: 'x',
+  E: 'z',
+  W: 'z'
+}
+
+const rotationToDirection = {
+  'X+': 'N',
+  'X-': 'S',
+  'Z+': 'E',
+  'Z-': 'W'
 }
 
 /**
@@ -49,6 +64,10 @@ export class Bot {
   set object3d (value) {
     this._object3d = value
     this.applyDirectionKeyToObject3d()
+  }
+
+  get directionAxis () {
+    return directionsAxis[this.directionKey]
   }
 
   get directionKey () {
@@ -165,6 +184,47 @@ export class Bot {
         return false
       }
     })
+  }
+
+  conveyor () {
+    const game = this.game
+    const match = game.match
+    const map = match.map
+    const position = this.object3d.position
+    const tiEn = map.getTiEnAt(position)
+    const tiTy = tiEn.tiTy
+    const moveFactors = {
+      'ConveyorSingle0': 1,
+      'ConveyorDouble0': 2
+    }
+    const moveFactor = typeof moveFactors[tiTy.key] === 'number' ? moveFactors[tiTy.key] : 0
+    if (moveFactor > 0) {
+      this.hoverEffect(true)
+      const moveDirectionKey = rotationToDirection[tiEn.rotation]
+      straightMove(this, moveFactor, moveDirectionKey, () => match.actionDone())
+    } else {
+      match.actionDone()
+    }
+  }
+
+  hoverEffect (activate = false) {
+    const game = this.game
+    const tracks = this.object3d.children[0].children[1].children[0]
+    if (tracks.name !== 'Tracks') {
+      console.warn('Bot conveyor glow - "Tracks" are not at the expected place')
+      return
+    }
+    const isActive = !!tracks.hovering
+    if (activate === isActive) return
+    if (activate) {
+      tracks.bloom = true
+      tracks.hovering = tracks.material
+      tracks.material = game.materials['Hover']
+    } else {
+      tracks.bloom = false
+      tracks.material = tracks.hovering
+      tracks.hovering = undefined
+    }
   }
 
   shoot () {

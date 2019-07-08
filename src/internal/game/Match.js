@@ -19,16 +19,17 @@ export class Match {
     this.damageLazor = 0.20
     this.damageShove = 0.05
     this.damageCrush = 0.15
+    this.turnCardIndex = -1
     assignNewVueObserver(this)
 
     this.map = undefined
     this.checkpointCount = 3
     // this.playerSelfUid = -1
-    this.turnCardIndex = 0
     this.turnPlayerIndex = 0
     this.remainingActionCount = 0
     this.controlTower = new ControlTower()
     this.checkpoints = []
+    this.actionType = 'lazor'
     this.rng = new Rng(0, 0) // Primary rng
     this.rngMapGen = new Rng(0, 0) // MapGen rng
     this.rngCosmetic = new Rng(0, 0) // Unimportant rng
@@ -58,6 +59,8 @@ export class Match {
       }
     }
     this.turnInProgress = false
+    this.turnCardIndex = -1
+    this.turnPlayerIndex = -1
     if (this.turnPlayers.length === 0) this.gameOver = 'draw'
     else if (this.turnPlayers.length === 1) {
       this.gameOver = 'lms'
@@ -76,8 +79,26 @@ export class Match {
 
   actionDone () {
     --this.remainingActionCount
-    if (this.remainingActionCount <= 0) {
-      this.progressTurnNextCardSlot()
+    if (this.remainingActionCount === 0) {
+      switch (this.actionType) {
+        case 'lazor':
+          // Run conveyor belts
+          this.actionType = 'conveyor'
+          this.turnPlayerIndex = -1
+          this.remainingActionCount = 1
+          this.actionDone()
+          break
+        case 'conveyor':
+          ++this.turnPlayerIndex
+          this.remainingActionCount = 1
+          if (this.turnPlayer) this.turnPlayer.bot.conveyor()
+          else this.progressTurnNextCardSlot()
+          break
+        default:
+          console.error('Match::actionDone - Unknown actionType:', this.actionType)
+          this.progressTurnNextCardSlot()
+          break
+      }
     }
   }
 
@@ -100,7 +121,7 @@ export class Match {
         while (this.turnPlayer) {
           const bot = this.turnPlayer.bot
           if (bot.invokeCardSlot(this.turnCardIndex)) return // Next card invoked
-          if (this.turnCardIndex < bot.cardSlots.length - 1) moreSlotsExist = true
+          if (this.turnCardIndex < bot.cardSlots.length) moreSlotsExist = true
           ++this.turnPlayerIndex
         }
         if (moreSlotsExist) {
@@ -114,7 +135,8 @@ export class Match {
       } else {
         if (this.turnPlayers.length > 0) {
           // Fire lazors!
-          this.remainingActionCount += this.turnPlayers.length
+          this.actionType = 'lazor'
+          this.remainingActionCount = this.turnPlayers.length
           for (const player of this.turnPlayers) player.bot.shoot()
           return
         } else this.progressTurnNextCardSlot()

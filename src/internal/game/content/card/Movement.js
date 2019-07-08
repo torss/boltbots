@@ -1,11 +1,15 @@
 import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
 import { CardType } from '../../CardType'
-import { Bot } from '../../Bot'
+import { Bot, directions, directionsAxis } from '../../Bot'
 
 export const cardTypeList = []
 
-function straightMove (bot, factor) {
+export function straightMove (bot, factor, directionKey = undefined, doneFunc = undefined) {
+  if (!directionKey) directionKey = bot.directionKey
+  const direction = directions[directionKey]
+  const directionAxis = directionsAxis[directionKey]
+
   const duration = 1000 + Math.abs(factor) * 100
   const factorSign = factor > 0 ? 1 : -1
   const object3d = bot.object3d
@@ -18,8 +22,10 @@ function straightMove (bot, factor) {
     sound.setVolume(0.01)
 
     bot.cleanupVisitedTiles()
+    bot.hoverEffect(false)
     bot.enterOnMap(true)
-    bot.cardDone()
+    if (doneFunc) doneFunc()
+    else bot.cardDone()
   }
   const posTileCrush = new THREE.Vector3()
   const posTileStop = new THREE.Vector3()
@@ -39,13 +45,17 @@ function straightMove (bot, factor) {
         const j2 = crush ? k : i
         const last = i === shoving.length - 1
         const entity = shoving[j]
-        // const posTile = crush ? posTileCrush.clone().addScaledVector(bot.direction, factorSign > 0 ? -k - 1 : k) : bot.object3d.position.clone().floor().addScaledVector(bot.direction, factorSign * (j + 1))
-        const posTile = posTileStop.clone().addScaledVector(bot.direction, factorSign > 0 ? -j2 - !!crush : j2 + !!crush)
+        if (entity.directionAxis !== directionAxis) entity.hoverEffect(true)
+        // const posTile = crush ? posTileCrush.clone().addScaledVector(bot.direction, factorSign > 0 ? -k - 1 : k) : bot.object3d.position.clone().floor().addScaledVector(direction, factorSign * (j + 1))
+        const posTile = posTileStop.clone().addScaledVector(direction, factorSign > 0 ? -j2 - !!crush : j2 + !!crush)
         new TWEEN.Tween(entity.object3d.position).to(posTile, 1100)
           .delay(i * 250)
           .easing(TWEEN.Easing.Quartic.InOut)
           .onComplete(() => {
-            if (entity !== bot) entity.enterOnMap(true)
+            if (entity !== bot) {
+              entity.hoverEffect(false)
+              entity.enterOnMap(true)
+            }
             if (last) finishMove()
           })
           .start()
@@ -55,7 +65,7 @@ function straightMove (bot, factor) {
     }
   }
   const finish = finishShoving
-  const targetPos = object3d.position.clone().addScaledVector(bot.direction, factor)
+  const targetPos = object3d.position.clone().addScaledVector(direction, factor)
   const originalTilePos = object3d.position.clone() // .floor().addScalar(0.5)
   let tween = new TWEEN.Tween(object3d.position).to(targetPos, duration)
   let mustCrush = false
@@ -71,13 +81,13 @@ function straightMove (bot, factor) {
 
     // Next
     const frontEntity = shoving[shoving.length - 1] || bot
-    let pos = frontEntity.object3d.position.clone().addScalar(0.5).addScaledVector(bot.direction, factorSign * distFactor)
+    let pos = frontEntity.object3d.position.clone().addScalar(0.5).addScaledVector(direction, factorSign * distFactor)
     if (shoving.length > 0 && !mustCrush) {
       const posTile = bot.object3d.position.clone() // .floor().addScalar(0.5)
       const traveledDistance = originalTilePos.distanceTo(posTile)
       const remainingDistance = (factor > 0 ? factor : -factor) - traveledDistance
       const shovable = remainingDistance > shoving.length
-      posTileCrush.copy(pos).floor() // const posTileCrush = pos.clone().floor() // posTile.clone().addScaledVector(bot.direction, factorSign * shoving.length)
+      posTileCrush.copy(pos).floor() // const posTileCrush = pos.clone().floor() // posTile.clone().addScaledVector(direction, factorSign * shoving.length)
       posTileStop.copy(posTileCrush)
       const obstacleCrush = map.checkObstacle(posTileCrush, frontEntity)
       if (shovable ? obstacleCrush === 'wall' : obstacleCrush) {
@@ -109,8 +119,8 @@ function straightMove (bot, factor) {
         } else {
           posTileStop.copy(pos).floor()
           tween.stop()
-          // new TWEEN.Tween(bot.object3d.position).to(bot.object3d.position.clone().floor().addScaledVector(bot.direction, -factorSign), 500)
-          new TWEEN.Tween(bot.object3d.position).to(posTileStop.clone().addScaledVector(bot.direction, -factorSign), 500)
+          // new TWEEN.Tween(bot.object3d.position).to(bot.object3d.position.clone().floor().addScaledVector(direction, -factorSign), 500)
+          new TWEEN.Tween(bot.object3d.position).to(posTileStop.clone().addScaledVector(direction, -factorSign), 500)
             .easing(TWEEN.Easing.Back.Out)
             .onComplete(() => finish(true))
             .start()

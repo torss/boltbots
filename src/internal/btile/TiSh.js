@@ -57,10 +57,10 @@ class Shape {
           geometries[rotation] = this.geometry.clone().rotateY(Math.PI)
           break
         case 'Z+':
-          geometries[rotation] = this.geometry.clone().rotateY(Math.PI * 0.5)
+          geometries[rotation] = this.geometry.clone().rotateY(Math.PI * 1.5)
           break
         case 'Z-':
-          geometries[rotation] = this.geometry.clone().rotateY(Math.PI * 1.5)
+          geometries[rotation] = this.geometry.clone().rotateY(Math.PI * 0.5)
           break
         default:
           console.error('Shape.obtainGeometry: Not implemented for ' + rotation)

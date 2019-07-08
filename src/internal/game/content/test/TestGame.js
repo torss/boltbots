@@ -43,7 +43,7 @@ function regenerateTestMap (game) {
       const pos = new THREE.Vector3(1 + rng.choose(dim.x - 2), map.groundHeight, 1 + rng.choose(dim.z - 2))
       const index = dim.resolve(pos)
       const tiEn = tiEns[index]
-      if (!tiEn.tiTy.wall) {
+      if (tiEn.tiTy.key === 'Pavement') { // if (!tiEn.tiTy.wall) {
         match.checkpoints.push(new Checkpoint(game, i, pos))
         break
       }

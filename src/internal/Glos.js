@@ -62,3 +62,5 @@ class Glos {
 }
 
 export const glos = new Glos()
+
+window.glos = glos // NOTE prototype only

@@ -8,7 +8,7 @@
 
     <div class="card-slots">
       <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
-        <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="disableAct" @click="removeCard(cardSlot)">
+        <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot, index === turnCardIndex)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="disableAct" @click="removeCard(cardSlot)">
           <template v-if="cardSlot.card">
             <span>{{ cardSlot.card.cardType.title }}</span>
           </template>
@@ -59,8 +59,8 @@ export default {
       // if (!event.relatedContext.element.card) return false
       return false
     },
-    cardSlotToColor (cardSlot) {
-      return cardSlot.card ? (cardSlot.active ? 'light-blue-6' : 'primary') : undefined
+    cardSlotToColor (cardSlot, active) {
+      return cardSlot.card ? (active ? 'light-blue-6' : 'primary') : (active ? 'grey-3' : undefined)
     },
     dragCard (cardSlot) {
       glos.dragged = cardSlot
@@ -93,6 +93,9 @@ export default {
     },
     disableAct () {
       return glos.game.match && (glos.game.match.turnInProgress || !!glos.game.match.gameOver)
+    },
+    turnCardIndex () {
+      return glos.game.match && glos.game.match.turnCardIndex
     }
   }
 }

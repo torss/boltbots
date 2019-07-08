@@ -20,6 +20,7 @@ export class Game {
     this.readyFunc = undefined
     this.tiTys = undefined
     this.models = {}
+    this.materials = {}
     this.fonts = {}
     this.scene = undefined // THREE.Scene
     this.envMap = undefined // THREE
@@ -63,6 +64,9 @@ export class Game {
       fragmentShader: ExplosionShader.fragmentShader
     })
     this.explosionGeometry = new THREE.IcosahedronGeometry(20, 4)
+    // - //
+    // Hover material
+    this.materials['Hover'] = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.10, 0.10, 1.0) })
     // - //
 
     const btileLoaderItems = btileLoaderItemsCreate()
