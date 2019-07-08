@@ -2,10 +2,15 @@
   <q-item v-ripple dense>
     <q-item-section side>
       <q-icon :name="'mdi-' + player.icon" :style="'color: #' + player.bot.guiColor.getHexString()" />
+
+      <q-rating icon="mdi-flag-variant" readonly v-model="player.completedCheckpoints" :max="checkpointCount" size="0.25em" color="primary"/>
+      <q-tooltip>Completed checkpoints out of the {{ checkpointCount }} total checkpoints.<br>The checkpoints have to be completed in order,<br>and your bot must land directly on a checkpoint for it to be completed.<br>Completing all checkpoints wins you the game!</q-tooltip>
     </q-item-section>
     <q-item-section avatar>
-      <q-item-label class="player-name" :class="!player.alive && 'player-name-dead'">{{ player.name }}</q-item-label>
-      <q-tooltip>Player name</q-tooltip>
+      <q-item-label class="player-name" :class="!player.alive && 'player-name-dead'">
+        {{ player.name }}
+        <q-tooltip>Player name</q-tooltip>
+      </q-item-label>
     </q-item-section>
     <template  v-if="player.alive">
       <q-item-section>
@@ -13,9 +18,11 @@
         <q-tooltip>Bot health: {{ (player.bot.health * 100).toFixed(0) }}%</q-tooltip>
       </q-item-section>
       <q-item-section side>
-        <q-item-label class="tower-distance" v-if="player.alive">{{ player.bot.towerDistance.toFixed(2) }}m</q-item-label>
-        <q-item-label class="tower-distance-dead" v-else>☠️</q-item-label>
-        <q-tooltip>Distance to control tower</q-tooltip>
+        <span>
+          <q-item-label class="tower-distance" v-if="player.alive">{{ player.bot.towerDistance.toFixed(2) }}m</q-item-label>
+          <q-item-label class="tower-distance-dead" v-else>☠️</q-item-label>
+          <q-tooltip>Distance to control tower</q-tooltip>
+        </span>
       </q-item-section>
     </template>
     <q-item-section v-else>
@@ -53,10 +60,22 @@
 </template>
 
 <script>
+import { glos } from '../internal/Glos'
+
 export default {
   name: 'PlayerListItem',
   props: {
     player: Object
+  },
+  data () {
+    return {
+      glos
+    }
+  },
+  computed: {
+    checkpointCount () {
+      return this.glos.game ? this.glos.game.match.checkpointCount : 0
+    }
   }
 }
 </script>

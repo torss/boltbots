@@ -111,4 +111,12 @@ export class Sfxf {
     obj.add(this.createPosAudioStarted('sine', 100, -10 / lmod2, 100, 10 * lmod2, volume))
     return obj
   }
+
+  cpasCheckpoint () {
+    const obj = new THREE.Group()
+    obj.add(this.createPosAudioStarted('square', 200, 10, 40, 30))
+    obj.add(this.createPosAudioStarted('sawtooth', 300, -40, 40, 10))
+    obj.add(this.createPosAudioStarted('sine', 1000, -200, 40, 10))
+    return obj
+  }
 }

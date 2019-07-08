@@ -6,6 +6,7 @@ import * as THREE from 'three'
 export class Map {
   constructor (tiMa) {
     this.tiMa = tiMa
+    this.groundHeight = 0
   }
 
   remesh (scene) {

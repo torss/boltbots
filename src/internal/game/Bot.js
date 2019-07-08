@@ -133,11 +133,25 @@ export class Bot {
   //   this.cardNext()
   // }
 
-  enterOnMap () {
-    const { map, controlTower } = this.game.match
+  enterOnMap (rest = false) {
+    const { match, sfxf } = this.game
+    const { map, controlTower } = match
     const position = this.object3d.position
     map.enterBot(position, this)
     this.towerDistance = controlTower.position.distanceTo(position.clone().floor().addScalar(0.5))
+    if (rest) {
+      // Check checkpoint
+      const next = this.player.completedCheckpoints
+      if (match.checkpoints[next].checkPosition.equals(position.clone().floor())) {
+        ++this.player.completedCheckpoints
+        this.health += 2 * match.damageLazor
+        if (this.health > 1) this.health = 1
+        this.object3d.add(sfxf.cpasCheckpoint())
+        if (this.player.completedCheckpoints === match.checkpointCount) {
+          this.player.win('checkpoint')
+        }
+      }
+    }
   }
 
   cleanupVisitedTiles () {

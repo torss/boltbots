@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 // import * as TWEEN from '@tweenjs/tween.js'
 import { mapGens, cardTypeList } from '..'
-import { Match, Player, Card, CardSlot } from '../..'
+import { Match, Player, Card, CardSlot, Checkpoint } from '../..'
 import { glos } from '../../../Glos'
 
 export function initTestGame (game) {
@@ -34,6 +34,21 @@ function regenerateTestMap (game) {
   map.remesh(scene)
   match.map = map
   match.controlTower.position.copy(controlTowerTilePosition).addScalar(0.5)
+
+  // Place checkpoints
+  const rng = match.rngMapGen
+  const { dim, tiEns } = map.tiMa
+  for (let i = 1; i <= match.checkpointCount; ++i) {
+    while (true) {
+      const pos = new THREE.Vector3(1 + rng.choose(dim.x - 2), map.groundHeight, 1 + rng.choose(dim.z - 2))
+      const index = dim.resolve(pos)
+      const tiEn = tiEns[index]
+      if (!tiEn.tiTy.wall) {
+        match.checkpoints.push(new Checkpoint(game, i, pos))
+        break
+      }
+    }
+  }
 }
 
 function addPlayerCards (player) {

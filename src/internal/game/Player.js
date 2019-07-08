@@ -8,6 +8,7 @@ export class Player {
     this.killedInTurn = -1
     this.killedBy = []
     this.icon = 'robot'
+    this.completedCheckpoints = 0
     assignNewVueObserver(this)
 
     this.game = game
@@ -33,5 +34,11 @@ export class Player {
     } else {
       return false
     }
+  }
+
+  win (victoryType) {
+    const match = this.game.match
+    match.gameOver = victoryType
+    match.victors.push(this)
   }
 }

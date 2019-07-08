@@ -3,19 +3,27 @@
     <div class="canvas-container">
       <q-resize-observer @resize="onResize" />
       <canvas ref="canvas" class="canvas" @mousemove="onMousemove" @mousedown="onMousedown" />
+      <CentralCover v-if="gameOver" />
+      <CtrlFooter v-else />
     </div>
-    <CtrlFooter />
   </q-page>
 </template>
 
 <script>
 import { glos } from '../internal/Glos'
 import CtrlFooter from '../components/CtrlFooter'
+import CentralCover from '../components/CentralCover'
 
 export default {
   name: 'PageIndex',
   components: {
-    CtrlFooter
+    CtrlFooter,
+    CentralCover
+  },
+  data () {
+    return {
+      glos
+    }
   },
   created () {
     this.$deinit = []
@@ -50,6 +58,11 @@ export default {
     },
     onKeydown (event) {
       this.$onKeydown.forEach(func => func(event))
+    }
+  },
+  computed: {
+    gameOver () {
+      return this.glos.game && this.glos.game.match && this.glos.game.match.gameOver
     }
   }
 }

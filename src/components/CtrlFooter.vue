@@ -8,7 +8,7 @@
 
     <div class="card-slots">
       <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
-        <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="turnInProgress" @click="removeCard(cardSlot)">
+        <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="disableAct" @click="removeCard(cardSlot)">
           <template v-if="cardSlot.card">
             <span>{{ cardSlot.card.cardType.title }}</span>
           </template>
@@ -18,7 +18,7 @@
         </q-btn>
       </draggable>
       <div class="flex flex-center column">
-        <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="startTurn" :disable="turnInProgress" />
+        <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="startTurn" :disable="disableAct" />
       </div>
     </div>
   </div>
@@ -91,8 +91,8 @@ export default {
     cardSlots () {
       return this.glos.cardSlots // this.glos.game && this.glos.game.match && this.glos.game.match.playerSelf.bot.cardSlots
     },
-    turnInProgress () {
-      return glos.game.match && glos.game.match.turnInProgress
+    disableAct () {
+      return glos.game.match && (glos.game.match.turnInProgress || !!glos.game.match.gameOver)
     }
   }
 }

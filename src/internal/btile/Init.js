@@ -1,5 +1,5 @@
 // import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
-import { LoaderItem } from '../LoaderControl'
+import { LoaderItemGltf } from '../LoaderControl'
 // import { TiSh } from './TiSh'
 
 const tilePaths = [
@@ -14,7 +14,7 @@ const tilePaths = [
 ]
 
 export function btileLoaderItemsCreate () {
-  return tilePaths.map((tilePath) => new LoaderItem('../statics/models/tiles/' + tilePath + '.glb', tilePath))
+  return tilePaths.map((tilePath) => new LoaderItemGltf('../statics/models/tiles/' + tilePath + '.glb', tilePath))
 }
 
 // export function btileInit (...funcs) {

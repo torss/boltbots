@@ -18,7 +18,7 @@ function straightMove (bot, factor) {
     sound.setVolume(0.01)
 
     bot.cleanupVisitedTiles()
-    bot.enterOnMap()
+    bot.enterOnMap(true)
     bot.cardDone()
   }
   const posTileCrush = new THREE.Vector3()
@@ -42,7 +42,7 @@ function straightMove (bot, factor) {
           .delay(i * 250)
           .easing(TWEEN.Easing.Quartic.InOut)
           .onComplete(() => {
-            entity.enterOnMap()
+            if (entity !== bot) entity.enterOnMap(true)
             if (last) finishMove()
           })
           .start()

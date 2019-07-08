@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
 import { assignNewVueObserver } from '../Dereactivate'
 import { btileLoaderItemsCreate, TiSh } from '../btile'
-import { LoaderControl, LoaderItem } from '../LoaderControl'
+import { LoaderControl, LoaderItemFont, LoaderItemGltf } from '../LoaderControl'
 import { initTiTys, initTestGame } from './content'
 import { Sfxf } from '../Sfxf'
 import { ExplosionShader } from '../shaders'
@@ -20,6 +20,7 @@ export class Game {
     this.readyFunc = undefined
     this.tiTys = undefined
     this.models = {}
+    this.fonts = {}
     this.scene = undefined // THREE.Scene
     this.envMap = undefined // THREE
     this.audioListener = undefined // THREEE.AudioListener
@@ -63,13 +64,16 @@ export class Game {
     // - //
 
     const btileLoaderItems = btileLoaderItemsCreate()
-    const tankLoaderItem = new LoaderItem('../statics/models/vehicle/TestTank.glb', 'Bot')
-    const loaderItems = [...btileLoaderItems, tankLoaderItem]
+    const tankLoaderItem = new LoaderItemGltf('../statics/models/vehicle/TestTank.glb', 'Bot')
+    const fontLoaderItems = [new LoaderItemFont('../statics/fonts/3d/droid/droid_sans_bold.typeface.json', 'Default')]
+    const loaderItems = [...btileLoaderItems, tankLoaderItem, ...fontLoaderItems]
     const loaderControl = new LoaderControl(loaderItems, (success, loaderControl) => {
       if (!success) {
         console.error('loaderControl failed')
         return
       }
+
+      for (const item of fontLoaderItems) this.fonts[item.name] = item.font
 
       const tiShs = {}
       for (const item of btileLoaderItems) {

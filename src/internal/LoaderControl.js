@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 export class LoaderItem {
@@ -8,8 +9,21 @@ export class LoaderItem {
     this.loadedFunc = loadedFunc
     this.result = undefined
   }
+}
+
+export class LoaderItemGltf extends LoaderItem {
+  get loaderKey () { return 'gltfLoader' }
 
   get gltf () {
+    return this.status === 'done' ? this.result : undefined
+  }
+}
+LoaderItemGltf.loaderKey = 'gltfLoader'
+
+export class LoaderItemFont extends LoaderItem {
+  get loaderKey () { return 'fontLoader' }
+
+  get font () {
     return this.status === 'done' ? this.result : undefined
   }
 }
@@ -20,6 +34,7 @@ export class LoaderControl {
     this.countDone = 0
     this.countError = 0
     this.gltfLoader = new GLTFLoader()
+    this.fontLoader = new THREE.FontLoader()
     this.allDoneFunc = allDoneFunc
   }
 
@@ -31,10 +46,11 @@ export class LoaderControl {
     for (const item of this.items) {
       if (item.status === 'unprocessed') {
         item.status = 'loading'
-        this.gltfLoader.load(item.path, (gltf) => {
+        const loader = this[item.loaderKey]
+        loader.load(item.path, (result) => {
           ++this.countDone
           item.status = 'done'
-          item.result = gltf
+          item.result = result
           if (item.loadedFunc) item.loadedFunc(item, this)
           if (this.allDoneFunc) {
             if (this.countDone === this.items.length) this.allDoneFunc(true, this) // all done - full success

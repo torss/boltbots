@@ -13,6 +13,7 @@ mapGenList.push(MapGen.createV0('TestGen0', (game) => {
   const map = new Map(tiMa)
 
   const groundHeight = 2
+  map.groundHeight = groundHeight
   const outerWallHeight = 2
 
   new THREE.Vector3(dim.x, groundHeight, dim.z).iterXyz(pos => {
@@ -54,8 +55,8 @@ function generateContent (game, map, groundHeight) {
   const rng = match.rngMapGen
   const tiMa = map.tiMa
   const { dim, tiEns } = tiMa
-  const choose = (size) => Math.floor(rng.nextNumber() * size)
-  const chooseFrom = (options) => options[choose(options.length)]
+  const choose = (size) => rng.choose(size)
+  const chooseFrom = (options) => rng.chooseFrom(options)
   const genPos = () => new THREE.Vector3(1 + choose(dim.x - 2), groundHeight, 1 + choose(dim.z - 2))
 
   const tiTyOptions = ['ConveyorSingle0', 'ConveyorDouble0', 'Wall0']

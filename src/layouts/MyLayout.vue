@@ -51,7 +51,7 @@
         <q-list class="q-gutter-sm" @mousedown="onMousedown">
           <q-tooltip>Drag these cards onto the slots at the bottom to program your bot.</q-tooltip>
           <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
-            <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @click="useCard(card)" @dragstart="dragCard(card)" @dragend="dragCardStop" :disable="turnInProgress">
+            <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @click="useCard(card)" @dragstart="dragCard(card)" @dragend="dragCardStop" :disable="disableAct">
               <span>{{ card.cardType.title }}</span>
             </q-btn>
           </draggable>
@@ -63,7 +63,7 @@
           </q-list>
         </template>
 
-        <q-item-label header>Essential Links</q-item-label>
+        <!-- <q-item-label header>Essential Links</q-item-label>
         <q-item clickable tag="a" target="_blank" href="http://v1.quasar-framework.org">
           <q-item-section avatar>
             <q-icon name="school" />
@@ -108,7 +108,7 @@
             <q-item-label>Twitter</q-item-label>
             <q-item-label caption>@quasarframework</q-item-label>
           </q-item-section>
-        </q-item>
+        </q-item> -->
       </q-list>
     </q-drawer>
 
@@ -182,8 +182,8 @@ export default {
     turn () {
       return this.match ? glos.game.match.turn : 1
     },
-    turnInProgress () {
-      return glos.game.match && glos.game.match.turnInProgress
+    disableAct () {
+      return glos.game.match && (glos.game.match.turnInProgress || !!glos.game.match.gameOver)
     },
     handSize () {
       return glos.game.match && glos.game.match.handSize

@@ -1,8 +1,8 @@
-import Random from 'rng.js'
 import { assignNewVueObserver } from '../Dereactivate'
 import { ControlTower } from './ControlTower'
 import { Card } from './Card'
 import { cardTypeList } from './content'
+import { Rng } from '../Rng'
 
 export class Match {
   constructor () {
@@ -12,6 +12,9 @@ export class Match {
     this.playerSelf = undefined
     this.turn = 1
     this.turnInProgress = false
+    this.gameOver = false
+    this.gameOverQuip = 0
+    this.victors = []
     this.handSize = 8
     this.damageLazor = 0.20
     this.damageShove = 0.05
@@ -19,14 +22,16 @@ export class Match {
     assignNewVueObserver(this)
 
     this.map = undefined
+    this.checkpointCount = 3
     // this.playerSelfUid = -1
     this.turnCardIndex = 0
     this.turnPlayerIndex = 0
     this.remainingActionCount = 0
     this.controlTower = new ControlTower()
-    this.rng = new Random(0, 0) // Primary rng
-    this.rngMapGen = new Random(0, 0) // MapGen rng
-    this.rngCosmetic = new Random(0, 0) // Unimportant rng
+    this.checkpoints = []
+    this.rng = new Rng(0, 0) // Primary rng
+    this.rngMapGen = new Rng(0, 0) // MapGen rng
+    this.rngCosmetic = new Rng(0, 0) // Unimportant rng
   }
 
   get turnPlayer () {
@@ -52,8 +57,16 @@ export class Match {
         player.hand.push(new Card(cardType))
       }
     }
-    ++this.turn
     this.turnInProgress = false
+    if (this.turnPlayers.length === 0) this.gameOver = 'draw'
+    else if (this.turnPlayers.length === 1) {
+      this.gameOver = 'lms'
+      this.victors = [this.turnPlayers[0]]
+    }
+    if (!this.gameOver) ++this.turn
+    if (this.gameOver) {
+      this.gameOverQuip = this.rngCosmetic.nextNumber()
+    }
   }
 
   prepareTurnPlayers () {
@@ -76,9 +89,9 @@ export class Match {
   }
 
   progressTurn () {
-    if (this.turnPlayers.length === 0) {
+    if (this.turnPlayers.length === 0 || this.gameOver) {
       this.completeTurn()
-      return // No players
+      return // No players or other game over kind (checkpoint victory)
     }
     while (true) {
       ++this.turnPlayerIndex
