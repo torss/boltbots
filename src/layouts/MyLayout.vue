@@ -103,9 +103,10 @@
             <q-item v-for="(value, index) in game.lobbyPeers" :key="index" dense v-ripple class="pointer">
               <q-item-section side><q-icon :name="value.isHost ? 'mdi-account-star' : 'mdi-account'" :color="value.isSelf ? 'primary' : 'grey'"/></q-item-section>
               <q-item-section>{{ value.playerName }}</q-item-section>
+              <q-item-section side v-if="game.pseudoPeer.isHost && !value.isSelf"><q-btn flat icon="mdi-exit-run" @click="kick(value)"><q-tooltip>Kick player from lobby.</q-tooltip></q-btn></q-item-section>
             </q-item>
             <q-item><q-item-section><q-btn label="Leave" flat no-caps @click="leaveMatch"><q-tooltip>Leave the match.</q-tooltip></q-btn></q-item-section></q-item>
-            <q-item v-if="game.isHost"><q-item-section><q-btn label="Start match" flat no-caps @click="startMatch" :disable="!canStartMatch"><q-tooltip>Start the match!</q-tooltip></q-btn></q-item-section></q-item>
+            <q-item v-if="game.pseudoPeer.isHost"><q-item-section><q-btn label="Start match" flat no-caps @click="startMatch" :disable="!canStartMatch"><q-tooltip>Start the match!</q-tooltip></q-btn></q-item-section></q-item>
           </template>
         </div>
 
@@ -323,6 +324,9 @@ export default {
     },
     leaveMatch () {
       glos.game.leave()
+    },
+    kick (peerInfo) {
+      glos.game.kick(peerInfo)
     },
     startMatch () {
       if (!this.canStartMatch) return

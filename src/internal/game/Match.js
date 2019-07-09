@@ -65,7 +65,6 @@ export class Match {
         player.hand.push(new Card(cardType))
       }
     }
-    this.turnInProgress = false
     this.turnCardIndex = -1
     this.turnPlayerIndex = -1
     if (this.turnPlayers.length === 0) this.gameOver = 'draw'
@@ -75,6 +74,9 @@ export class Match {
     }
     if (!this.gameOver) ++this.turn
     this.gameOverQuip = this.rngCosmetic.nextNumber()
+
+    // this.turnInProgress = false
+    this.game.completeTurn()
   }
 
   prepareTurnPlayers () {

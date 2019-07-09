@@ -47,6 +47,7 @@ export class Bot {
     this.game = game
     this.player = player
     this.cardSlots = []
+    this.cardSlotsNext = []
     this.cardIndex = 0
     this.tiEns = [] // Occupied tiles
     this.guiColor = new THREE.Color(1, 1, 1)

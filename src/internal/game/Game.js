@@ -24,7 +24,6 @@ export class Game {
   constructor () {
     this.ready = false
     this.state = 'matchmaking' // matchmaking, lobby, playing
-    this.isHost = false
     this.match = undefined
     this.netNodeIdStr = ''
     this.discoveredPeerCount = 0
@@ -229,13 +228,24 @@ export class Game {
       })
 
       netNode.on('peer:disconnect', (peerInfo) => {
-        const index = this.connectedPeers.indexOf(peerInfo)
-        if (index < 0) {
+        let index = this.connectedPeers.indexOf(peerInfo)
+        if (index >= 0) {
+          this.connectedPeers.splice(index, 1)
+        } else {
           // const idStr = peerInfo.id.toB58String()
           // console.warn('Tried to remove non-existant peer:', idStr)
-          return
         }
-        this.connectedPeers.splice(index, 1)
+
+        // peerInfo.disconnected = true
+        // if (this.state === 'lobby' && this.pseudoPeer.isHost && this.lobbyPeers.includes(peerInfo)) {
+        //   this.kick(peerInfo)
+        // }
+        // index = this.lobbyPeers.indexOf(peerInfo)
+        // if (index >= 0) {
+        //   const peerInfo = this.lobbyPeers[index]
+        //   this.lobbyPeers.splice(index, 1)
+        //   peerInfo.disconnected = true
+        // }
       })
 
       netNode.once('peer:connect', (peerInfo) => {
@@ -247,17 +257,18 @@ export class Game {
 
               for (const peerIdStr of this.onlinePlayerPeers) {
                 const peerInfo = this.getConnectedPeerByNetId(peerIdStr)
-                if (peerInfo === undefined || peerInfo.init) continue
-                peerInfo.init = true
+                if (peerInfo === undefined || peerInfo.isOnlinePlayer) continue
+                peerInfo.isOnlinePlayer = true
 
                 // Send current host data
-                if (this.isHost) {
+                if (this.pseudoPeer.isHost) {
                   const { playerName, matchName, password, maxPlayers, seed, playerCount, hostKey } = this.netMatch
                   this.callPeer(peerInfo, { type: 'hosting', playerName, matchName, password, maxPlayers, seed, playerCount, hostKey })
                 }
               }
             }
           })
+          this.matchCheckConnected()
         }
         netNode.pubsub.subscribe(netTopic, (msg) => {
           // console.log(msg.from, msg.data.toString())
@@ -332,7 +343,6 @@ export class Game {
   netHandleJoinSub (data, peerInfo) {
     if (!this.lobbyPeers.includes(peerInfo)) {
       const openMatch = this.openMatches[data.hostKey]
-      this.isHost = data.hostKey === this.hostKey
       peerInfo.hostKey = data.hostKeyPeer
       peerInfo.playerName = data.playerName
       peerInfo.isHost = peerInfo.hostKey === openMatch.hostKey
@@ -401,24 +411,30 @@ export class Game {
         if (openMatch) {
           --openMatch.playerCount
           if (this.netMatch === openMatch) {
-            const index = this.lobbyPeers.findIndex(peerInfo => peerInfo.idStr === msg.from)
+            const peerInfo = this.getConnectedPeerByNetId(msg.from)
+            const leaveKey = peerInfo.isHost ? data.hostKeyPeer : msg.from
+            const index = this.lobbyPeers.findIndex(peerInfo => peerInfo.idStr === leaveKey)
             if (index >= 0) {
               const lobbyPeer = this.lobbyPeers[index]
-              this.lobbyPeers.splice(index, 1)
-              this.recreatePlayers()
-              if (lobbyPeer.isHost && this.lobbyPeers.length > 0) {
-                // Transfer host
-                const newHost = this.lobbyPeers[0]
-                if (newHost.isSelf) {
-                  this.netPublish({
-                    type: 'transfer-host',
-                    hostKey: data.hostKey,
-                    hostKeyNew: newHost.hostKey,
-                    playerName: newHost.playerName
-                  })
+              if (lobbyPeer.isSelf) {
+                this.leaveSub()
+              } else {
+                this.lobbyPeers.splice(index, 1)
+                this.recreatePlayers()
+                if (lobbyPeer.isHost && this.lobbyPeers.length > 0) {
+                  // Transfer host
+                  const newHost = this.lobbyPeers[0]
+                  if (newHost.isSelf) {
+                    this.netPublish({
+                      type: 'transfer-host',
+                      hostKey: data.hostKey,
+                      hostKeyNew: newHost.hostKey,
+                      playerName: newHost.playerName
+                    })
+                  }
                 }
+                this.sortLobbyPeers()
               }
-              this.sortLobbyPeers()
             }
           }
           if (openMatch.playerCount <= 0) Vue.delete(this.openMatches, data.hostKey)
@@ -439,40 +455,91 @@ export class Game {
         this.chatMessages.unshift({ playerName, text: data.text })
         if (!glos.rightDrawerOpen) this.newChatMessages = true
       } break
-      case 'start':
+      case 'start': {
         this.regenerateMap()
-        glos.cardSlots = this.match.playerSelf.bot.cardSlots
+        const playerSelf = this.match.playerSelf
+        glos.cardSlots = playerSelf.bot.cardSlots
+        glos.hand = playerSelf.hand
         this.state = 'playing'
-        break
-      case 'endTurn':
+      } break
+      case 'endTurn': {
+        for (const peerInfo of this.lobbyPeers) {
+          if (peerInfo.disconnected) peerInfo.player.bot.explode(peerInfo.player) // NOTE This isn't fully safe since the time that different clients detect the disconnect COULD vary enough for this to not work
+        }
+        this.lobbyPeers = this.lobbyPeers.filter(peerInfo => !peerInfo.disconnected)
+
         const peerInfo = this.getConnectedPeerByNetId(msg.from)
+        if (peerInfo.disconnected) return // This probably isn't possible anyway
         peerInfo.endTurn = true
-        const cardSlots = data.cardSlots.map(data => new CardSlot().deserialize(data))
+        const cardSlotsNext = data.cardSlots.map(data => new CardSlot().deserialize(data))
         const player = peerInfo.player
-        player.bot.cardSlots = cardSlots
+        player.bot.cardSlotsNext = cardSlotsNext
         player.endTurn = true
         player.bot.object3d.add(this.sfxf.cpasEndTurn())
-        if (peerInfo.isSelf) {
-          glos.cardSlots = cardSlots
-          glos.hand = player.hand
-        }
         const { match } = this
         const { turnPlayers } = match
         const doneCount = turnPlayers.reduce((rv, player) => rv + (player.endTurn ? 1 : 0), 0)
-        if (doneCount === 1 && this.netMatch.endTurnTimeLimit > 0) {
-          this.turnTimer.start()
-        }
+        if (doneCount === 1 && this.netMatch.endTurnTimeLimit > 0) this.turnTimer.start()
         const allDone = doneCount === turnPlayers.length
         if (allDone) {
           this.turnTimer.stop()
+          for (const player of turnPlayers) {
+            player.bot.cardSlots = player.bot.cardSlotsNext
+            if (player.peerInfo.isSelf) glos.cardSlots = player.bot.cardSlots
+          }
+
           this.match.startTurn()
           for (const peerInfo of this.lobbyPeers) peerInfo.endTurn = false
           for (const player of this.match.players) player.endTurn = false
         }
-        break
+      } break
+      case 'completeTurn': {
+        const peerInfo = this.getConnectedPeerByNetId(msg.from)
+        peerInfo.completeTurn = true
+        const player = peerInfo.player
+        player.completeTurn = true
+        const { match } = this
+        const { turnPlayers } = match
+        const allDone = turnPlayers.reduce((rv, player) => rv && player.completeTurn, true)
+        if (allDone) {
+          for (const peerInfo of this.lobbyPeers) peerInfo.completeTurn = false
+          for (const player of this.match.players) player.completeTurn = false
+
+          match.turnInProgress = false
+        }
+      } break
       default:
         console.warn('netHandleMsgMatch - Got unknown message from', msg.from, '- Content:', msg.data.toString())
     }
+  }
+
+  matchCheckConnected () {
+    const netTopicMatch = this.netTopicMatch
+    if (!netTopicMatch) return
+    this.netNode.pubsub.peers(netTopicMatch, (error, peers) => {
+      if (error) console.warn('matchCheckConnected failed:', error)
+      else {
+        if (netTopicMatch !== this.netTopicMatch) return
+        for (const peerInfo of this.lobbyPeers) {
+          peerInfo.connected = 'checking'
+          if (peerInfo.isSelf) peerInfo.connected = true
+        }
+        for (const peerIdStr of peers) {
+          const peerInfo = this.getConnectedPeerByNetId(peerIdStr)
+          if (peerInfo === undefined) continue
+          peerInfo.connected = true
+        }
+        // let disconnectedCount = 0
+        for (const peerInfo of this.lobbyPeers) {
+          if (peerInfo.connected === 'checking') {
+            peerInfo.connected = false
+            this.kick(peerInfo)
+            // ++disconnectedCount
+          }
+        }
+        // if (disconnectedCount > 0) this.lobbyPeers = this.lobbyPeers.filter(peerInfo => !!peerInfo.connected)
+      }
+    })
   }
 
   subscribeNetTopicMatch (hostKey) {
@@ -558,6 +625,15 @@ export class Game {
     this.recreatePlayers()
   }
 
+  leaveSub () {
+    this.netMatch = undefined
+    this.lobbyPeers = []
+    this.subscribeNetTopicMatch(false)
+    this.state = 'matchmaking'
+
+    this.regenerateMap()
+  }
+
   leave () {
     const { netMatch } = this
     if (!netMatch) return
@@ -566,11 +642,23 @@ export class Game {
       hostKey: netMatch.hostKey,
       hostKeyPeer: this.hostKey
     })
+    this.leaveSub()
+  }
 
-    this.netMatch = undefined
-    this.lobbyPeers = []
-    this.subscribeNetTopicMatch(false)
-    this.state = 'matchmaking'
+  kick (peerInfo) {
+    if (!this.pseudoPeer.isHost) return
+    if (peerInfo.isSelf) {
+      this.leave()
+      return
+    }
+
+    const { netMatch } = this
+    if (!netMatch) return
+    this.netPublish({
+      type: 'leave',
+      hostKey: netMatch.hostKey,
+      hostKeyPeer: peerInfo.hostKey
+    })
   }
 
   startMatch () {
@@ -585,6 +673,15 @@ export class Game {
     if (playerSelf.endTurn) return
     playerSelf.endTurn = true
     this.netPublishMatch({ type: 'endTurn', cardSlots: playerSelf.bot.cardSlots.map(cardSlot => cardSlot.serialize()) })
+  }
+
+  completeTurn () {
+    if (this.state !== 'playing') return
+    const { match } = this
+    const { playerSelf } = match
+    if (playerSelf.completeTurn) return
+    playerSelf.completeTurn = true
+    this.netPublishMatch({ type: 'completeTurn' })
   }
 
   recreatePlayers (placeBots = true) {
