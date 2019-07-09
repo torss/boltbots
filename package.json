@@ -1,7 +1,7 @@
 {
   "name": "boltbots",
-  "version": "0.0.1",
-  "description": "Game inspired by Robo Rally I guess - 100% WIP.",
+  "version": "1.0.0",
+  "description": "A game inspired by Robo Rally.",
   "productName": "Bolt Bots",
   "cordovaId": "org.cordova.quasar.app",
   "author": "torss <37229901+torss@users.noreply.github.com>",
@@ -12,27 +12,35 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@quasar/extras": "^1.1.4",
+    "@tweenjs/tween.js": "^17.4.0",
     "axios": "^0.18.0",
-    "simplex-noise": "^2.4.0",
+    "libp2p": "^0.25.4",
+    "libp2p-bootstrap": "^0.9.7",
+    "libp2p-kad-dht": "^0.15.2",
+    "libp2p-secio": "^0.11.1",
+    "libp2p-webrtc-star": "^0.16.1",
+    "libp2p-websocket-star-multi": "^0.4.4",
+    "libp2p-websockets": "^0.12.2",
+    "merge-options": "^1.0.1",
+    "multiaddr": "^6.1.0",
+    "pull-mplex": "^0.1.2",
+    "quasar": "^1.0.3",
+    "rng.js": "^1.0.2",
     "stats.js": "^0.17.0",
-    "three": "^0.104.0",
-    "three-gltf-loader": "^1.102.0",
-    "vue-i18n": "^7.3.3"
+    "three": "^0.106.0",
+    "vue-i18n": "^7.3.3",
+    "vuedraggable": "^2.23.0"
   },
   "devDependencies": {
-    "babel-eslint": "^8.2.1",
-    "eslint": "^4.18.2",
-    "eslint-config-standard": "^11.0.0",
-    "eslint-friendly-formatter": "^4.0.1",
-    "eslint-loader": "^2.0.0",
-    "eslint-plugin-import": "^2.9.0",
-    "eslint-plugin-node": "^6.0.1",
-    "eslint-plugin-promise": "^3.7.0",
-    "eslint-plugin-standard": "^3.0.1",
-    "eslint-plugin-vue": "^4.3.0",
-    "glsl-shader-loader": "^0.1.6",
-    "quasar-cli": "^0.17.0",
-    "raw-loader": "^1.0.0",
+    "@quasar/app": "^1.0.2",
+    "@quasar/quasar-app-extension-icon-genie": "^1.0.1",
+    "@vue/eslint-config-standard": "^4.0.0",
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.10.0",
+    "eslint-loader": "^2.1.1",
+    "eslint-plugin-vue": "^5.0.0",
+    "raw-loader": "^2.0.0",
     "strip-ansi": "=3.0.1"
   },
   "engines": {
@@ -41,8 +49,9 @@
     "yarn": ">= 1.6.0"
   },
   "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not ie <= 10"
-  ]
+    "last 1 version, not dead, ie >= 11"
+  ],
+  "resolutions": {
+    "ajv": "6.8.1"
+  }
 }

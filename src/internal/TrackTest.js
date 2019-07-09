@@ -1,1 +1,1 @@
-export {trackTest} from './TrackTest2'
+export { trackTest } from './TrackTest2'

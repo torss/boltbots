@@ -1,5 +1,5 @@
-import {moctOctants} from '../../moctree/MoctOctant'
-import {moctOctantTln} from '../../moctree'
+import { moctOctants } from '../../moctree/MoctOctant'
+import { moctOctantTln } from '../../moctree'
 
 export class LoctNode {
   constructor (level, parent, octant = moctOctantTln) {

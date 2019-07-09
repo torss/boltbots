@@ -2,9 +2,9 @@
 import * as THREE from 'three'
 import vertexShader from './sample.vert.glsl'
 import fragmentShader from './sample.frag.glsl'
-import {moctCubeSides} from '../../moctree'
-import {BufferAttributeExtIndex, BufferAttributeExt} from '../../extensions'
-import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
+import { moctCubeSides } from '../../moctree'
+import { BufferAttributeExtIndex, BufferAttributeExt } from '../../extensions'
+import { lsdfOpTypes, initTestLsdfConfigs } from '../LsdfOpType'
 
 export function lsdfTest (vueInstance, scene, camera, materialParam) {
   const material = new THREE.RawShaderMaterial({
@@ -60,7 +60,7 @@ function createCubeGeometry (material) {
   const lsdfTypeTree = initTestLsdfTypeTree(lsdfConfigs)
   console.log('LSDF configuration types: ' + lsdfTypeTree.lsdfTypeLeaves.length)
   adjustLsdfFragmentShader(material, lsdfTypeTree)
-  const {texture, textureSize} = initTestTextureFromLsdfConfigs(lsdfConfigs)
+  const { texture, textureSize } = initTestTextureFromLsdfConfigs(lsdfConfigs)
   material.uniforms.typeMap.value = texture
   material.uniforms.typeMapTexelSize.value = new THREE.Vector2(1, 1).divide(textureSize)
 
@@ -95,7 +95,7 @@ function addCubeFaces (origin, shapeType, indices, positions, normals, uvs, shap
 }
 
 function initTestLsdfTypeTree (lsdfConfigs) {
-  const initNode = (parent, key) => ({parent, key, subs: {}, useCount: 0, users: [], shaderCode: '', typeId: -1})
+  const initNode = (parent, key) => ({ parent, key, subs: {}, useCount: 0, users: [], shaderCode: '', typeId: -1 })
   const upsertNode = (parent, key) => {
     const sub = parent.subs[key]
     if (sub) return sub
@@ -125,8 +125,8 @@ function initTestLsdfTypeTree (lsdfConfigs) {
   const genPositionCode = (typeMapIndex) => {
     return 'position - ' + genTexMapAccess(typeMapIndex) + '.xyz'
   }
-  const resolveCode = (lsdfConfig, resolveState = {typeMapIndex: 0}) => {
-    const {typeMapIndex} = resolveState
+  const resolveCode = (lsdfConfig, resolveState = { typeMapIndex: 0 }) => {
+    const { typeMapIndex } = resolveState
     const typeMapSize = lsdfOpTypes[lsdfConfig.type].typeMapSize // || 0
     let resultCode
     const combineFunc = (funcName, params = '') => {
@@ -170,7 +170,7 @@ function initTestLsdfTypeTree (lsdfConfigs) {
   let typeMapIndexMax = 0
   lsdfTypeLeaves.forEach((lsdfTypeLeaf, index) => {
     lsdfTypeLeaf.typeId = index
-    const resolveState = {typeMapIndex: 0}
+    const resolveState = { typeMapIndex: 0 }
     lsdfTypeLeaf.shaderCode = resolveCode(lsdfTypeLeaf.users[0], resolveState)
     typeMapIndexMax = Math.max(typeMapIndexMax, resolveState.typeMapIndex)
     for (const lsdfConfig of lsdfTypeLeaf.users) lsdfConfig.typeLeaf = lsdfTypeLeaf
@@ -192,9 +192,9 @@ function adjustLsdfFragmentShader (material, lsdfTypeTree) {
   for (let i = 0; i < lsdfTypeTree.typeMapIndexMax; ++i) {
     shaderCodePre += 'vec4 tm' + i + ' = texture(typeMap, vec2(vShapeType.x + (' + i + '. * typeMapTexelSize.x), vShapeType.y));\n'
   }
-  window.waw = lsdfTypeTree.lsdfTypeLeaves // FIXME debug only
-  window.shaderCode = shaderCode // FIXME debug only
-  window.shaderCodePre = shaderCodePre // FIXME debug only
+  // window.lsdfTypeLeaves = lsdfTypeTree.lsdfTypeLeaves // debug only
+  // window.shaderCode = shaderCode // debug only
+  // window.shaderCodePre = shaderCodePre // debug only
   material.fragmentShader = fragmentShader.replace('// [LSDF TYPE TARGET] //', shaderCode)
     .replace('// [LSDF PRE TARGET] //', shaderCodePre)
 }
@@ -254,7 +254,7 @@ function initTestTextureFromLsdfConfigs (lsdfConfigs) {
   }
   const texture = new THREE.DataTexture(data, textureSize.x, textureSize.y, THREE.RGBAFormat, THREE.FloatType)
   texture.needsUpdate = true
-  return {texture, textureSize}
+  return { texture, textureSize }
 }
 
 function initTestTexture (textureSize) {

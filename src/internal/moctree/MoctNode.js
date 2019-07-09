@@ -4,11 +4,11 @@
  * MoctNode
  */
 
-import {moctCubeSides} from './MoctCubeSide'
-import {moctOctants} from './MoctOctant'
-import {MoctNodeSide} from './MoctNodeSide'
-import {cubeShape} from './shapes'
-import {moctOctantTln} from '.'
+import { moctCubeSides } from './MoctCubeSide'
+import { moctOctants } from './MoctOctant'
+import { MoctNodeSide } from './MoctNodeSide'
+import { cubeShape } from './shapes'
+import { moctOctantTln } from '.'
 
 /**
  * Moctree Node
@@ -42,7 +42,7 @@ export class MoctNode {
     if (this.isTln) return
     if (this.isVisible !== wasVisible) {
       const offset = this.isVisible ? 1 : -1
-      for (const {outerSide} of this.octant.neighbors) {
+      for (const { outerSide } of this.octant.neighbors) {
         this.parent.sides[outerSide.index].adjustVisibleCount(offset)
       }
     }
@@ -81,7 +81,7 @@ export class MoctNode {
     for (let i = 0; i < 8; ++i) this.subs.push(new MoctNode(subLevel, this, moctOctants[i]))
     for (let i = 0; i < 8; ++i) {
       const sub = this.subs[i]
-      for (const {outerSide, octantNei} of sub.octant.neighbors) {
+      for (const { outerSide, octantNei } of sub.octant.neighbors) {
         const subSide = sub.sides[outerSide.index]
         subSide.parent = this.sides[outerSide.index]
         const gedCon = this.sides[outerSide.index].gedCon
@@ -96,7 +96,7 @@ export class MoctNode {
           }
         }
       }
-      for (const {innerSide, octantNei} of sub.octant.neighbors) {
+      for (const { innerSide, octantNei } of sub.octant.neighbors) {
         sub.sides[innerSide.index].gedCon = this.subs[octantNei.index].sides[innerSide.complement.index]
       }
     }

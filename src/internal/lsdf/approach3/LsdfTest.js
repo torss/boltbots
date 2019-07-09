@@ -2,9 +2,9 @@
 import * as THREE from 'three'
 import vertexShader from './sample.vert.glsl'
 import fragmentShader from './sample.frag.glsl'
-import {moctCubeSides} from '../../moctree'
-import {BufferAttributeExtIndex, BufferAttributeExt} from '../../extensions'
-import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
+import { moctCubeSides } from '../../moctree'
+import { BufferAttributeExtIndex, BufferAttributeExt } from '../../extensions'
+import { lsdfOpTypes, initTestLsdfConfigs } from '../LsdfOpType'
 
 export function lsdfTest (vueInstance, scene, camera, materialParam) {
   const material = new THREE.RawShaderMaterial({
@@ -42,7 +42,7 @@ function createCubeGeometry (material) {
   // const textureSize = new THREE.Vector2(16, 16)
   // const texture = initTestTexture(textureSize)
   const lsdfConfigs = initTestLsdfConfigs(16)
-  const {texture, textureSize} = initTestTextureFromLsdfConfigs(lsdfConfigs)
+  const { texture, textureSize } = initTestTextureFromLsdfConfigs(lsdfConfigs)
   material.uniforms.typeMap.value = texture
   material.uniforms.typeMapTexelSize.value = new THREE.Vector2(1, 1).divide(textureSize)
 
@@ -145,5 +145,5 @@ function initTestTextureFromLsdfConfigs (lsdfConfigs) {
   }
   const texture = new THREE.DataTexture(data, textureSize.x, textureSize.y, THREE.RGBAFormat, THREE.FloatType)
   texture.needsUpdate = true
-  return {texture, textureSize}
+  return { texture, textureSize }
 }

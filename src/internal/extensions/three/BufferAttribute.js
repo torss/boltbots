@@ -75,6 +75,16 @@ export class BufferAttributeExt extends THREE.BufferAttribute {
     }
   }
 
+  upushVector4 (...vector4s) {
+    for (let i = 0; i < vector4s.length; ++i) {
+      const vector4 = vector4s[i]
+      this.array[this.indexCurrent++] = vector4.x
+      this.array[this.indexCurrent++] = vector4.y
+      this.array[this.indexCurrent++] = vector4.z
+      this.array[this.indexCurrent++] = vector4.w
+    }
+  }
+
   pushVector3 (...vector3s) {
     // return pushBase(this, 3, 'pushVector3', vector3s, (vector3) => {
     //   this.array[this.indexCurrent++] = vector3.x

@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import {getCircleTangentLinesVec} from './CircleTangentLines'
+import { getCircleTangentLinesVec } from './CircleTangentLines'
 
 /* eslint-disable no-unused-vars */
 
@@ -124,7 +124,7 @@ class TrackDrivePlan {
   }
 
   static genTrackExtrudeArc (curvePath, p1, p2, driveWheel) {
-    const {center, clockwise, radius} = driveWheel
+    const { center, clockwise, radius } = driveWheel
     const arcOffset = new THREE.Vector2().copy(p1).sub(center).angle()
     let arcLength = new THREE.Vector2().copy(p2).sub(center).angle()
     arcLength -= arcOffset

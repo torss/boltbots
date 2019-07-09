@@ -4,13 +4,13 @@ import vertexShader from './splat.vert.glsl'
 import fragmentShader from './splat.frag.glsl'
 import vertexShaderDebug from './debug.vert.glsl'
 import fragmentShaderDebug from './debug.frag.glsl'
-import {BufferAttributeExt} from '../../extensions'
+import { BufferAttributeExt } from '../../extensions'
 import '../../extensions/three/Vector3'
 import '../../extensions/three/Camera'
-import {moctOctants} from '../../moctree'
-import {lsdfOpTypes, initTestLsdfConfigs} from '../LsdfOpType'
-import {LoctTree} from './LoctTree'
-import {LsdfGpu} from './LsdfGpu'
+import { moctOctants } from '../../moctree'
+import { lsdfOpTypes, initTestLsdfConfigs } from '../LsdfOpType'
+import { LoctTree } from './LoctTree'
+import { LsdfGpu } from './LsdfGpu'
 
 const settings = {
   maxDepth: 6,
@@ -83,7 +83,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
     side: THREE.FrontSide,
     transparent: false
   })
-  const {lsdfInstances, points} = addTestShapes(scene, material)
+  const { lsdfInstances, points } = addTestShapes(scene, material)
   lsdfInstances.forEach((lsdfInstance, index) => {
     lsdfInstance.points.position.x = index
     lsdfInstance.addToScene(scene)
@@ -126,7 +126,7 @@ export function lsdfTest (vueInstance, scene, camera, materialParam, renderer, p
     splatBuffer.setDynamic(true)
     const points = new THREE.Points(splatBuffer.geometry, material)
     scene.add(points)
-    const {position, normal, color} = splatBuffer.buffers
+    const { position, normal, color } = splatBuffer.buffers
     const size = 1920 * 1080
     position.padSize(size)
     normal.padSize(size)
@@ -245,7 +245,7 @@ class LsdfVolume {
   }
 
   fromLsdfFunc (lsdfFunc, scale = new THREE.Vector3(1, 1, 1), centerOffset = new THREE.Vector3(0, 0, 0)) {
-    const {sideLength, sideLength2} = this
+    const { sideLength, sideLength2 } = this
     const halfScale = scale.clone().divideScalar(2)
     const step = scale.clone().multiplyScalar(sideLength).redivScalar()
     const halfStep = step.clone().divideScalar(2)
@@ -263,7 +263,7 @@ class LsdfVolume {
   }
 
   sample (pos, minDist) {
-    const {sideLength, sideLength2} = this
+    const { sideLength, sideLength2 } = this
     const posFloor = pos.clone().floor()
     if (posFloor.x < 0 || posFloor.x >= sideLength || posFloor.y < 0 || posFloor.y >= sideLength || posFloor.z < 0 || posFloor.z >= sideLength) {
       return minDist
@@ -305,7 +305,7 @@ class LsdfInstance {
     const sideLength = this.radius
     this.testMarkers = [1, 2, 3].map(() => new THREE.Mesh(
       new THREE.SphereGeometry(sideLength / 20),
-      new THREE.MeshBasicMaterial({color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5})
+      new THREE.MeshBasicMaterial({ color: 0xf0f0f0, side: THREE.DoubleSide, transparent: true, opacity: 0.5 })
     ))
     this.testMarkers.forEach((testMarker) => {
       testMarker.visible = false
@@ -370,7 +370,7 @@ class LsdfInstance {
       // const data0 = dataTextures[0].image.data
       // const data1 = dataTextures[1].image.data
       // const data2 = dataTextures[2].image.data
-      const {data0, data1, data2} = lsdfGpu
+      const { data0, data1, data2 } = lsdfGpu
       const nextPosBatch = (capacity) => {
         let count = 0, i = 0
         for (; count < capacity; ++count) {
@@ -520,11 +520,11 @@ class SplatBuffer {
 }
 
 function addTestShapes (scene, material) {
-  const {splatBuffer, lsdfInstances} = createGeometry(material)
+  const { splatBuffer, lsdfInstances } = createGeometry(material)
   // material = new THREE.PointsMaterial({ size: 0.0125, sizeAttenuation: true, vertexColors: THREE.VertexColors })
   const points = new THREE.Points(splatBuffer.geometry, material)
   scene.add(points)
-  return {lsdfInstances, points}
+  return { lsdfInstances, points }
 }
 
 function createGeometry (material) {
@@ -535,8 +535,8 @@ function createGeometry (material) {
     // lsdfConfigs[0] = {type: 'sphere', position: new THREE.Vector3(), radius: 0.4}
     lsdfConfigs[0] = {
       type: 'subtract',
-      x: {type: 'sphere', position: new THREE.Vector3(0.25, 0.25, 0.25), radius: 0.4},
-      y: {type: 'sphere', position: new THREE.Vector3(), radius: 0.4}
+      x: { type: 'sphere', position: new THREE.Vector3(0.25, 0.25, 0.25), radius: 0.4 },
+      y: { type: 'sphere', position: new THREE.Vector3(), radius: 0.4 }
     }
   }
 
@@ -737,7 +737,7 @@ function constructViaLoct (lsdfConfigs, splatBuffer) {
       //   }
       // }
     }
-    refineLoctTree({loctTree, maxDepth: settings.maxDepth, sdfEpsilon: 0, sdfFunc, postSplitFunc}) // sdfEpsilon: 0.000625
+    refineLoctTree({ loctTree, maxDepth: settings.maxDepth, sdfEpsilon: 0, sdfFunc, postSplitFunc }) // sdfEpsilon: 0.000625
   })
   console.timeEnd('CONSTRUCT - Loct')
   console.log('pointCount: ' + pointCount)
@@ -790,7 +790,7 @@ function buildSdfFunc (lsdfConfig) {
   return result
 }
 
-function refineLoctTree ({loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc}) {
+function refineLoctTree ({ loctTree, maxDepth, sdfEpsilon, sdfFunc, postSplitFunc }) {
   // if (!leafFunc) leafFunc = (loctNode, loctNodeOrigin) => {}
   if (!postSplitFunc) postSplitFunc = (loctNode, loctNodeOrigin) => {}
   refineLoctNodeSplit(maxDepth, sdfEpsilon, sdfFunc, postSplitFunc, loctTree, loctTree.tln, loctTree.origin.clone())

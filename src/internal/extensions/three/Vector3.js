@@ -19,9 +19,9 @@ THREE.Vector3.prototype.multiplyScalars = function (x, y, z) {
 }
 
 THREE.Vector3.prototype.applyFunction = function (func) {
-  this.x = func({vector: this, value: this.x, axis: 'x', index: 0})
-  this.y = func({vector: this, value: this.y, axis: 'y', index: 1})
-  this.z = func({vector: this, value: this.z, axis: 'z', index: 2})
+  this.x = func({ vector: this, value: this.x, axis: 'x', index: 0 })
+  this.y = func({ vector: this, value: this.y, axis: 'y', index: 1 })
+  this.z = func({ vector: this, value: this.z, axis: 'z', index: 2 })
   return this
 }
 
@@ -66,5 +66,17 @@ THREE.Vector3.prototype.rsub = function (v) {
   this.x = v.x - this.x
   this.y = v.y - this.y
   this.z = v.z - this.z
+  return this
+}
+
+THREE.Vector3.prototype.iterXyz = function (func) {
+  const { x, y, z } = this
+  for (this.z = 0; this.z < z; ++this.z) {
+    for (this.y = 0; this.y < y; ++this.y) {
+      for (this.x = 0; this.x < x; ++this.x) {
+        func(this)
+      }
+    }
+  }
   return this
 }

@@ -6,5 +6,5 @@ THREE.Camera.prototype.getWorldNormals = function (up = new THREE.Vector3(), sid
   up.set(e[0], e[1], e[2]).normalize()
   side.set(e[4], e[5], e[6]).normalize()
   direction.set(-e[8], -e[9], -e[10]).normalize()
-  return {up, side, direction}
+  return { up, side, direction }
 }

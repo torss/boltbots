@@ -2,7 +2,7 @@
 // but instead about testing / extending the custom ExtrudeGeometry.js version.
 
 import * as THREE from 'three'
-import {ExtrudeBufferGeometry} from './ExtrudeGeometry'
+import { ExtrudeBufferGeometry } from './ExtrudeGeometry'
 
 /* eslint-disable no-unused-vars */
 

@@ -75,8 +75,8 @@ export function initTestLsdfConfigs (count) {
   const randomB = () => 0.2 + Math.random() * 0.2 // 0.3
   const randomC = () => 0.1 + Math.random() * 0.2
   const randomD = () => Math.random() * 0.2 - 0.1
-  const genRandomSphere = (position) => ({type: 'sphere', position, radius: randomA()})
-  const genRandomBox = (position) => ({type: 'box', position, size: new THREE.Vector3(randomB(), randomB(), randomB())})
+  const genRandomSphere = (position) => ({ type: 'sphere', position, radius: randomA() })
+  const genRandomBox = (position) => ({ type: 'box', position, size: new THREE.Vector3(randomB(), randomB(), randomB()) })
   const genRandomSomething = (what, position) => what ? genRandomSphere(position) : genRandomBox(position)
   const combineBase = (type, x, y) => {
     const opType = lsdfOpTypes[type]
@@ -86,7 +86,7 @@ export function initTestLsdfConfigs (count) {
         const z = x; x = y; y = z
       }
     }
-    const result = {type, x, y}
+    const result = { type, x, y }
     if (opType.typeMapSize === 1) result.radius = randomC()
     return result
   }

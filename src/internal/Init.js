@@ -1,13 +1,19 @@
 import * as THREE from 'three'
-import GLTFLoader from 'three-gltf-loader'
-import {Sky} from './Sky'
-import {OrbitControls} from './OrbitControls'
+import * as TWEEN from '@tweenjs/tween.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
+import { Sky } from './Sky'
+import { OrbitControls } from './OrbitControls'
+import { glos } from './Glos'
 import Stats from 'stats.js'
+import { RenderPass, UnrealBloomPass, EffectComposer, ShaderPass } from './postprocessing'
+import { BloomFinalShader } from './shaders'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
 // import {moctreeTest} from './moctree/MoctreeTest'
 // import {lsdfTest} from './lsdf/LsdfTest'
-import {conscepterTest} from './conscepter/ConscepterTest'
+// import {conscepterTest} from './conscepter/ConscepterTest'
+// import { tvoxelTest } from './tvoxel/TvoxelTest'
+// import { btileTest } from './btile/BtileTest'
 
 // https://github.com/mrdoob/three.js/issues/14804
 function fixCubeCameraLayers (cubeCamera) {
@@ -19,28 +25,41 @@ function fixCubeCameraLayers (cubeCamera) {
 }
 
 export function init (vueInstance) {
+  const renderingEnabled = true
   const canvas = vueInstance.$refs.canvas
 
   const width = 1 // vueInstance.$el.clientWidth
   const height = 1 // vueInstance.$el.clientHeight
 
   const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 1000)
-  camera.position.set(0, 1, 1)
+  camera.position.set(12, 4, 12)
+  // camera.up.set(0, 0, 1) // Z up
+
+  const audioListener = new THREE.AudioListener()
+  camera.add(audioListener)
 
   const scene = new THREE.Scene()
 
   // const gridHelper = new THREE.GridHelper(10, 2, 0xffffff, 0xffffff)
   // scene.add(gridHelper)
 
-  const axesHelper = new THREE.AxesHelper(1) // "The X axis is red. The Y axis is green. The Z axis is blue."
-  scene.add(axesHelper)
+  // const axesHelper = new THREE.AxesHelper(1) // "The X axis is red. The Y axis is green. The Z axis is blue."
+  // scene.add(axesHelper)
 
   const controls = new OrbitControls(camera)
+  controls.maxDistance = 100
+  controls.minDistance = 14
+  controls.maxPolarAngle = 0.4 * Math.PI
+  controls.enableKeys = false
+  controls.enablePan = false
+  controls.target.set(8, 0, 8)
+  glos.threejsControls = controls
 
   const sky = new Sky()
   sky.layers.enable(1)
   sky.scale.setScalar(990)
   const skyUniforms = sky.material.uniforms
+  glos.skyUniforms = skyUniforms
   // skyUniforms.turbidity.value = 10
   // skyUniforms.rayleigh.value = 2
   // skyUniforms.luminance.value = 1
@@ -60,7 +79,7 @@ export function init (vueInstance) {
   // scene.add(directionalLight)
 
   const cubeTextureLoader = new THREE.CubeTextureLoader()
-  cubeTextureLoader.setPath('../statics/textures/env/testenv0/')
+  cubeTextureLoader.setPath('statics/textures/env/testenv0/')
   // const envMap = cubeTextureLoader.load([
   //   'red.png', 'cyan.png', // x+ x-
   //   'green.png', 'magenta.png', // y+ y-
@@ -74,7 +93,7 @@ export function init (vueInstance) {
   })
   let mesh
   const gltfLoader = new GLTFLoader()
-  gltfLoader.load('../statics/DeltaArrow.glb', (gltf) => {
+  gltfLoader.load('statics/DeltaArrow.glb', (gltf) => {
     mesh = gltf.scene.children[0]
     mesh.material = material
     mesh.scale.multiplyScalar(0.2)
@@ -85,20 +104,58 @@ export function init (vueInstance) {
   // moctreeTest(vueInstance, scene, camera, material)
 
   const context = canvas.getContext('webgl2')
-  const renderer = new THREE.WebGLRenderer({canvas, context, antialias: true})
+  const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: true })
   renderer.autoClear = false
+  renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
 
-  const preAnimateFuncs = []
+  // Post-Processing (EffectComposer) setup //
+  // renderer.toneMapping = THREE.ReinhardToneMapping
+  renderer.toneMappingExposure = Math.pow(1.1, 4.0)
+
+  const scenePass = new RenderPass(scene, camera)
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 10.0, 0.0, 0.0)
+
+  const composerBloom = new EffectComposer(renderer)
+  composerBloom.renderToScreen = false
+  composerBloom.addPass(scenePass)
+  composerBloom.addPass(bloomPass)
+
+  const finalPass = new ShaderPass(
+    new THREE.ShaderMaterial({
+      uniforms: {
+        baseTexture: { value: null },
+        bloomTexture: { value: composerBloom.renderTarget2.texture }
+      },
+      vertexShader: BloomFinalShader.vertexShader,
+      fragmentShader: BloomFinalShader.fragmentShader
+    }), 'baseTexture'
+  )
+  finalPass.needsSwap = true
+
+  const composerFinal = new EffectComposer(renderer)
+  composerFinal.addPass(scenePass)
+  composerFinal.addPass(finalPass)
+
+  const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' })
+  // - //
+
+  const preAnimateFuncs = glos.preAnimateFuncs
 
   // lsdfTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
-  conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  // conscepterTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  // tvoxelTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
+  // btileTest(vueInstance, scene, camera, material, renderer, preAnimateFuncs)
 
-  vueInstance.$onResize.push(({width, height}) => {
+  vueInstance.$onResize.push(({ width, height }) => {
     camera.aspect = width / height
     camera.updateProjectionMatrix()
     renderer.setSize(width, height)
+    composerBloom.setSize(width, height)
+    composerFinal.setSize(width, height)
   })
+
+  // TODO ? vueInstance.$deinit
 
   vueInstance.$isDestroyed = false
   const stats = new Stats()
@@ -110,22 +167,48 @@ export function init (vueInstance) {
 
     requestAnimationFrame(animate)
 
-    for (const func of preAnimateFuncs) func()
+    TWEEN.update()
 
-    const sunPosTime = new Date().getTime() * 0.00025
-    const sunPosTime2 = new Date().getTime() * 0.00015
+    for (const func of preAnimateFuncs) func()
+    if (glos.game && glos.game.turnTimer) glos.game.turnTimer.getElapsedTime()
+
+    const sunPosTime = new Date().getTime() * 0.000025
+    const sunPosTime2 = new Date().getTime() * 0.000015
     const sunPosFactor = 100 * Math.cos(sunPosTime2)
     skyUniforms.sunPosition.value.x = sunPosFactor * Math.cos(sunPosTime)
     skyUniforms.sunPosition.value.z = sunPosFactor * Math.sin(sunPosTime)
-    envCubeCamera.update(renderer, scene)
-    controls.update()
+    if (controls) controls.update()
     // if (mesh) {
     //   mesh.rotation.x += 0.01
     //   mesh.rotation.y += 0.02
     // }
 
-    renderer.clear()
-    renderer.render(scene, camera)
+    if (renderingEnabled) {
+      envCubeCamera.update(renderer, scene)
+      // renderer.clear()
+      // renderer.render(scene, camera)
+
+      scene.traverseVisible(obj => {
+        if (obj.isMesh) {
+          if (!obj.bloom) {
+            obj.tmp = obj.material
+            obj.material = darkMaterial
+          }
+        } else {
+          obj.tmp = false
+        }
+      })
+      sky.visible = false
+      composerBloom.render()
+      sky.visible = true
+      scene.traverseVisible(obj => {
+        if (obj.tmp) {
+          obj.material = obj.tmp
+          obj.tmp = undefined
+        }
+      })
+      composerFinal.render()
+    }
 
     stats.update()
   }
@@ -134,11 +217,17 @@ export function init (vueInstance) {
   vueInstance.$deinit.push(() => {
     vueInstance.$isDestroyed = true
     toolbarStatsParent.removeChild(stats.dom)
-    controls.dispose()
+    if (controls) controls.dispose()
     if (mesh) {
       mesh.geometry.dispose()
       mesh.material.dispose()
     }
     renderer.dispose()
   })
+
+  return {
+    scene,
+    material,
+    audioListener
+  }
 }
