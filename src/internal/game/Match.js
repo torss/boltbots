@@ -78,8 +78,14 @@ export class Match {
   }
 
   prepareTurnPlayers () {
-    for (const player of this.turnPlayers) player.tieBreaker = this.rng.nextNumber()
-    this.turnPlayers.sort((a, b) => (a.bot.towerDistance === b.bot.towerDistance) ? a.tieBreaker - b.tieBreaker : a.bot.towerDistance - b.bot.towerDistance)
+    // for (const player of this.turnPlayers) player.tieBreaker = this.rng.nextNumber()
+    this.turnPlayers.sort((a, b) => {
+      if (Math.abs(a.bot.towerDistance - b.bot.towerDistance) < Number.EPSILON) {
+        // return a.tieBreaker - b.tieBreaker
+        return a.peerInfo.hostKey.localeCompare(b.peerInfo.hostKey)
+      }
+      return a.bot.towerDistance - b.bot.towerDistance
+    })
   }
 
   actionDone () {

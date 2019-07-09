@@ -41,7 +41,7 @@ export function initPlayers (game, count, lobbyPeers) {
     const player = new Player(game, undefined, playerName)
     if (peerInfo) {
       peerInfo.player = player
-      // player.peerInfo = peerInfo
+      player.peerInfo = peerInfo
     }
     player.icon = playerIcons[i % playerIcons.length]
     addPlayerCards(player)

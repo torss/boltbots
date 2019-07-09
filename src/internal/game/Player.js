@@ -9,7 +9,7 @@ export class Player {
     this.killedBy = []
     this.icon = 'robot'
     this.completedCheckpoints = 0
-    // this.peerInfo = undefined
+    this.peerInfo = undefined
     this.endTurn = false
     assignNewVueObserver(this)
 
@@ -17,7 +17,7 @@ export class Player {
     this.uid = uid
     this.hand = [] // Cards
     this.bot = new Bot(game, this)
-    this.tieBreaker = 0
+    // this.tieBreaker = 0
   }
 
   markAsDead (killer) {
