@@ -623,7 +623,7 @@ export class Game {
 
     this.state = 'lobby'
     this.lobbyPeers = [this.pseudoPeer]
-    this.recreatePlayers()
+    this.regenerateMap()
   }
 
   leaveSub () {
