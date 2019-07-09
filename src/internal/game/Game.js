@@ -262,8 +262,9 @@ export class Game {
 
                 // Send current host data
                 if (this.pseudoPeer.isHost) {
-                  const { playerName, matchName, password, maxPlayers, seed, playerCount, hostKey } = this.netMatch
-                  this.callPeer(peerInfo, { type: 'hosting', playerName, matchName, password, maxPlayers, seed, playerCount, hostKey })
+                  // const { playerName, matchName, password, maxPlayers, seed, playerCount, hostKey, endTurnTimeLimit } = this.netMatch
+                  // this.callPeer(peerInfo, { type: 'hosting', playerName, matchName, password, maxPlayers, seed, playerCount, hostKey, endTurnTimeLimit })
+                  this.callPeer(peerInfo, this.netMatch) // NOTE netMatch can currently be send directly.
                 }
               }
             }

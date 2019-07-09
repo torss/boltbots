@@ -120,13 +120,13 @@ export default {
       return this.match.playerSelf.endTurn
     },
     turnTimerRunning () {
-      return this.glos.game.turnTimer.running
+      return this.game.turnTimer.running
     },
     timeSec () {
-      return Math.max(this.durationSec - this.glos.game.turnTimer.elapsedTime, 0)
+      return Math.max(this.durationSec - this.game.turnTimer.elapsedTime, 0)
     },
     durationSec () {
-      return this.glos.game.netMatch.endTurnTimeLimit
+      return this.game.netMatch.endTurnTimeLimit
     }
   },
   watch: {
