@@ -246,7 +246,7 @@ import PlayerListItem from '../components/PlayerListItem'
 import { glos } from '../internal/Glos'
 
 export default {
-  name: 'MyLayout',
+  name: 'MainLayout',
   components: {
     draggable,
     PlayerListItem
