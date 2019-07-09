@@ -1,7 +1,7 @@
 {
   "name": "boltbots",
-  "version": "0.0.1",
-  "description": "Game inspired by Robo Rally I guess - 100% WIP.",
+  "version": "1.0.0",
+  "description": "A game inspired by Robo Rally.",
   "productName": "Bolt Bots",
   "cordovaId": "org.cordova.quasar.app",
   "author": "torss <37229901+torss@users.noreply.github.com>",
