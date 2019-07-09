@@ -7,3 +7,7 @@ THREE.Object3D.prototype.traverseControlled = function (func) {
     children[i].traverseControlled(func)
   }
 }
+
+THREE.Object3D.prototype.removeSelf = function () {
+  if (this.parent) this.parent.remove(this)
+}

@@ -138,10 +138,10 @@ function generateContent (game, map, groundHeight) {
     for (let x = 1; x < dim.x - 1; ++x) {
       const pos = new THREE.Vector3(x, groundHeight, z)
       const tiEn = tiEns[dim.resolve(pos)]
+      tiEn.entity = pos.clone()
       if (!tiEn.tiTy.wall) {
         const group = tiEn.visited
         if (!groups.includes(group)) groups.push(group)
-        tiEn.entity = pos.clone()
       }
     }
   }

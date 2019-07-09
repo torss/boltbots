@@ -7,9 +7,9 @@
       <q-tooltip>Completed checkpoints out of the {{ checkpointCount }} total checkpoints.<br>The checkpoints have to be completed in order,<br>and your bot must land directly on a checkpoint for it to be completed.<br>Completing all checkpoints wins you the game!</q-tooltip>
     </q-item-section>
     <q-item-section avatar>
-      <q-item-label class="player-name" :class="!player.alive && 'player-name-dead'">
+      <q-item-label class="player-name" :class="className">
         {{ player.name }}
-        <q-tooltip>Player name</q-tooltip>
+        <q-tooltip>Player name.<br>Player turn: {{ player.endTurn ? 'Finished' : 'In progress' }}</q-tooltip>
       </q-item-label>
     </q-item-section>
     <template  v-if="player.alive">
@@ -21,7 +21,7 @@
         <span>
           <q-item-label class="tower-distance" v-if="player.alive">{{ player.bot.towerDistance.toFixed(2) }}m</q-item-label>
           <q-item-label class="tower-distance-dead" v-else>☠️</q-item-label>
-          <q-tooltip>Distance to control tower</q-tooltip>
+          <q-tooltip>Distance to control tower.</q-tooltip>
         </span>
       </q-item-section>
     </template>
@@ -75,6 +75,12 @@ export default {
   computed: {
     checkpointCount () {
       return this.glos.game ? this.glos.game.match.checkpointCount : 0
+    },
+    className () {
+      return {
+        'player-name-dead': !this.player.alive,
+        'player-name-done': this.player.endTurn
+      }
     }
   }
 }
@@ -86,6 +92,9 @@ export default {
 
 .player-name-dead
   text-decoration line-through
+
+.player-name-done
+  color $primary
 
 .tower-distance
   min-width 3.5em

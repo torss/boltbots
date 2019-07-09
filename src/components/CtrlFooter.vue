@@ -18,7 +18,20 @@
         </q-btn>
       </draggable>
       <div class="flex flex-center column">
-        <q-btn push color="white" text-color="primary" round icon="arrow_right" size="xl" @click="startTurn" :disable="disableAct" />
+        <q-btn push color="white" text-color="primary" round size="xl" @click="endTurn" :disable="disableAct">
+          <q-circular-progress
+            :value="timeSec"
+            :max="durationSec"
+            show-value
+            track-color="grey"
+            color="primary"
+            size="2.5em"
+            v-if="turnTimerRunning"
+          >
+            {{ timeSec.toFixed(0) }}s
+          </q-circular-progress>
+          <q-icon v-else name="arrow_right" />
+        </q-btn>
       </div>
     </div>
   </div>
@@ -44,8 +57,9 @@ export default {
     //   event.stopPropagation()
     //   event.preventDefault()
     // },
-    startTurn () {
-      glos.game.match.startTurn()
+    endTurn () {
+      // glos.game.match.startTurn()
+      glos.game.endTurn()
     },
     onMousedown () {
       if (glos.threejsControls) glos.threejsControls.enabled = false
@@ -88,14 +102,36 @@ export default {
     }
   },
   computed: {
+    game () { return this.glos.game },
+    match () { return this.game.match },
     cardSlots () {
       return this.glos.cardSlots // this.glos.game && this.glos.game.match && this.glos.game.match.playerSelf.bot.cardSlots
     },
     disableAct () {
-      return glos.game.match && (glos.game.match.turnInProgress || !!glos.game.match.gameOver)
+      return this.match && (this.match.turnInProgress || !!this.match.gameOver || this.done || !this.alive)
     },
     turnCardIndex () {
-      return glos.game.match && glos.game.match.turnCardIndex
+      return this.match && this.match.turnCardIndex
+    },
+    alive () {
+      return this.match.playerSelf.alive
+    },
+    done () {
+      return this.match.playerSelf.endTurn
+    },
+    turnTimerRunning () {
+      return this.glos.game.turnTimer.running
+    },
+    timeSec () {
+      return Math.max(this.durationSec - this.glos.game.turnTimer.elapsedTime, 0)
+    },
+    durationSec () {
+      return this.glos.game.netMatch.endTurnTimeLimit
+    }
+  },
+  watch: {
+    timeSec (newValue) {
+      if (newValue === 0 && !this.done && this.turnTimerRunning && !this.disableAct) this.endTurn()
     }
   }
 }

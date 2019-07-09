@@ -26,6 +26,10 @@ module.exports = function (ctx) {
       // all: true, // --- includes everything; for dev only!
 
       components: [
+        'QCircularProgress',
+        'QDialog',
+        'QInput',
+        'QExpansionItem',
         'QRating',
         'QSlider',
         'QLinearProgress',
@@ -50,7 +54,8 @@ module.exports = function (ctx) {
       ],
 
       directives: [
-        'Ripple'
+        'Ripple',
+        'ClosePopup'
       ],
 
       // Quasar plugins

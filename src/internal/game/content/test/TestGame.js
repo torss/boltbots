@@ -1,54 +1,18 @@
 import * as THREE from 'three'
 // import * as TWEEN from '@tweenjs/tween.js'
 import { mapGens, cardTypeList } from '..'
-import { Match, Player, Card, CardSlot, Checkpoint } from '../..'
+import { Match, Player, Card, CardSlot } from '../..'
 import { glos } from '../../../Glos'
 
 export function initTestGame (game) {
-  const match = new Match()
+  const match = new Match(game)
+  match.mapGen = mapGens['TestGen0']
   game.match = match
 
-  regenerateTestMap(game)
-
+  game.regenerateMap(false)
   initDirectionalLight(game)
-
   initModels(game, game.envMap)
-
-  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings', 'face-agent', 'alien', 'laptop', 'desktop-classic', 'account-badge', 'account-card-details', 'pirate', 'target', 'target', 'target-variant', 'emoticon-devil']
-  for (let i = 0; i < 4; ++i) {
-    const player = new Player(game, undefined, 'Player-' + (i + 1))
-    player.icon = playerIcons[i % playerIcons.length]
-    addPlayerCards(player)
-    initBot(game, player.bot, i)
-    match.players.push(player)
-  }
-  match.turnPlayers = [...match.players]
-  match.playerSelf = match.players[0]
-}
-
-function regenerateTestMap (game) {
-  const { scene, match } = game
-  const mapGen = mapGens['TestGen0']
-  const { map, controlTowerTilePosition } = mapGen.func(game)
-  initMapMaterial(map, game.envMap)
-  map.remesh(scene)
-  match.map = map
-  match.controlTower.position.copy(controlTowerTilePosition).addScalar(0.5)
-
-  // Place checkpoints
-  const rng = match.rngMapGen
-  const { dim, tiEns } = map.tiMa
-  for (let i = 1; i <= match.checkpointCount; ++i) {
-    while (true) {
-      const pos = new THREE.Vector3(1 + rng.choose(dim.x - 2), map.groundHeight, 1 + rng.choose(dim.z - 2))
-      const index = dim.resolve(pos)
-      const tiEn = tiEns[index]
-      if (tiEn.tiTy.key === 'Pavement') { // if (!tiEn.tiTy.wall) {
-        match.checkpoints.push(new Checkpoint(game, i, pos))
-        break
-      }
-    }
-  }
+  game.recreatePlayers(true)
 }
 
 function addPlayerCards (player) {
@@ -60,6 +24,32 @@ function addPlayerCards (player) {
     // player.bot.cardSlots.push(cardSlot)
   }
   for (let i = 0; i < 5; ++i) player.bot.cardSlots.push(new CardSlot())
+}
+
+export function initPlayers (game, count, lobbyPeers) {
+  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings', 'face-agent', 'alien', 'laptop', 'desktop-classic', 'account-badge', 'account-card-details', 'pirate', 'target', 'target', 'target-variant', 'emoticon-devil']
+
+  const { match } = game
+  if (count === undefined) count = lobbyPeers.length
+
+  match.playerSelf = undefined
+  match.players = []
+  for (let i = 0; i < count; ++i) {
+    let playerName = 'Player-' + (i + 1)
+    const peerInfo = lobbyPeers && lobbyPeers[i]
+    if (peerInfo) playerName = peerInfo.playerName
+    const player = new Player(game, undefined, playerName)
+    if (peerInfo) {
+      peerInfo.player = player
+      // player.peerInfo = peerInfo
+    }
+    player.icon = playerIcons[i % playerIcons.length]
+    addPlayerCards(player)
+    initBot(game, player.bot, i)
+    match.players.push(player)
+    if (peerInfo ? peerInfo.isSelf : i === 0) match.playerSelf = player
+  }
+  match.turnPlayers = [...match.players]
 }
 
 function initBot (game, bot, i) {
@@ -125,10 +115,12 @@ function initBot (game, bot, i) {
   obj.add(sound)
 
   game.scene.add(obj)
-  bot.enterOnMap()
 }
 
 function initModels (game, envMap) {
+  for (const material of Object.values(game.materials)) {
+    if (!material.envMap) material.envMap = envMap
+  }
   for (const model of Object.values(game.models)) {
     model.traverseVisible(obj => {
       if (obj.isMesh) {
@@ -136,17 +128,6 @@ function initModels (game, envMap) {
       }
     })
   }
-}
-
-function initMapMaterial (map, envMap) {
-  map.tiMa.materials.default = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    metalness: 0.90,
-    roughness: 0.20,
-    envMap,
-    envMapIntensity: 1,
-    vertexColors: THREE.VertexColors
-  })
 }
 
 function initDirectionalLight (game) {

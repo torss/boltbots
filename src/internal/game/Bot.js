@@ -306,20 +306,25 @@ export class Bot {
     if (!this.player.markAsDead(killer)) return false
     this.alive = false
     this.health = 0
-    for (const tiEn of this.tiEns) tiEn.entity = undefined
-    this.tiEns = []
-    this.towerDistance = -1
-    this.clearCardSlots()
-    this.engineSoundGen.stop()
-    this.object3d.add(this.game.sfxf.cpasExplode())
-    this.game.createExplosion(() => {
-      this.object3d.visible = false
-    }).position.copy(this.object3d.position)
+    const sfx = this.game.sfxf.cpasExplode()
+    sfx.position.copy(this.object3d.position)
+    this.game.scene.add(sfx)
+    this.game.createExplosion().position.copy(this.object3d.position)
+    this.destroy()
     return true
   }
 
   clearCardSlots () {
     for (const cardSlot of this.cardSlots) cardSlot.clear()
+  }
+
+  destroy (removeSelf = true) {
+    for (const tiEn of this.tiEns) tiEn.entity = undefined
+    this.tiEns = []
+    this.towerDistance = -1
+    this.clearCardSlots()
+    this.engineSoundGen.stop()
+    if (removeSelf) this.object3d.removeSelf()
   }
 }
 

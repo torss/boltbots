@@ -170,6 +170,7 @@ export function init (vueInstance) {
     TWEEN.update()
 
     for (const func of preAnimateFuncs) func()
+    if (glos.game && glos.game.turnTimer) glos.game.turnTimer.getElapsedTime()
 
     const sunPosTime = new Date().getTime() * 0.000025
     const sunPosTime2 = new Date().getTime() * 0.000015

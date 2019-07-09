@@ -9,5 +9,7 @@ export class TiEn {
     // Game-specific
     this.entity = undefined
     this.visited = false
+
+    this.special = undefined // Currently only for checkpoints
   }
 }

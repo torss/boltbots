@@ -1,11 +1,13 @@
+import * as THREE from 'three'
 import { assignNewVueObserver } from '../Dereactivate'
 import { ControlTower } from './ControlTower'
 import { Card } from './Card'
 import { cardTypeList } from './content'
 import { Rng } from '../Rng'
+import { Checkpoint } from './Checkpoint'
 
 export class Match {
-  constructor () {
+  constructor (game) {
     this.players = []
     this.turnPlayers = [] // These players must be alive
     this.deadPlayers = []
@@ -22,7 +24,10 @@ export class Match {
     this.turnCardIndex = -1
     assignNewVueObserver(this)
 
+    this.game = game
+    this.mapGen = undefined
     this.map = undefined
+    this.openTileCount = 0
     this.checkpointCount = 3
     // this.playerSelfUid = -1
     this.turnPlayerIndex = 0
@@ -33,6 +38,7 @@ export class Match {
     this.rng = new Rng(0, 0) // Primary rng
     this.rngMapGen = new Rng(0, 0) // MapGen rng
     this.rngCosmetic = new Rng(0, 0) // Unimportant rng
+    this.rngPlaceBots = new Rng(0, 0) // Post-MapGen Bot placement rng
   }
 
   get turnPlayer () {
@@ -53,6 +59,7 @@ export class Match {
       // Clear used cards
       player.bot.clearCardSlots()
       // Refill hands
+      // NOTE Currently only implicitly refills playerSelf, since the networking doesn't sync the hands, thus everyone will have the same card progression.
       for (let i = player.hand.length; i < this.handSize; ++i) {
         const cardType = cardTypeList[Math.floor(this.rng.nextNumber() * cardTypeList.length)]
         player.hand.push(new Card(cardType))
@@ -67,9 +74,7 @@ export class Match {
       this.victors = [this.turnPlayers[0]]
     }
     if (!this.gameOver) ++this.turn
-    if (this.gameOver) {
-      this.gameOverQuip = this.rngCosmetic.nextNumber()
-    }
+    this.gameOverQuip = this.rngCosmetic.nextNumber()
   }
 
   prepareTurnPlayers () {
@@ -141,6 +146,125 @@ export class Match {
           return
         } else this.progressTurnNextCardSlot()
       }
+    }
+  }
+
+  setRngSeed (seed) {
+    const create = () => new Rng(seed[0], seed[1])
+    this.rng = create()
+    this.rngMapGen = create()
+    this.rngCosmetic = create()
+    this.rngPlaceBots = this.rngMapGen.clone()
+  }
+
+  setRngSeedStr (seedStr) {
+    // String seed to seed numbers
+    const seed = [0, 0]
+    for (let i = 0; i < seedStr.length; ++i) {
+      seed[i % 2] += seedStr.charCodeAt(i)
+    }
+    this.setRngSeed(seed)
+  }
+
+  isTileOpen (tiEn) {
+    return !tiEn.tiTy.wall && !tiEn.special
+  }
+
+  destroyPlayers () {
+    const match = this
+    for (const player of match.players) player.destroy()
+    match.players = []
+    match.turnPlayers = []
+    match.deadPlayers = []
+  }
+
+  regenerateMap (placeBots = false) {
+    const match = this
+
+    // Destroy old stuff
+    if (match.map) match.map.destroy()
+    match.map = undefined
+    for (const checkpoint of match.checkpoints) checkpoint.object3d.removeSelf()
+    match.checkpoints = []
+    // - //
+
+    const game = match.game
+    const { map, controlTowerTilePosition } = match.mapGen.func(game)
+    map.tiMa.materials.default = game.materials['MapDefault']
+    map.remesh(game.scene)
+    match.map = map
+    match.controlTower.position.copy(controlTowerTilePosition).addScalar(0.5)
+
+    // Place checkpoints
+    for (let i = 1; i <= match.checkpointCount; ++i) {
+      match.iterateRandomMapPoint((tiEn, pos) => {
+        if (tiEn.tiTy.key === 'Pavement') { // if (!tiEn.tiTy.wall) {
+          const checkpoint = new Checkpoint(game, i, pos)
+          tiEn.special = checkpoint
+          match.checkpoints.push(checkpoint)
+          return true
+        }
+      })
+    }
+
+    // Count open tiles
+    match.openTileCount = 0
+    match.iterateMap((tiEn, pos) => {
+      if (match.isTileOpen(tiEn)) ++match.openTileCount
+    })
+
+    if (match.openTileCount < 2) {
+      console.warn('Seed generated a map without enough open tiles, regenerating...')
+      match.regenerateMap()
+    }
+
+    // Place bots
+    if (placeBots) match.placeBots()
+  }
+
+  placeBots () {
+    const match = this
+    match.rngPlaceBots = match.rngMapGen.clone()
+    const rng = match.rngPlaceBots
+    for (const player of match.turnPlayers) {
+      match.iterateRandomMapPoint((tiEn, pos) => {
+        if (match.isTileOpen(tiEn) && !tiEn.entity) {
+          const { bot } = player
+          bot.rotate(rng.choose(4), false)
+          bot.object3d.position.copy(pos)
+          bot.enterOnMap()
+          return true
+        }
+      }, rng)
+    }
+  }
+
+  iterateMap (func, rng) {
+    const match = this
+    const { map } = match
+    const { dim, tiEns } = map.tiMa
+
+    for (let z = 1; z < dim.z - 1; ++z) {
+      for (let x = 1; x < dim.x - 1; ++x) {
+        const pos = new THREE.Vector3(x, map.groundHeight, z)
+        const index = dim.resolve(pos)
+        const tiEn = tiEns[index]
+        if (func(tiEn, pos)) break
+      }
+    }
+  }
+
+  iterateRandomMapPoint (func, rng = undefined) {
+    const match = this
+    const { map } = match
+    const { dim, tiEns } = map.tiMa
+    if (!rng) rng = match.rngMapGen
+
+    while (true) {
+      const pos = new THREE.Vector3(1 + rng.choose(dim.x - 2), map.groundHeight, 1 + rng.choose(dim.z - 2))
+      const index = dim.resolve(pos)
+      const tiEn = tiEns[index]
+      if (func(tiEn, pos)) break
     }
   }
 }

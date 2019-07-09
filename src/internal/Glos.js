@@ -1,3 +1,4 @@
+import * as TWEEN from '@tweenjs/tween.js'
 import { init } from './Init'
 import { Game } from './game'
 import { assignNewVueObserver } from './Dereactivate'
@@ -7,15 +8,28 @@ import { assignNewVueObserver } from './Dereactivate'
  */
 class Glos {
   constructor () {
-    const getLsOrDefault = (key, conv, def) => {
+    const oldTweens = [...Object.values(TWEEN._tweens)]
+    for (const tween of oldTweens) tween.stop()
+
+    const getLsOrDefault = (key, def, conv) => {
       const ls = localStorage.getItem(key)
       if (ls === null) return def
-      return conv(ls)
+      return conv ? conv(ls) : ls
     }
     const lsConvBool = ls => ls === 'true'
-    this.darkMode = getLsOrDefault('darkMode', lsConvBool, true)
-    this.muteAudio = getLsOrDefault('muteAudio', lsConvBool, false)
-    this.masterVolume = getLsOrDefault('masterVolume', parseInt, 100)
+    this.darkMode = getLsOrDefault('darkMode', true, lsConvBool)
+    this.muteAudio = getLsOrDefault('muteAudio', false, lsConvBool)
+    this.masterVolume = getLsOrDefault('masterVolume', 100, parseInt)
+    this.leftDrawerOpen = getLsOrDefault('leftDrawerOpen', true, lsConvBool)
+    this.rightDrawerOpen = getLsOrDefault('rightDrawerOpen', false, lsConvBool)
+    this.hostExpanded = getLsOrDefault('hostExpanded', false, lsConvBool)
+    this.joinExpanded = getLsOrDefault('joinExpanded', true, lsConvBool)
+    this.playerName = getLsOrDefault('playerName', '')
+    this.hostMatchName = getLsOrDefault('hostMatchName', '')
+    this.hostMaxPlayers = getLsOrDefault('hostMaxPlayers', 4, parseInt)
+    this.hostSeed = getLsOrDefault('hostSeed', '')
+    this.hostEndTurnTimeLimit = getLsOrDefault('hostEndTurnTimeLimit', 15, parseInt)
+    this.wrongPassword = false
 
     this.game = new Game()
     this.cardSlots = []

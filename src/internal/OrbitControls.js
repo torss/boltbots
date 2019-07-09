@@ -566,7 +566,7 @@ export function OrbitControls (object, domElement) {
   function onMouseDown (event) {
     if (scope.enabled === false) return
 
-    event.preventDefault()
+    if (event.button !== 0) event.preventDefault() // NOTE Don't prevent primary button default so that GUI stuff can be deselected properly.
 
     switch (event.button) {
       case scope.mouseButtons.LEFT:

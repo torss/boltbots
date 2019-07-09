@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import '../extensions/three'
 
 /**
  * Aka the board.
@@ -7,14 +8,20 @@ export class Map {
   constructor (tiMa) {
     this.tiMa = tiMa
     this.groundHeight = 0
+    this.meshes = []
   }
 
   remesh (scene) {
     for (const mesh of Object.values(this.tiMa.remesh())) {
       mesh.castShadow = true
       mesh.receiveShadow = true
+      this.meshes.push(mesh)
       scene.add(mesh)
     }
+  }
+
+  destroy () {
+    for (const mesh of this.meshes) mesh.removeSelf()
   }
 
   getTiEnAt (position) {

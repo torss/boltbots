@@ -1,14 +1,28 @@
 import Random from 'rng.js'
 
-function choose (size) {
-  return Math.floor(this.nextNumber() * size)
+export class Rng extends Random {
+  choose (size) {
+    return Math.floor(this.nextNumber() * size)
+  }
+
+  chooseFrom (options) {
+    return options[this.choose(options.length)]
+  }
+
+  clone () {
+    return new Rng(this.lowSeed, this.highSeed)
+  }
 }
 
-function chooseFrom (options) {
-  return options[this.choose(options.length)]
-}
+// function choose (size) {
+//   return Math.floor(this.nextNumber() * size)
+// }
 
-Random.prototype.choose = choose
-Random.prototype.chooseFrom = chooseFrom
+// function chooseFrom (options) {
+//   return options[this.choose(options.length)]
+// }
 
-export const Rng = Random
+// Random.prototype.choose = choose
+// Random.prototype.chooseFrom = chooseFrom
+
+// export const Rng = Random

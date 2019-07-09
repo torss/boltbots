@@ -4,7 +4,7 @@
       <q-resize-observer @resize="onResize" />
       <canvas ref="canvas" class="canvas" @mousemove="onMousemove" @mousedown="onMousedown" />
       <CentralCover v-if="gameOver" />
-      <CtrlFooter v-else />
+      <CtrlFooter v-else-if="glos.game && glos.game.state === 'playing' && glos.game.match.playerSelf.alive" />
     </div>
   </q-page>
 </template>
