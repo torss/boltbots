@@ -83,6 +83,7 @@ export default {
       glos.dragged = undefined
     },
     dropCard (cardSlot) {
+      if (this.disableAct) return
       if (glos.dragged instanceof CardSlot) {
         const card = glos.dragged.card
         glos.dragged.card = cardSlot.card
@@ -108,16 +109,13 @@ export default {
       return this.glos.cardSlots // this.glos.game && this.glos.game.match && this.glos.game.match.playerSelf.bot.cardSlots
     },
     disableAct () {
-      return this.match && (this.match.turnInProgress || !!this.match.gameOver || this.done || !this.alive)
+      return this.match && (this.match.turnInProgress || !!this.match.gameOver || this.match.playerSelf.endTurn || !this.alive)
     },
     turnCardIndex () {
       return this.match && this.match.turnCardIndex
     },
     alive () {
       return this.match.playerSelf.alive
-    },
-    done () {
-      return this.match.playerSelf.endTurn
     },
     turnTimerRunning () {
       return this.game.turnTimer.running
@@ -131,7 +129,7 @@ export default {
   },
   watch: {
     timeSec (newValue) {
-      if (newValue === 0 && !this.done && this.turnTimerRunning && !this.disableAct) this.endTurn()
+      if (newValue === 0 && this.turnTimerRunning && !this.disableAct) this.endTurn()
     }
   }
 }

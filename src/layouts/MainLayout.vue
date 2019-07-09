@@ -387,7 +387,7 @@ export default {
       return this.match ? glos.game.match.turn : 1
     },
     disableAct () {
-      return glos.game.match && (glos.game.match.turnInProgress || !!glos.game.match.gameOver)
+      return this.match && (this.match.turnInProgress || !!this.match.gameOver || this.match.playerSelf.endTurn || !this.alive)
     },
     handSize () {
       return glos.game.match && glos.game.match.handSize
