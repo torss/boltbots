@@ -88,7 +88,7 @@ export default {
 
 <style lang="stylus" scoped>
 .player-name
-  min-width 4em
+  min-width 4.75em
 
 .player-name-dead
   text-decoration line-through

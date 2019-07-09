@@ -347,7 +347,7 @@ export default {
       this.rightDrawerOpen = !this.rightDrawerOpen
       if (this.rightDrawerOpen) glos.game.newChatMessages = false
     },
-    checkName (name, maxLength = 35) {
+    checkName (name, maxLength = 8) {
       return name.length > 0 && name.length <= maxLength
     },
     checkShortText (text, maxLength = 64) {
@@ -402,7 +402,7 @@ export default {
       return this.bgClassDrawer
     },
     playerNameValid () { return this.checkName(this.playerName) },
-    hostMatchNameValid () { return this.checkName(this.hostMatchName) },
+    hostMatchNameValid () { return this.checkName(this.hostMatchName, 28) },
     hostPasswordValid () { return this.checkShortText(this.hostPassword) },
     joinPasswordValid () { return this.checkShortText(this.joinPassword) },
     hostSeedValid () { return this.checkShortText(this.hostSeed) },
