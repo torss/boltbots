@@ -84,7 +84,7 @@ export class Game {
       uniforms: {
         tExplosion: {
           type: 't',
-          value: new THREE.TextureLoader().load('../statics/textures/explosion/explosion.png')
+          value: new THREE.TextureLoader().load('statics/textures/explosion/explosion.png')
         },
         time: {
           type: 'f',
@@ -112,8 +112,8 @@ export class Game {
     // - //
 
     const btileLoaderItems = btileLoaderItemsCreate()
-    const tankLoaderItem = new LoaderItemGltf('../statics/models/vehicle/TestTank.glb', 'Bot')
-    const fontLoaderItems = [new LoaderItemFont('../statics/fonts/3d/droid/droid_sans_bold.typeface.json', 'Default')]
+    const tankLoaderItem = new LoaderItemGltf('statics/models/vehicle/TestTank.glb', 'Bot')
+    const fontLoaderItems = [new LoaderItemFont('statics/fonts/3d/droid/droid_sans_bold.typeface.json', 'Default')]
     const loaderItems = [...btileLoaderItems, tankLoaderItem, ...fontLoaderItems]
     const loaderControl = new LoaderControl(loaderItems, (success, loaderControl) => {
       if (!success) {

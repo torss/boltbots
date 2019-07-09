@@ -56,13 +56,13 @@ export function btileTest (vueInstance, scene, camera, material, renderer, preAn
   const dim = new Dim(16)
 
   for (const tilePath of tilePaths) {
-    gltfLoader.load('../statics/models/tiles/' + tilePath + '.glb', (gltf) => {
+    gltfLoader.load('statics/models/tiles/' + tilePath + '.glb', (gltf) => {
       tiTys[tilePath] = new TiTy(new TiSh(gltf.scene))
       tiTysList.push(tiTys[tilePath])
     })
   }
 
-  gltfLoader.load('../statics/models/vehicle/TestTank.glb', (gltf) => {
+  gltfLoader.load('statics/models/vehicle/TestTank.glb', (gltf) => {
     gltf.scene.traverseVisible(obj => {
       if (obj.isMesh) {
         obj.material = material
@@ -138,7 +138,7 @@ export function btileTestOld (vueInstance, scene, camera, material, renderer, pr
     envMap: material.envMap
   })
   const gltfLoader = new GLTFLoader()
-  gltfLoader.load('../statics/models/TestCube(flawed-pos).glb', (gltf) => {
+  gltfLoader.load('statics/models/TestCube(flawed-pos).glb', (gltf) => {
     // // window.scene = gltf.scene
     const copyDim = 3
 

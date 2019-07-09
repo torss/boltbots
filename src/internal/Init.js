@@ -79,7 +79,7 @@ export function init (vueInstance) {
   // scene.add(directionalLight)
 
   const cubeTextureLoader = new THREE.CubeTextureLoader()
-  cubeTextureLoader.setPath('../statics/textures/env/testenv0/')
+  cubeTextureLoader.setPath('statics/textures/env/testenv0/')
   // const envMap = cubeTextureLoader.load([
   //   'red.png', 'cyan.png', // x+ x-
   //   'green.png', 'magenta.png', // y+ y-
@@ -93,7 +93,7 @@ export function init (vueInstance) {
   })
   let mesh
   const gltfLoader = new GLTFLoader()
-  gltfLoader.load('../statics/DeltaArrow.glb', (gltf) => {
+  gltfLoader.load('statics/DeltaArrow.glb', (gltf) => {
     mesh = gltf.scene.children[0]
     mesh.material = material
     mesh.scale.multiplyScalar(0.2)
