@@ -1,5 +1,6 @@
 /**
  * Slightly modified version of the original https://github.com/mrdoob/three.js/blob/02b5ba0b53f8f461e85c9877f5a6c0094bc2bbf3/examples/js/controls/OrbitControls.js
+ * Original rest of this comment block:
  *
  *
  * @author qiao / https://github.com/qiao
@@ -207,7 +208,7 @@ export function OrbitControls (object, domElement) {
   this.dispose = function () {
     scope.domElement.removeEventListener('contextmenu', onContextMenu, false)
     scope.domElement.removeEventListener('mousedown', onMouseDown, false)
-    scope.domElement.removeEventListener('wheel', onMouseWheel, false)
+    scope.domElement.removeEventListener('wheel', onMouseWheel, { passive: false })
 
     scope.domElement.removeEventListener('touchstart', onTouchStart, false)
     scope.domElement.removeEventListener('touchend', onTouchEnd, false)
@@ -565,7 +566,7 @@ export function OrbitControls (object, domElement) {
   function onMouseDown (event) {
     if (scope.enabled === false) return
 
-    event.preventDefault()
+    if (event.button !== 0) event.preventDefault() // NOTE Don't prevent primary button default so that GUI stuff can be deselected properly.
 
     switch (event.button) {
       case scope.mouseButtons.LEFT:
@@ -767,7 +768,7 @@ export function OrbitControls (object, domElement) {
   scope.domElement.addEventListener('contextmenu', onContextMenu, false)
 
   scope.domElement.addEventListener('mousedown', onMouseDown, false)
-  scope.domElement.addEventListener('wheel', onMouseWheel, false)
+  scope.domElement.addEventListener('wheel', onMouseWheel, { passive: false })
 
   scope.domElement.addEventListener('touchstart', onTouchStart, false)
   scope.domElement.addEventListener('touchend', onTouchEnd, false)
