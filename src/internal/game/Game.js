@@ -1102,11 +1102,17 @@ export class Game {
 
   regenerateMap (recreatePlayers = true) {
     const game = this
-    const { match } = game
+    const { match, netMatch } = game
     if (game.state === 'matchmaking') {
       match.setRngSeedStr(glos.hostSeed)
       match.checkpointCount = glos.hostCheckpointCount
-    } else match.setRngSeedStr(game.netMatch.seed)
+      match.turn = 1
+    } else {
+      match.checkpointCount = netMatch.checkpointCount
+      match.handSize = netMatch.handSize
+      match.slotCount = netMatch.slotCount
+      match.setRngSeedStr(game.netMatch.seed)
+    }
     match.regenerateMap()
     if (recreatePlayers) {
       if (game.state === 'matchmaking') game.recreatePlayers()
