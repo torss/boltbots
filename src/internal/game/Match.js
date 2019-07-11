@@ -296,19 +296,20 @@ export class Match {
   getPlayerByNetKey (netKey) { return this.players.find(player => player.netKey === netKey) }
 
   serialize () {
-    const { turn, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, handSize, checkpointCount, slotCount } = this
+    const { turn, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, handSize, checkpointCount, slotCount, checkpoints } = this
     return {
       ...{ turn, handSize, checkpointCount, slotCount },
       rng: rng.serialize(),
       rngMapGen: rngMapGen.serialize(),
       rngCosmetic: rngCosmetic.serialize(),
       rngPlaceBots: rngPlaceBots.serialize(),
-      players: players.map(player => player.serialize(true))
+      players: players.map(player => player.serialize(true)),
+      checkpoints: checkpoints.map(checkpoint => checkpoint.serialize())
     }
   }
 
   deserialize (matchData) {
-    const { turn, checkpointCount, handSize, slotCount, rng, rngMapGen, rngCosmetic, rngPlaceBots, players } = matchData
+    const { turn, checkpointCount, handSize, slotCount, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, checkpoints } = matchData
     if (turn !== undefined) this.turn = turn
     if (checkpointCount !== undefined) this.checkpointCount = checkpointCount
     if (handSize !== undefined) this.handSize = handSize
@@ -317,6 +318,7 @@ export class Match {
     if (rngMapGen !== undefined) this.rngMapGen.deserialize(rngMapGen)
     if (rngCosmetic !== undefined) this.rngCosmetic.deserialize(rngCosmetic)
     if (rngPlaceBots !== undefined) this.rngPlaceBots.deserialize(rngPlaceBots)
+    if (checkpoints !== undefined) this.checkpoints = checkpoints.map(data => Checkpoint.deserializeNew(this.game, data))
     if (players !== undefined) {
       this.destroyPlayers()
       const { game } = this

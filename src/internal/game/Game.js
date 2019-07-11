@@ -376,7 +376,10 @@ export class Game {
   storeReconnectData () { // NOTE This system obviously won't work well when mutltiple games are opened in the same browser.
     if (this.state !== 'playing') return
     const { matchUid, netKeyHost, match, netMatch } = this
-    if (match.gameOver) this.clearReconnectData()
+    if (match.gameOver) {
+      this.clearReconnectData()
+      return
+    }
     if (!matchUid || !netKeyHost || !match.playerSelf) return
     localStorage.setItem('reconnectData', JSON.stringify({ time: Date.now(), matchUid, netKeyHost, netKey: this.netKey, matchName: netMatch.matchName }))
   }
@@ -1102,11 +1105,17 @@ export class Game {
 
   regenerateMap (recreatePlayers = true) {
     const game = this
-    const { match } = game
+    const { match, netMatch } = game
     if (game.state === 'matchmaking') {
       match.setRngSeedStr(glos.hostSeed)
       match.checkpointCount = glos.hostCheckpointCount
-    } else match.setRngSeedStr(game.netMatch.seed)
+      match.turn = 1
+    } else {
+      match.checkpointCount = netMatch.checkpointCount
+      match.handSize = netMatch.handSize
+      match.slotCount = netMatch.slotCount
+      match.setRngSeedStr(game.netMatch.seed)
+    }
     match.regenerateMap()
     if (recreatePlayers) {
       if (game.state === 'matchmaking') game.recreatePlayers()
