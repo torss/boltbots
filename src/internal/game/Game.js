@@ -376,7 +376,10 @@ export class Game {
   storeReconnectData () { // NOTE This system obviously won't work well when mutltiple games are opened in the same browser.
     if (this.state !== 'playing') return
     const { matchUid, netKeyHost, match, netMatch } = this
-    if (match.gameOver) this.clearReconnectData()
+    if (match.gameOver) {
+      this.clearReconnectData()
+      return
+    }
     if (!matchUid || !netKeyHost || !match.playerSelf) return
     localStorage.setItem('reconnectData', JSON.stringify({ time: Date.now(), matchUid, netKeyHost, netKey: this.netKey, matchName: netMatch.matchName }))
   }
