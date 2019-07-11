@@ -54,7 +54,7 @@ export default {
 
 <style lang="stylus" scoped>
 .cover
-  position relative
+  position absolute
   width 100%
   height 100%
   background-color rgba(16, 16, 16, 0.75)

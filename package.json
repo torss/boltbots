@@ -1,6 +1,6 @@
 {
   "name": "boltbots",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A game inspired by Robo Rally.",
   "productName": "Bolt Bots",
   "cordovaId": "org.cordova.quasar.app",
@@ -29,6 +29,7 @@
     "rng.js": "^1.0.2",
     "stats.js": "^0.17.0",
     "three": "^0.106.0",
+    "uuid": "^3.3.2",
     "vue-i18n": "^7.3.3",
     "vuedraggable": "^2.23.0"
   },
