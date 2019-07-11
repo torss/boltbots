@@ -1,21 +1,22 @@
 import * as THREE from 'three'
 // import * as TWEEN from '@tweenjs/tween.js'
 import { mapGens, cardTypeList } from '..'
-import { Match, Player, Card, CardSlot } from '../..'
+import { Match, Player, Card } from '../..'
 import { glos } from '../../../Glos'
 
 export function initTestGame (game) {
   const match = new Match(game)
+  window.match = match // NOTE prototype only
   match.mapGen = mapGens['TestGen0']
   game.match = match
 
   game.regenerateMap(false)
   initDirectionalLight(game)
   initModels(game, game.envMap)
-  game.recreatePlayers(true)
+  game.recreatePlayers()
 }
 
-function addPlayerCards (player) {
+function addPlayerCards (match, player) {
   for (const cardType of cardTypeList) {
     const card = new Card(cardType)
     player.hand.push(card)
@@ -23,33 +24,55 @@ function addPlayerCards (player) {
     // cardSlot.card = card
     // player.bot.cardSlots.push(cardSlot)
   }
-  for (let i = 0; i < 5; ++i) player.bot.cardSlots.push(new CardSlot())
 }
 
-export function initPlayers (game, count, lobbyPeers) {
-  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings', 'face-agent', 'alien', 'laptop', 'desktop-classic', 'account-badge', 'account-card-details', 'pirate', 'target', 'target', 'target-variant', 'emoticon-devil']
-
+export function initPlayers (game, count) {
   const { match } = game
-  if (count === undefined) count = lobbyPeers.length
-
   match.playerSelf = undefined
   match.players = []
-  for (let i = 0; i < count; ++i) {
-    let playerName = 'Player-' + (i + 1)
-    const peerInfo = lobbyPeers && lobbyPeers[i]
-    if (peerInfo) playerName = peerInfo.playerName
-    const player = new Player(game, undefined, playerName)
-    if (peerInfo) {
-      peerInfo.player = player
-      player.peerInfo = peerInfo
-    }
-    player.icon = playerIcons[i % playerIcons.length]
-    addPlayerCards(player)
-    initBot(game, player.bot, i)
-    match.players.push(player)
-    if (peerInfo ? peerInfo.isSelf : i === 0) match.playerSelf = player
-  }
+  for (let i = 0; i < count; ++i) initPlayer(game, 'Player-' + (i + 1))
   match.turnPlayers = [...match.players]
+}
+
+export function initPlayer (game, playerData) {
+  const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings', 'face-agent', 'alien', 'laptop', 'desktop-classic', 'account-badge', 'account-card-details', 'pirate', 'target', 'target', 'target-variant', 'emoticon-devil']
+
+  const { match, netMatch } = game
+  const { players } = match
+  let id
+  let name
+  // let netKey = ''
+  if (typeof playerData === 'string') {
+    name = playerData
+    playerData = undefined
+
+    // Assumes players are sorted by id
+    id = 0
+    for (; id < players.length; ++id) {
+      if (id < players[id].id) break
+    }
+  }
+  // else if (playerData && !(playerData instanceof Player)) {
+  //   // Deserialize
+  //   id = playerData.id
+  //   name = playerData.name
+  //   netKey = playerData.netKey
+  // }
+
+  const player = new Player(game, id, name)
+  addPlayerCards(match, player)
+  if (playerData && !(playerData instanceof Player)) player.id = playerData.id
+  id = player.id
+  // player.netKey = netKey
+  player.icon = playerIcons[player.id % playerIcons.length]
+  initBot(game, player.bot, id)
+  if (playerData && !(playerData instanceof Player)) player.deserialize(playerData)
+  player.bot.resizeCardSlots(match.slotCount)
+  players.push(player)
+  players.sort((a, b) => a.id - b.id)
+
+  if (netMatch) netMatch.playerCount = players.length
+  return player
 }
 
 function initBot (game, bot, i) {

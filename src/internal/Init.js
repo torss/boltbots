@@ -53,6 +53,7 @@ export function init (vueInstance) {
   controls.enableKeys = false
   controls.enablePan = false
   controls.target.set(8, 0, 8)
+  controls.autoRotate = true
   glos.threejsControls = controls
 
   const sky = new Sky()

@@ -30,6 +30,7 @@
           {{ timeSec.toFixed(0) }}s
         </q-circular-progress>
         <q-icon v-else name="arrow_right" />
+        <q-tooltip>End turn.</q-tooltip>
       </q-btn>
     </div>
   </div>
@@ -127,7 +128,7 @@ export default {
   },
   watch: {
     timeSec (newValue) {
-      if (newValue === 0 && this.turnTimerRunning && !this.disableAct) this.endTurn()
+      if (newValue <= 0 && this.turnTimerRunning && !this.disableAct) this.endTurn()
     }
   }
 }

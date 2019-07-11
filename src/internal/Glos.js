@@ -1,3 +1,4 @@
+import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
 import { init } from './Init'
 import { Game } from './game'
@@ -29,7 +30,10 @@ class Glos {
     this.hostMaxPlayers = getLsOrDefault('hostMaxPlayers', 4, parseInt)
     this.hostSeed = getLsOrDefault('hostSeed', '')
     this.hostEndTurnTimeLimit = getLsOrDefault('hostEndTurnTimeLimit', 15, parseInt)
-    this.wrongPassword = false
+    this.hostCheckpointCount = getLsOrDefault('hostCheckpointCount', 3, parseInt)
+    this.hostHandSize = getLsOrDefault('hostHandSize', 8, parseInt)
+    this.hostSlotCount = getLsOrDefault('hostSlotCount', 5, parseInt)
+    this.dialogData = undefined
 
     this.game = new Game()
     this.cardSlots = []
@@ -77,4 +81,8 @@ class Glos {
 
 export const glos = new Glos()
 
-window.glos = glos // NOTE prototype only
+// NOTE prototype only
+window.glos = glos
+window.game = glos.game
+window.THREE = THREE
+window.TWEEN = TWEEN
