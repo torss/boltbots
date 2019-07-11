@@ -1,7 +1,9 @@
 import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
+import '../extensions/three'
 import { assignNewVueObserver } from '../Dereactivate'
 import { straightMove } from './content/card/Movement'
+import { CardSlot } from './CardSlot'
 
 const directionKeyString = 'NESW'
 
@@ -47,7 +49,7 @@ export class Bot {
     this.game = game
     this.player = player
     this.cardSlots = []
-    this.cardSlotsNext = []
+    // this.cardSlotsNext = []
     this.cardIndex = 0
     this.tiEns = [] // Occupied tiles
     this.guiColor = new THREE.Color(1, 1, 1)
@@ -81,7 +83,7 @@ export class Bot {
   }
 
   applyDirectionKeyToObject3d () {
-    const object3d = this.object3d
+    const { object3d } = this
     if (object3d) object3d.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), directionsAngle[this.directionKey])
   }
 
@@ -112,6 +114,12 @@ export class Bot {
     } else {
       this.directionKey = directionKeyString[indexNext]
     }
+  }
+
+  resizeCardSlots (slotCount) {
+    const { cardSlots } = this
+    cardSlots.splice(slotCount, cardSlots.length - slotCount)
+    for (let i = cardSlots.length; i < slotCount; ++i) cardSlots.push(new CardSlot())
   }
 
   invokeCardSlot (index) {
@@ -266,20 +274,27 @@ export class Bot {
     }
   }
 
-  damageFlash () {
+  damageFlash (duration = 100) {
     const { object3d } = this
     object3d.traverseVisible(obj => {
       if (obj.isMesh && !obj.bloom) obj.bloom = 'tmp'
     })
-    new TWEEN.Tween({}).to({}, 100).onComplete(() => {
+    new TWEEN.Tween({}).to({}, duration).onComplete(() => {
       object3d.traverseVisible(obj => {
         if (obj.bloom === 'tmp') obj.bloom = false
       })
     }).start()
   }
 
+  highlight () {
+    this.damageFlash(2000)
+  }
+
   damage (type, attacker) {
-    if (!this.alive) return
+    if (!this.alive) {
+      this.player.markAsDead(attacker) // Add multiple killers
+      return
+    }
     const { game, object3d } = this
     const { match, sfxf } = game
     let amount = 0
@@ -319,13 +334,41 @@ export class Bot {
     for (const cardSlot of this.cardSlots) cardSlot.clear()
   }
 
-  destroy (removeSelf = true) {
+  clearTiEns () {
     for (const tiEn of this.tiEns) tiEn.entity = undefined
     this.tiEns = []
+  }
+
+  destroy (removeSelf = true) {
+    this.clearTiEns()
     this.towerDistance = -1
     this.clearCardSlots()
     this.engineSoundGen.stop()
     if (removeSelf) this.object3d.removeSelf()
+  }
+
+  serialize () {
+    return {
+      health: this.health,
+      position: this.object3d && this.object3d.position.serialize(),
+      directionKey: this.directionKey,
+      cardSlots: this.cardSlots.map(cardSlot => cardSlot.serialize())
+    }
+  }
+
+  deserialize (botData) {
+    const { health, position, directionKey, cardSlots } = botData
+    if (health !== undefined) {
+      const healthOld = this.health
+      this.health = health
+      if (healthOld >= Number.EPSILON && this.health < Number.EPSILON) {
+        this.alive = false
+        this.destroy()
+      } // TODO resurrect?
+    }
+    if (position !== undefined && this.object3d) this.object3d.position.copy(position)
+    if (directionKey !== undefined) this.directionKey = directionKey
+    if (cardSlots !== undefined) this.cardSlots = cardSlots.map(data => new CardSlot().deserialize(data))
   }
 }
 

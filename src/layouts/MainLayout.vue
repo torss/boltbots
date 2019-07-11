@@ -19,7 +19,7 @@
 
         <div class="toolbarStats" ref="toolbarStats" />
 
-        <q-btn flat dense round @click="toggleRightDrawer" icon="mdi-wan" :color="game.newChatMessages ? 'primary' : (darkMode ? 'blue-grey-5' : 'blue-grey-2')" />
+        <q-btn flat dense round @click="toggleRightDrawer" icon="mdi-wan" :color="game.newChatMessages ? 'pink' : (darkMode ? 'blue-grey-5' : 'blue-grey-2')" />
       </q-toolbar>
     </q-header>
 
@@ -72,13 +72,21 @@
               <q-item dense><q-item-section><q-input dense :dark="darkMode" label="Password" v-model="hostPassword" :error="!hostPasswordValid"/></q-item-section></q-item>
               <q-item dense>
                 <q-item-section><q-input dense :dark="darkMode" label="End turn time limit" v-model.number="hostEndTurnTimeLimit" type="number" :error="!hostEndTurnTimeLimitValid" suffix="s" input-class="duration-input"/></q-item-section>
-                <q-tooltip>
-                  This time (in seconds) will start to run out once a player has finished his turn.<br>
-                  If the other players can't end their turns within this time limit, it will end automatically.<br>
-                  Set this to 0 to disable the time limit.
-                </q-tooltip>
+                <MatchmakingTooltip type="endTurnTimeLimit" />
               </q-item>
               <q-item dense><q-item-section><q-input dense :dark="darkMode" label="Max. players" v-model.number="hostMaxPlayers" type="number" :error="!hostMaxPlayersValid"/></q-item-section></q-item>
+              <q-item dense>
+                <q-item-section><q-input dense :dark="darkMode" label="Checkpoints" v-model.number="hostCheckpointCount" type="number" :error="!hostCheckpointCountValid"/></q-item-section>
+                <MatchmakingTooltip type="checkpointCount" />
+              </q-item>
+              <q-item dense>
+                <q-item-section><q-input dense :dark="darkMode" label="Hand size" v-model.number="hostHandSize" type="number" :error="!hostHandSizeValid"/></q-item-section>
+                <MatchmakingTooltip type="handSize" />
+              </q-item>
+              <q-item dense>
+                <q-item-section><q-input dense :dark="darkMode" label="Card slots" v-model.number="hostSlotCount" type="number" :error="!hostSlotCountValid"/></q-item-section>
+                <MatchmakingTooltip type="slotCount" />
+              </q-item>
               <q-item dense>
                 <q-item-section><q-input dense :dark="darkMode" label="Seed" v-model="hostSeed" @keydown.enter="regenerateMap" /><q-tooltip>Seed for the random number generator.</q-tooltip></q-item-section>
                 <q-item-section side><q-btn dense icon="mdi-dice-multiple" flat no-caps @click="randomizeSeed"><q-tooltip>Randomize the seed & regenerate the map.</q-tooltip></q-btn></q-item-section>
@@ -87,8 +95,9 @@
               <q-item><q-item-section><q-btn label="Host" flat no-caps @click="hostMatch" :disable="!canHost"><q-tooltip>Host with the given settings.</q-tooltip></q-btn></q-item-section></q-item>
             </q-expansion-item>
             <q-expansion-item group="matchmaking" label="Join" :dark="darkMode" v-model="joinExpanded">
-                <q-item v-if="Object.keys(game.openMatches).length === 0"><q-item-section>No open games.</q-item-section></q-item>
-                <q-item dense><q-item-section><q-input dense :dark="darkMode" label="Password" v-model="joinPassword" :error="!joinPasswordValid"/></q-item-section></q-item>
+                <q-item dense><q-item-section><q-input dense :dark="darkMode" label="Password" v-model="joinPassword" :error="!joinPasswordValid" :disable="!!game.isJoining"/></q-item-section></q-item>
+                <q-item v-if="game.isJoining"><q-item-section>Joining match, please wait...</q-item-section></q-item>
+                <q-item v-else-if="Object.keys(game.openMatches).length === 0"><q-item-section>Searching for matches, please wait...</q-item-section></q-item>
             </q-expansion-item>
           </template>
 
@@ -96,22 +105,31 @@
             <q-item-label header class="text-center text-bold">Lobby</q-item-label>
             <q-item-label header>Match info</q-item-label>
             <q-item dense><q-item-section side>Name:</q-item-section><q-item-section>{{ game.netMatch.matchName }}</q-item-section></q-item>
-            <q-item dense><q-item-section side>End turn time limit:</q-item-section><q-item-section>{{ game.netMatch.endTurnTimeLimit }}s</q-item-section></q-item>
             <q-item dense><q-item-section side>Max. players:</q-item-section><q-item-section>{{ game.netMatch.maxPlayers }}</q-item-section></q-item>
+            <q-item dense><q-item-section side>End turn time limit:</q-item-section><q-item-section>{{ game.netMatch.endTurnTimeLimit }}s</q-item-section><MatchmakingTooltip type="endTurnTimeLimit" /></q-item>
+            <q-item dense><q-item-section side>Checkpoints:</q-item-section><q-item-section>{{ game.netMatch.checkpointCount }}</q-item-section><MatchmakingTooltip type="checkpointCount" /></q-item>
+            <q-item dense><q-item-section side>Hand size:</q-item-section><q-item-section>{{ game.netMatch.handSize }}</q-item-section><MatchmakingTooltip type="handSize" /></q-item>
+            <q-item dense><q-item-section side>Slot count:</q-item-section><q-item-section>{{ game.netMatch.slotCount }}</q-item-section><MatchmakingTooltip type="slotCount" /></q-item>
             <q-item dense><q-item-section side>Seed:</q-item-section><q-item-section>{{ game.netMatch.seed }}</q-item-section></q-item>
             <q-item-label header>Players</q-item-label>
-            <q-item v-for="(value, index) in game.lobbyPeers" :key="index" dense v-ripple class="pointer">
-              <q-item-section side><q-icon :name="value.isHost ? 'mdi-account-star' : 'mdi-account'" :color="value.isSelf ? 'primary' : 'grey'"/></q-item-section>
-              <q-item-section>{{ value.playerName }}</q-item-section>
-              <q-item-section side v-if="game.pseudoPeer.isHost && !value.isSelf"><q-btn flat icon="mdi-exit-run" @click="kick(value)"><q-tooltip>Kick player from lobby.</q-tooltip></q-btn></q-item-section>
+            <q-item v-for="(value, index) in match.players" :key="index" dense v-ripple class="pointer">
+              <q-item-section side><q-icon :name="value.netKey === game.netKeyHost ? 'mdi-account-star' : 'mdi-account'" :color="value === match.playerSelf ? 'primary' : 'grey'"/></q-item-section>
+              <q-item-section>{{ value.name }}</q-item-section>
+              <q-item-section side v-if="game.isHost && value !== match.playerSelf"><q-btn flat icon="mdi-exit-run" @click="kick(value)"><q-tooltip>Kick player from lobby.</q-tooltip></q-btn></q-item-section>
             </q-item>
             <q-item><q-item-section><q-btn label="Leave" flat no-caps @click="leaveMatch"><q-tooltip>Leave the match.</q-tooltip></q-btn></q-item-section></q-item>
-            <q-item v-if="game.pseudoPeer.isHost"><q-item-section><q-btn label="Start match" flat no-caps @click="startMatch" :disable="!canStartMatch"><q-tooltip>Start the match!</q-tooltip></q-btn></q-item-section></q-item>
+            <q-item v-if="game.isHost"><q-item-section><q-btn label="Start match" flat no-caps @click="startMatch" :disable="!canStartMatch"><q-tooltip>Start the match!</q-tooltip></q-btn></q-item-section></q-item>
+          </template>
+
+          <template v-else-if="game.state === 'reconnecting'">
+            <q-item-label header class="text-center text-bold">Reconnecting</q-item-label>
+            <q-item><q-item-section>Trying to reconnect to match {{ game.reconnectData ? '"' +game.reconnectData.matchName + '"' : '[Unknown name]' }}, please wait...</q-item-section></q-item>
+            <q-item><q-item-section><q-btn label="Abort" flat no-caps @click="abortReconnect"><q-tooltip>Abort the reconnection attempt.<br>You won't be able to try reconnecting again once you press this.</q-tooltip></q-btn></q-item-section></q-item>
           </template>
         </div>
 
-        <q-list v-if="joinExpanded && game.state === 'matchmaking'" class="drawer-scroll-content">
-          <q-item v-for="(value, key) in game.openMatches" :key="key" dense @click.native="joinMatch(key)" v-ripple class="pointer">
+        <q-list v-if="joinExpanded && game.state === 'matchmaking' && !game.isJoining" class="drawer-scroll-content">
+          <q-item v-for="value in Object.values(game.openMatches)" :key="value.matchUid" dense @click.native="joinMatch(value.matchUid)" v-ripple class="pointer">
             <q-item-section side>
               <q-icon :name="value.password ? 'mdi-lock' : 'mdi-lock-open'" />
               <q-tooltip>You need {{ value.password ? 'a' : 'no' }} password to join.</q-tooltip>
@@ -120,8 +138,11 @@
               {{ value.matchName }}
               <q-tooltip>
                 Host name: {{ value.playerName }}<br>
-                Net-ID: {{ key }}<br>
+                <!--Match-UID: {{ value.matchUid }}<br> -->
                 End turn time limit: {{ value.endTurnTimeLimit }}s<br>
+                Checkpoints: {{ value.checkpointCount }}<br>
+                Hand size: {{ value.handSize }}<br>
+                Slot count: {{ value.slotCount }}<br>
                 Seed: {{ value.seed }}
               </q-tooltip>
             </q-item-section>
@@ -201,14 +222,19 @@
           </q-item-section></q-item>
 
           <q-item-label header class="text-center text-bold">
-            Network Info
-            <q-tooltip>ID: {{ net.netNodeIdStr }}</q-tooltip>
+            Network info
+            <q-tooltip>ID: {{ game.netNodeIdStr }}</q-tooltip>
           </q-item-label>
-          <q-item dense><q-item-section>Players online: {{ net.onlinePlayerPeers.length + 1 }}</q-item-section></q-item>
-          <q-item dense><q-item-section>Connected peer count: {{ net.connectedPeers.length }}</q-item-section></q-item>
-          <q-item dense><q-item-section>Discovered peer count: {{ net.discoveredPeerCount }}
-            <q-tooltip>This is a total over time.</q-tooltip>
-          </q-item-section></q-item>
+          <template v-if="game.state === 'matchmaking'">
+            <q-item dense><q-item-section>Players online: {{ game.playersOnlineCount }}</q-item-section></q-item>
+            <q-item dense><q-item-section>Connected peer count: {{ game.connectedPeers.length }}</q-item-section></q-item>
+            <q-item dense><q-item-section>Discovered peer count: {{ game.discoveredPeerCount }}
+              <q-tooltip>This is a total over time.</q-tooltip>
+            </q-item-section></q-item>
+          </template>
+          <template v-else>
+            <q-item dense><q-item-section>Global network info is only updated during matchmaking.</q-item-section></q-item>
+          </template>
 
           <q-item-label header class="text-center text-bold">Match chat</q-item-label>
           <q-item dense>
@@ -229,11 +255,11 @@
       <router-view />
     </q-page-container>
 
-    <q-dialog v-model="glos.wrongPassword">
+    <q-dialog v-model="dialogOpen">
       <q-card :dark="darkMode" :class="classDialog">
-        <q-card-section><div class="text-h6">Wrong match password</div></q-card-section>
-        <q-card-section>The password you entered wasn't correct.</q-card-section>
-        <q-card-actions align="center"><q-btn flat label="Ok" color="primary" v-close-popup /></q-card-actions>
+        <q-card-section><div class="text-h6">{{ dialogTitle }}</div></q-card-section>
+        <q-card-section>{{ dialogMessage }}</q-card-section>
+        <q-card-actions align="center"><q-btn flat :label="dialogCloseButtonLabel" no-caps color="primary" v-close-popup><q-tooltip>Click to close the dialog</q-tooltip></q-btn></q-card-actions>
       </q-card>
     </q-dialog>
   </q-layout>
@@ -243,13 +269,15 @@
 import { openURL, debounce } from 'quasar'
 import draggable from 'vuedraggable'
 import PlayerListItem from '../components/PlayerListItem'
+import MatchmakingTooltip from '../components/MatchmakingTooltip'
 import { glos } from '../internal/Glos'
 
 export default {
   name: 'MainLayout',
   components: {
     draggable,
-    PlayerListItem
+    PlayerListItem,
+    MatchmakingTooltip
   },
   data () {
     this.regenerateMapDebounced = debounce(() => this.regenerateMap(), 1000)
@@ -263,7 +291,9 @@ export default {
       hostPassword: '',
       hostSeedLastGen: glos.hostSeed,
       joinPassword: '',
-      chatMessage: ''
+      chatMessage: '',
+      dialogCloseButtonLabel: 'Ok',
+      dialogOpen: false
     }
   },
   methods: {
@@ -296,7 +326,7 @@ export default {
     },
     regenerateMap () {
       if (!this.canMapGen) return
-      if (this.hostSeed === this.hostSeedLastGen) return
+      if (this.hostSeed === this.hostSeedLastGen && this.hostCheckpointCount === this.match.checkpointCount) return
       this.hostSeedLastGen = this.hostSeed
 
       if (!glos.game.ready) return
@@ -305,7 +335,7 @@ export default {
     },
     recreatePlayers () {
       if (!this.canMapGen) return
-      glos.game.recreatePlayers(true)
+      glos.game.recreatePlayers()
     },
     hostMatch () {
       if (!this.canHost) return
@@ -315,22 +345,28 @@ export default {
         password: this.hostPassword,
         maxPlayers: Math.floor(this.hostMaxPlayers),
         seed: this.hostSeed,
-        endTurnTimeLimit: this.hostEndTurnTimeLimit
-      }, this.playerName)
+        endTurnTimeLimit: this.hostEndTurnTimeLimit,
+        checkpointCount: this.hostCheckpointCount,
+        handSize: this.hostHandSize,
+        slotCount: this.hostSlotCount
+      })
     },
-    joinMatch (hostKey) {
+    joinMatch (matchUid) {
       if (!this.playerNameValid || !this.joinPasswordValid) return
-      glos.game.tryJoin(hostKey, this.playerName, this.joinPassword)
+      glos.game.tryJoin(matchUid, this.playerName, this.joinPassword)
     },
     leaveMatch () {
       glos.game.leave()
     },
-    kick (peerInfo) {
-      glos.game.kick(peerInfo)
+    kick (player) {
+      glos.game.kick(player)
     },
     startMatch () {
       if (!this.canStartMatch) return
       glos.game.startMatch()
+    },
+    abortReconnect () {
+      glos.game.clearReconnectData()
     },
     sendChatMessage () {
       if (!this.chatMessageValid || this.chatMessage === '') return
@@ -353,6 +389,10 @@ export default {
     checkShortText (text, maxLength = 64) {
       return text.length <= maxLength
     },
+    checkIntRange (value, min, max) {
+      value = Math.floor(value)
+      return value >= min && value <= max
+    },
     onMousedown () {
       if (glos.threejsControls) glos.threejsControls.enabled = false
       document.addEventListener('mouseup', () => this.onMouseup(), { once: true, capture: true })
@@ -364,9 +404,6 @@ export default {
   computed: {
     game () {
       return this.glos.game
-    },
-    net () {
-      return this.game
     },
     match () {
       return this.game && this.glos.game.match
@@ -408,20 +445,63 @@ export default {
     hostSeedValid () { return this.checkShortText(this.hostSeed) },
     chatMessageValid () { return this.chatMessage.length <= 120 },
     hostEndTurnTimeLimitValid () { return this.hostEndTurnTimeLimit >= 0 },
-    hostMaxPlayersValid () {
-      const maxPlayers = Math.floor(this.hostMaxPlayers)
-      return maxPlayers >= 2 && maxPlayers <= this.openTileCount && maxPlayers <= 32
-    },
+    hostMaxPlayersValid () { return this.checkIntRange(this.hostMaxPlayers, 2, Math.min(this.openTileCount, 32)) },
+    hostCheckpointCountValid () { return this.checkIntRange(this.hostCheckpointCount, 1, 5) },
+    hostHandSizeValid () { return this.checkIntRange(this.hostHandSize, 1, 16) },
+    hostSlotCountValid () { return this.checkIntRange(this.hostSlotCount, 1, 8) },
     canMapGen () {
-      return this.hostMaxPlayersValid && this.hostSeedValid
+      return this.hostMaxPlayersValid && this.hostCheckpointCountValid && this.hostSeedValid
     },
     canHost () {
-      return this.playerNameValid && this.hostMatchNameValid && this.hostPasswordValid && this.hostMaxPlayersValid && this.hostSeedValid && this.hostEndTurnTimeLimitValid
+      return this.playerNameValid && this.hostMatchNameValid && this.hostPasswordValid && this.hostMaxPlayersValid && this.hostSeedValid && this.hostEndTurnTimeLimitValid && this.hostCheckpointCountValid && this.hostHandSizeValid && this.hostSlotCountValid
     },
     canStartMatch () {
-      return this.game.lobbyPeers.length >= 2
+      return this.match.players.length >= 2
     },
-    ...['leftDrawerOpen', 'rightDrawerOpen', 'playerName', 'hostMatchName', 'hostMaxPlayers', 'hostSeed', 'darkMode', 'hostExpanded', 'joinExpanded', 'hostEndTurnTimeLimit'].reduce((obj, key) => {
+    dialogTitle () {
+      const { dialogData } = this.glos
+      if (!dialogData) return ''
+      const options = {
+        'reconnect-refused': 'Couldn\'t reconnect',
+        'join-failure': 'Couldn\'t join match'
+      }
+      return options[dialogData.type] || 'Dialog'
+    },
+    dialogMessage () {
+      const { dialogData } = this.glos
+      if (!dialogData) return ''
+      const options = {
+        'reconnect-refused': {
+          'incorrect-player': 'Your internal player identifier is incorrect, you cannot reconnect.',
+          'not-playing': () => {
+            const options = {
+              'matchmaking': 'The match does no longer exist.',
+              'lobby': 'The match is back at the lobby state. That\'s weird.',
+              'playing': '...for no apparent reason, this must be a bug.',
+              'reconnecting': 'Apparently the host has weird network problems. This shouldn\'t happen.'
+            }
+            return options[dialogData.data]
+          }
+        },
+        'join-failure': {
+          'empty-password': 'You need to enter a password to join this match.',
+          'rejected': () => {
+            const options = {
+              'wrong-password': 'The password you entered was wrong.',
+              'match-closed': 'The match is no longer available.'
+            }
+            return options[dialogData.data]
+          }
+          // 'network-error': () => `Network error: ${dialogData.data}`,
+          // 'protocol-error': () => `Network protocol error: ${dialogData.data}`
+        }
+      }
+      let result = options[dialogData.type]
+      result = result && result[dialogData.why]
+      if (typeof result === 'function') result = result()
+      return result || ''
+    },
+    ...['leftDrawerOpen', 'rightDrawerOpen', 'playerName', 'hostMatchName', 'hostMaxPlayers', 'hostSeed', 'darkMode', 'hostExpanded', 'joinExpanded', 'hostEndTurnTimeLimit', 'hostCheckpointCount', 'hostHandSize', 'hostSlotCount'].reduce((obj, key) => {
       obj[key] = {
         get () { return glos[key] },
         set (newValue) {
@@ -444,8 +524,31 @@ export default {
     hostSeed (newValue) {
       this.regenerateMapDebounced()
     },
-    hostMaxPlayers (newValue) {
-      this.recreatePlayersDebounced()
+    hostMaxPlayers (newValue) { this.recreatePlayersDebounced() },
+    hostCheckpointCount (newValue) { this.regenerateMapDebounced() },
+    'glos.dialogData' (newValue) {
+      const choose = (options) => options[Math.floor(Math.random() * options.length)]
+      const resolve = (options) => {
+        let option = choose(options)
+        while (option) {
+          if (typeof option === 'function') option = option()
+          else if (Array.isArray(option)) option = choose(option)
+          else return option
+        }
+        console.warn('glos.dialogData - resolve error')
+      }
+      const long = () => {
+        const thanks = choose(['Thank you', 'Thanks', 'My heartfelt thanks', 'Many thanks', 'A thousand thanks', 'Cordial thanks', 'Thanks a lot', 'Thanks a million', 'Thank you very much', 'Thanks a ton', 'Thanks again', 'Thx', 'TANK you'])
+        const honorific = choose(['Sir', 'Lord', 'Mr.', 'Ms.'])
+        const can = choose(['can', 'may', 'are allowed to', 'are permitted to'])
+        const go = choose(['go', 'leave'])
+        const punctuation = choose(['', '.', '!', '¡'])
+        return `${thanks} ${honorific} Dialog, you ${can} ${go} now${punctuation}`
+      }
+      const optionsNegative = [['Damn', 'Damn it', 'Whatever', 'Whatevs', 'Fine', 'That\'s not good', 'That\'s bad'], ['Oops', '¯\\_(ツ)_/¯', 'What a pity', 'Too bad'], ['😖', '😲', '😯', '😮', '🤨', '🤔', '😱', '👎']]
+      const options = [['Ok', 'OK', 'K', '👌'], ['Affirmative', 'Alright', 'Understood', 'Got it'], ...optionsNegative, long]
+      this.dialogCloseButtonLabel = resolve(options) || 'Ok'
+      this.dialogOpen = true
     }
   }
 }

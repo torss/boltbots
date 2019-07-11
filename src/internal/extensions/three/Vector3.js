@@ -80,3 +80,8 @@ THREE.Vector3.prototype.iterXyz = function (func) {
   }
   return this
 }
+
+THREE.Vector3.prototype.serialize = function () {
+  const { x, y, z } = this
+  return { x, y, z }
+}

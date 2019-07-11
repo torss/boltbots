@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { assignNewVueObserver } from '../Dereactivate'
 import { ControlTower } from './ControlTower'
 import { Card } from './Card'
-import { cardTypeList } from './content'
+import { cardTypeList, initPlayer } from './content'
 import { Rng } from '../Rng'
 import { Checkpoint } from './Checkpoint'
 
@@ -29,6 +29,7 @@ export class Match {
     this.map = undefined
     this.openTileCount = 0
     this.checkpointCount = 3
+    this.slotCount = 5
     // this.playerSelfUid = -1
     this.turnPlayerIndex = 0
     this.remainingActionCount = 0
@@ -84,7 +85,7 @@ export class Match {
     this.turnPlayers.sort((a, b) => {
       if (Math.abs(a.bot.towerDistance - b.bot.towerDistance) < Number.EPSILON) {
         // return a.tieBreaker - b.tieBreaker
-        return a.peerInfo.hostKey.localeCompare(b.peerInfo.hostKey)
+        return a.netKey.localeCompare(b.netKey)
       }
       return a.bot.towerDistance - b.bot.towerDistance
     })
@@ -186,7 +187,7 @@ export class Match {
     match.deadPlayers = []
   }
 
-  regenerateMap (placeBots = false) {
+  regenerateMap () {
     const match = this
 
     // Destroy old stuff
@@ -225,16 +226,18 @@ export class Match {
       console.warn('Seed generated a map without enough open tiles, regenerating...')
       match.regenerateMap()
     }
-
-    // Place bots
-    if (placeBots) match.placeBots()
   }
 
   placeBots () {
     const match = this
     match.rngPlaceBots = match.rngMapGen.clone()
     const rng = match.rngPlaceBots
-    for (const player of match.turnPlayers) {
+    for (const player of match.players) {
+      player.bot.clearTiEns()
+      player.bot.directionKey = 'N'
+    }
+    for (const player of match.players) {
+      if (!player.alive) continue // Superfluous
       match.iterateRandomMapPoint((tiEn, pos) => {
         if (match.isTileOpen(tiEn) && !tiEn.entity) {
           const { bot } = player
@@ -273,6 +276,83 @@ export class Match {
       const index = dim.resolve(pos)
       const tiEn = tiEns[index]
       if (func(tiEn, pos)) break
+    }
+  }
+
+  removePlayerByFunc (func) {
+    const index = this.players.findIndex(func)
+    if (index >= 0) {
+      const player = this.players[index]
+      player.destroy()
+      this.players.splice(index, 1)
+      // this.placeBots()
+      return player
+    }
+  }
+
+  // removePlayerById (playerId) { this.removePlayerByFunc(player => player.id === playerId) }
+  removePlayerByNetKey (netKey) { this.removePlayerByFunc(player => player.netKey === netKey) }
+  getPlayerById (playerId) { return this.players.find(player => player.id === playerId) }
+  getPlayerByNetKey (netKey) { return this.players.find(player => player.netKey === netKey) }
+
+  serialize () {
+    const { turn, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, handSize, checkpointCount, slotCount } = this
+    return {
+      ...{ turn, handSize, checkpointCount, slotCount },
+      rng: rng.serialize(),
+      rngMapGen: rngMapGen.serialize(),
+      rngCosmetic: rngCosmetic.serialize(),
+      rngPlaceBots: rngPlaceBots.serialize(),
+      players: players.map(player => player.serialize(true))
+    }
+  }
+
+  deserialize (matchData) {
+    const { turn, checkpointCount, handSize, slotCount, rng, rngMapGen, rngCosmetic, rngPlaceBots, players } = matchData
+    if (turn !== undefined) this.turn = turn
+    if (checkpointCount !== undefined) this.checkpointCount = checkpointCount
+    if (handSize !== undefined) this.handSize = handSize
+    if (slotCount !== undefined) this.slotCount = slotCount
+    if (rng !== undefined) this.rng.deserialize(rng)
+    if (rngMapGen !== undefined) this.rngMapGen.deserialize(rngMapGen)
+    if (rngCosmetic !== undefined) this.rngCosmetic.deserialize(rngCosmetic)
+    if (rngPlaceBots !== undefined) this.rngPlaceBots.deserialize(rngPlaceBots)
+    if (players !== undefined) {
+      this.destroyPlayers()
+      const { game } = this
+      for (const playerData of players) {
+        let player = this.getPlayerById(playerData.id)
+        // player.bot.cardSlotsNext = undefined // For host
+        if (!player) player = initPlayer(game, playerData)
+        else player.deserialize(playerData)
+        playerData.id = player.id
+      }
+      for (const playerData of players) {
+        const { killedBy, id } = playerData
+        if (id === undefined) continue
+        const player = this.getPlayerById(id)
+        if (!killedBy) player.killedBy = []
+        else player.killedBy = killedBy.map(playerId => this.getPlayerById(playerId))
+      }
+      this.turnPlayers = []
+      this.deadPlayers = []
+      for (const player of this.players) {
+        if (player.alive) this.turnPlayers.push(player)
+        else this.deadPlayers.push(player)
+      }
+    }
+  }
+
+  enterBots () {
+    for (const player of this.players) {
+      const { bot } = player
+      if (!bot || !bot.alive || !player.alive) continue
+      bot.clearTiEns()
+    }
+    for (const player of this.players) {
+      const { bot } = player
+      if (!bot || !bot.alive || !player.alive) continue
+      bot.enterOnMap()
     }
   }
 }

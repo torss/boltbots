@@ -1,11 +1,11 @@
 <template>
-  <q-page class="page flex row">
+  <q-page class="page flex column">
     <div class="canvas-container">
       <q-resize-observer @resize="onResize" />
       <canvas ref="canvas" class="canvas" @mousemove="onMousemove" @mousedown="onMousedown" />
-      <CentralCover v-if="gameOver" />
-      <CtrlFooter v-else-if="glos.game && glos.game.state === 'playing' && glos.game.match.playerSelf.alive" />
     </div>
+    <CentralCover v-if="gameOver" />
+    <CtrlFooter v-else-if="glos.game && glos.game.state === 'playing' && glos.game.match.playerSelf.alive" />
   </q-page>
 </template>
 
@@ -71,6 +71,7 @@ export default {
 <style lang="stylus" scoped>
 .page
   overflow hidden
+  position relative
 
 .canvas
   position absolute

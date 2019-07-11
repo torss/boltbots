@@ -1,22 +1,28 @@
 import { assignNewVueObserver } from '../Dereactivate'
 import { Bot } from './Bot'
+import { Card } from './Card'
 
 export class Player {
-  constructor (game, uid, name) {
+  constructor (game, id, name) {
+    this.id = id
     this.name = name
     this.alive = true
     this.killedInTurn = -1
     this.killedBy = []
     this.icon = 'robot'
     this.completedCheckpoints = 0
-    this.peerInfo = undefined
+    this.netKey = ''
+    // this.peerInfo = undefined
     this.endTurn = false
+    this.completeTurn = false
+    this.lastPingTimeout = false
     assignNewVueObserver(this)
 
     this.game = game
-    this.uid = uid
     this.hand = [] // Cards
     this.bot = new Bot(game, this)
+    this.lastPing = Date.now()
+    this.hostCandidates = undefined
     // this.tieBreaker = 0
   }
 
@@ -46,5 +52,33 @@ export class Player {
 
   destroy () {
     this.bot.destroy()
+  }
+
+  serialize (playing = false) {
+    const { id, name, netKey, hand, bot, killedInTurn, killedBy, completedCheckpoints, lastPing } = this
+    let result = { id, name, netKey }
+    if (playing) {
+      result.hand = hand.map(card => card.serialize())
+      result.bot = bot.serialize()
+      result.killedBy = killedBy.map(player => player.id)
+      result = { ...result, killedInTurn, completedCheckpoints, lastPing }
+    }
+    return result
+  }
+
+  deserialize (playerData) {
+    const { id, name, netKey, hand, bot, killedInTurn, completedCheckpoints, lastPing } = playerData
+    if (id !== undefined) this.id = id
+    if (name !== undefined) this.name = name
+    if (netKey !== undefined) this.netKey = netKey // Not used atm
+    if (hand !== undefined) this.hand = hand.map(cardData => new Card(cardData).deserialize(cardData))
+    if (bot !== undefined) this.bot.deserialize(bot)
+    if (killedInTurn !== undefined) {
+      this.killedInTurn = killedInTurn
+      this.alive = killedInTurn < 1
+      // killedBy must be deserialized by Match
+    }
+    if (completedCheckpoints !== undefined) this.completedCheckpoints = completedCheckpoints
+    if (lastPing !== undefined) this.lastPing = lastPing
   }
 }

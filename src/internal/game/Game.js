@@ -1,21 +1,28 @@
 import * as THREE from 'three'
 import * as TWEEN from '@tweenjs/tween.js'
-import pull from 'pull-stream'
-import Pushable from 'pull-pushable'
+import uuidv4 from 'uuid/v4'
+// import pull from 'pull-stream'
+// import Pushable from 'pull-pushable'
 import Vue from 'vue'
 import '../extensions/three'
 import { assignNewVueObserver } from '../Dereactivate'
 import { btileLoaderItemsCreate, TiSh } from '../btile'
 import { LoaderControl, LoaderItemFont, LoaderItemGltf } from '../LoaderControl'
-import { initTiTys, initTestGame, initPlayers } from './content'
+import { initTiTys, initTestGame, initPlayers, initPlayer } from './content'
 import { Sfxf } from '../Sfxf'
 import { ExplosionShader } from '../shaders'
 import { createNetNodeSingleton } from '../net'
 import { glos } from '../Glos'
+import { Card } from './Card'
 import { CardSlot } from './CardSlot'
 
-const netTopic = 'boltbots-20190708'
-const netDirectProtocol = '/boltbots/1.0.0'
+const netTopic = 'boltbots-20190711'
+// const netDirectProtocol = '/boltbots/1.0.0'
+const pingDelay = 5000
+const timeoutThreshold = 2 * pingDelay
+const reconnectThreshold = 600000 // 10min
+
+let saveListener
 
 /**
  * Primary game managing instance.
@@ -23,25 +30,44 @@ const netDirectProtocol = '/boltbots/1.0.0'
 export class Game {
   constructor () {
     this.ready = false
-    this.state = 'matchmaking' // matchmaking, lobby, playing
+    this.state = 'matchmaking' // matchmaking, lobby, playing, reconnecting
+    this.isJoining = false
     this.match = undefined
     this.netNodeIdStr = ''
     this.discoveredPeerCount = 0
+    this.playersOnlineCount = 0
     this.connectedPeers = []
-    this.onlinePlayerPeers = []
-    this.openMatches = {}
+    this.openMatches = []
     this.netMatch = undefined
     this.password = undefined
-    this.netTopicMatch = ''
-    this.lobbyPeers = []
-    this.pseudoPeer = {}
-    this.playerName = ''
     this.chatMessages = []
     this.newChatMessages = false
     this.turnTimer = new THREE.Clock(false)
+    this.turnTimerHost = new THREE.Clock(false)
+    this.netKeyHost = ''
+    this.isHost = false
+    this.reconnectData = undefined
     assignNewVueObserver(this)
 
+    if (saveListener) window.removeEventListener('beforeunload', saveListener)
+    saveListener = () => this.storeReconnectData()
+    window.addEventListener('beforeunload', saveListener)
+
     this.netNode = undefined
+    this.netTopics = {
+      global: { topic: netTopic, subscribed: false },
+      player: { topic: '', subscribed: false }, // playerSelf
+      match: { topic: '', subscribed: false },
+      host: { topic: '', subscribed: false }
+    }
+    this.playersOnline = {}
+    this.lastPingHostCheck = Date.now()
+    this.matchHistory = []
+    this.matchHistoryLast = undefined
+    // this.election = undefined
+    const reconnectData = JSON.parse(localStorage.getItem('reconnectData'))
+    if (reconnectData && (Date.now() - reconnectData.time) < reconnectThreshold) this.reconnectData = reconnectData
+    // this.peerInfoHost = undefined
 
     this.sfxf = new Sfxf(this)
     this.readyFunc = undefined
@@ -58,8 +84,19 @@ export class Game {
     this.clock = new THREE.Clock()
   }
 
-  get hostKey () {
-    return this.netNodeIdStr
+  get netKey () { return this.netNodeIdStr }
+  get matchUid () { return this.netMatch.matchUid }
+
+  finishTankLoaderItem (loaderItem) {
+    const gltf = loaderItem.gltf
+    gltf.scene.traverseVisible(obj => {
+      if (obj.isMesh) {
+        // obj.material = material
+        obj.castShadow = true
+        obj.receiveShadow = true
+      }
+    })
+    this.models[loaderItem.name] = gltf.scene
   }
 
   asyncInit () {
@@ -129,7 +166,7 @@ export class Game {
       }
       this.tiTys = initTiTys(tiShs)
 
-      finishTankLoaderItem(tankLoaderItem, this)
+      this.finishTankLoaderItem(tankLoaderItem)
 
       initTestGame(this)
       this.ready = true
@@ -162,9 +199,9 @@ export class Game {
   //   }
   // }
 
-  cardAllDone (bot) {
-    this.progressTurn()
-  }
+  // cardAllDone (bot) {
+  //   this.progressTurn()
+  // }
 
   preAnimateFunc () {
     this.explosionMaterial.uniforms[ 'time' ].value = this.clock.getElapsedTime()
@@ -198,21 +235,21 @@ export class Game {
   }
 
   initNetNode () {
-    createNetNodeSingleton((err, netNode) => {
-      if (err) return console.error('createNetNode failed, check if your browser has WebRTC Support', err)
+    createNetNodeSingleton((error, netNode) => {
+      if (error) return console.error('createNetNode failed, check if your browser has WebRTC Support', error)
       this.netNode = netNode
 
-      netNode.handle(netDirectProtocol, (protocol, conn) => {
-        conn.getPeerInfo((err, peerInfo) => {
-          if (err) {
-            console.error('netDirectProtocol handle getPeerInfo error:', err)
-            return
-          }
-          const pushable = Pushable()
-          pull(pushable, conn)
-          pull(conn, pull.drain((data) => this.netHandleDirect(data, pushable, peerInfo)))
-        })
-      })
+      // netNode.handle(netDirectProtocol, (protocol, conn) => {
+      //   conn.getPeerInfo((error, peerInfo) => {
+      //     if (error) {
+      //       console.error('netDirectProtocol handle getPeerInfo error:', error)
+      //       return
+      //     }
+      //     const pushable = Pushable()
+      //     pull(pushable, conn)
+      //     pull(conn, pull.drain((data) => this.netHandleDirect(data, pushable, peerInfo)))
+      //   })
+      // })
 
       netNode.on('peer:discovery', (peerInfo) => {
         // console.log('Discovered a peer:', peerInfo.id.toB58String())
@@ -249,470 +286,841 @@ export class Game {
       })
 
       netNode.once('peer:connect', (peerInfo) => {
-        const updateOnlinePlayerPeers = () => {
-          netNode.pubsub.peers(netTopic, (error, peers) => {
-            if (error) console.warn('updateOnlinePlayerPeers failed:', error)
-            else {
-              this.onlinePlayerPeers = peers
-
-              for (const peerIdStr of this.onlinePlayerPeers) {
-                const peerInfo = this.getConnectedPeerByNetId(peerIdStr)
-                if (peerInfo === undefined || peerInfo.isOnlinePlayer) continue
-                peerInfo.isOnlinePlayer = true
-
-                // Send current host data
-                if (this.pseudoPeer.isHost) {
-                  // const { playerName, matchName, password, maxPlayers, seed, playerCount, hostKey, endTurnTimeLimit } = this.netMatch
-                  // this.callPeer(peerInfo, { type: 'hosting', playerName, matchName, password, maxPlayers, seed, playerCount, hostKey, endTurnTimeLimit })
-                  this.callPeer(peerInfo, this.netMatch) // NOTE netMatch can currently be send directly.
-                }
-              }
-            }
-          })
-          this.matchCheckConnected()
-        }
-        netNode.pubsub.subscribe(netTopic, (msg) => {
-          // console.log(msg.from, msg.data.toString())
-          updateOnlinePlayerPeers()
-          this.netHandleMsg(msg)
-        })
-        new TWEEN.Tween({}).to({}, 1000).repeat(Infinity).onRepeat(updateOnlinePlayerPeers).start()
+        this.subscribeGlobal()
+        this.subscribePlayerSelf()
+        new TWEEN.Tween({}).to({}, 1).repeatDelay(pingDelay).repeat(Infinity).onRepeat(() => this.netUpdate()).start()
+        if (this.reconnectData) this.startReconnect()
       })
 
-      netNode.start((err) => {
-        if (err) return console.error('netNode.start failed:', err)
+      netNode.start((error) => {
+        if (error) return console.error('netNode.start failed:', error)
         const idStr = netNode.peerInfo.id.toB58String()
         this.netNodeIdStr = idStr
-        this.pseudoPeer = { idStr, hostKey: idStr }
       })
     })
   }
 
-  getConnectedPeerByNetId (key) {
-    if (key === this.netNodeIdStr) return this.pseudoPeer
-    const peerInfo = this.connectedPeers.find(peerInfo => peerInfo.idStr === key)
-    return peerInfo
-  }
-
-  getConnectedPeerByHostKey (key) {
-    if (key === this.hostKey) return this.pseudoPeer
-    const peerInfo = this.connectedPeers.find(peerInfo => peerInfo.hostKey === key)
-    return peerInfo
-  }
-
-  netPublish (data) {
-    this.netNode.pubsub.publish(netTopic, Buffer.from(JSON.stringify(data)))
-  }
-
-  netPublishMatch (data) {
-    if (this.netTopicMatch) this.netNode.pubsub.publish(this.netTopicMatch, Buffer.from(JSON.stringify(data)))
-  }
-
-  sendChatMessage (text) {
-    this.netPublishMatch({ type: 'chat', text })
-  }
-
-  netHandleDirect (data, pushable, peerInfo) {
-    peerInfo = this.getConnectedPeerByNetId(peerInfo.id.toB58String())
-    const sendBack = (data) => pushable.push(Buffer.from(JSON.stringify(data)))
-    data = JSON.parse(data)
-    switch (data.type) {
-      case 'hosting':
-        this.netHandleHosting(peerInfo, data)
-        break
-      case 'password-check': {
-        const correct = data.password === this.password
-        sendBack({ type: 'password-result', correct })
-      } break
-      case 'lobby-join':
-        this.netHandleJoinSub(data, peerInfo)
-        break
-      default:
-        console.warn('netHandleDirect - Got unknown message - Content:', data.toString())
-    }
-  }
-
-  sortLobbyPeers () {
-    this.lobbyPeers.sort((a, b) => {
-      if (a === b) return 0
-      if (a.isHost || b.isHost) return a.isHost ? -1 : 1
-      if (a.playerName === b.playerName) return a.hostKey.localeCompare(b.hostKey)
-      return a.playerName.localeCompare(b.playerName)
-    })
-  }
-
-  netHandleJoinSub (data, peerInfo) {
-    if (!this.lobbyPeers.includes(peerInfo)) {
-      const openMatch = this.openMatches[data.hostKey]
-      peerInfo.hostKey = data.hostKeyPeer
-      peerInfo.playerName = data.playerName
-      peerInfo.isHost = peerInfo.hostKey === openMatch.hostKey
-      peerInfo.isSelf = peerInfo.hostKey === this.hostKey
-      this.lobbyPeers.push(peerInfo)
-      this.sortLobbyPeers()
-      if (!peerInfo.isSelf) {
-        const sendData = { type: 'lobby-join', playerName: this.playerName, hostKey: openMatch.hostKey, hostKeyPeer: this.pseudoPeer.hostKey }
-        this.callPeer(peerInfo, sendData)
-        this.recreatePlayers()
-      } else {
-        this.regenerateMap()
+  checkMatchmakingTimeouts (obj) {
+    const now = Date.now()
+    const toRemove = []
+    let count = 0
+    for (const [key, item] of Object.entries(obj)) {
+      if (!item.lastPing) item.lastPing = now
+      else if ((now - item.lastPing) > timeoutThreshold) {
+        toRemove.push(key)
+        continue
       }
+      ++count
     }
+    for (const key of toRemove) Vue.delete(obj, key)
+    return count
   }
 
-  netHandleHosting (peerInfo, data) {
-    if (this.openMatches[data.hostKey]) return
-    if (peerInfo) peerInfo.hostKey = data.hostKey
-    Vue.set(this.openMatches, data.hostKey, data)
-  }
-
-  netHandleJoin (msg, data) {
-    // TODO proper security
-    const openMatch = this.openMatches[data.hostKey]
-    if (openMatch) {
-      ++openMatch.playerCount
-      if (this.netMatch === openMatch) {
-        const peerInfo = this.getConnectedPeerByNetId(msg.from)
-        this.netHandleJoinSub(data, peerInfo)
-      }
-    }
-  }
-
-  netHandleMsg (msg) {
-    const data = JSON.parse(msg.data)
-    switch (data.type) {
-      case 'hosting': {
-        const peerInfo = this.getConnectedPeerByNetId(msg.from)
-        this.netHandleHosting(peerInfo, data)
-      } break
-      case 'join':
-        this.netHandleJoin(msg, data)
-        break
-      case 'transfer-host': {
-        // TODO proper security
-        const openMatch = this.openMatches[data.hostKey]
-        if (openMatch) {
-          Vue.delete(this.openMatches, openMatch.hostKey)
-          openMatch.playerName = data.playerName
-          openMatch.hostKey = data.hostKeyNew
-          Vue.set(this.openMatches, openMatch.hostKey, openMatch)
-          if (this.netMatch === openMatch) {
-            this.subscribeNetTopicMatch(openMatch.hostKey)
-            const newHost = this.lobbyPeers.find(peerInfo => peerInfo.idStr === msg.from)
-            if (newHost.hostKey === data.hostKeyNew) {
-              newHost.isHost = true
-            } else {
-              console.warn('Security - netHandleMsg - transfer-host trickery: newHost.hostKey !== data.hostKeyNew', newHost.hostKey, data.hostKeyNew)
-            }
-          }
-        }
-      } break
-      case 'leave': {
-        const openMatch = this.openMatches[data.hostKey]
-        if (openMatch) {
-          --openMatch.playerCount
-          if (this.netMatch === openMatch) {
-            const peerInfo = this.getConnectedPeerByNetId(msg.from)
-            const leaveKey = peerInfo.isHost ? data.hostKeyPeer : msg.from
-            const index = this.lobbyPeers.findIndex(peerInfo => peerInfo.idStr === leaveKey)
-            if (index >= 0) {
-              const lobbyPeer = this.lobbyPeers[index]
-              if (lobbyPeer.isSelf) {
-                this.leaveSub()
-              } else {
-                this.lobbyPeers.splice(index, 1)
-                this.recreatePlayers()
-                if (lobbyPeer.isHost && this.lobbyPeers.length > 0) {
-                  // Transfer host
-                  const newHost = this.lobbyPeers[0]
-                  if (newHost.isSelf) {
-                    this.netPublish({
-                      type: 'transfer-host',
-                      hostKey: data.hostKey,
-                      hostKeyNew: newHost.hostKey,
-                      playerName: newHost.playerName
-                    })
-                  }
-                }
-                this.sortLobbyPeers()
-              }
-            }
-          }
-          if (openMatch.playerCount <= 0) Vue.delete(this.openMatches, data.hostKey)
-        }
-      } break
-      default:
-        console.warn('netHandleMsg - Got unknown message from', msg.from, '- Content:', msg.data.toString())
-    }
-  }
-
-  netHandleMsgMatch (msg) {
-    if (!msg.topicIDs.includes(this.netTopicMatch)) return
-    const data = JSON.parse(msg.data)
-    switch (data.type) {
-      case 'chat': {
-        const peerInfo = this.getConnectedPeerByNetId(msg.from)
-        const playerName = peerInfo ? peerInfo.playerName : '[UNKNOWN PEER]'
-        this.chatMessages.unshift({ playerName, text: data.text })
-        if (!glos.rightDrawerOpen) this.newChatMessages = true
-      } break
-      case 'start': {
-        this.regenerateMap()
-        const playerSelf = this.match.playerSelf
-        glos.cardSlots = playerSelf.bot.cardSlots
-        glos.hand = playerSelf.hand
-        this.state = 'playing'
-      } break
-      case 'endTurn': {
-        for (const peerInfo of this.lobbyPeers) {
-          if (peerInfo.disconnected) peerInfo.player.bot.explode(peerInfo.player) // NOTE This isn't fully safe since the time that different clients detect the disconnect COULD vary enough for this to not work
-        }
-        this.lobbyPeers = this.lobbyPeers.filter(peerInfo => !peerInfo.disconnected)
-
-        const peerInfo = this.getConnectedPeerByNetId(msg.from)
-        if (peerInfo.disconnected) return // This probably isn't possible anyway
-        peerInfo.endTurn = true
-        const cardSlotsNext = data.cardSlots.map(data => new CardSlot().deserialize(data))
-        const player = peerInfo.player
-        player.bot.cardSlotsNext = cardSlotsNext
-        player.endTurn = true
-        player.bot.object3d.add(this.sfxf.cpasEndTurn())
-        const { match } = this
-        const { turnPlayers } = match
-        const doneCount = turnPlayers.reduce((rv, player) => rv + (player.endTurn ? 1 : 0), 0)
-        if (doneCount === 1 && this.netMatch.endTurnTimeLimit > 0) this.turnTimer.start()
-        const allDone = doneCount === turnPlayers.length
-        if (allDone) {
-          this.turnTimer.stop()
-          for (const player of turnPlayers) {
-            player.bot.cardSlots = player.bot.cardSlotsNext
-            if (player.peerInfo.isSelf) glos.cardSlots = player.bot.cardSlots
-          }
-
-          this.match.startTurn()
-          for (const peerInfo of this.lobbyPeers) peerInfo.endTurn = false
-          for (const player of this.match.players) player.endTurn = false
-        }
-      } break
-      case 'completeTurn': {
-        const peerInfo = this.getConnectedPeerByNetId(msg.from)
-        peerInfo.completeTurn = true
-        const player = peerInfo.player
-        player.completeTurn = true
-        const { match } = this
-        const { turnPlayers } = match
-        const allDone = turnPlayers.reduce((rv, player) => rv && player.completeTurn, true)
-        if (allDone) {
-          for (const peerInfo of this.lobbyPeers) peerInfo.completeTurn = false
-          for (const player of this.match.players) player.completeTurn = false
-
-          match.turnInProgress = false
-        }
-      } break
-      default:
-        console.warn('netHandleMsgMatch - Got unknown message from', msg.from, '- Content:', msg.data.toString())
-    }
-  }
-
-  matchCheckConnected () {
-    const netTopicMatch = this.netTopicMatch
-    if (!netTopicMatch) return
-    this.netNode.pubsub.peers(netTopicMatch, (error, peers) => {
-      if (error) console.warn('matchCheckConnected failed:', error)
-      else {
-        if (netTopicMatch !== this.netTopicMatch) return
-        for (const peerInfo of this.lobbyPeers) {
-          peerInfo.connected = 'checking'
-          if (peerInfo.isSelf) peerInfo.connected = true
-        }
-        for (const peerIdStr of peers) {
-          const peerInfo = this.getConnectedPeerByNetId(peerIdStr)
-          if (peerInfo === undefined) continue
-          peerInfo.connected = true
-        }
-        // let disconnectedCount = 0
-        for (const peerInfo of this.lobbyPeers) {
-          if (peerInfo.connected === 'checking') {
-            peerInfo.connected = false
-            this.kick(peerInfo)
-            // ++disconnectedCount
-          }
-        }
-        // if (disconnectedCount > 0) this.lobbyPeers = this.lobbyPeers.filter(peerInfo => !!peerInfo.connected)
-      }
-    })
-  }
-
-  subscribeNetTopicMatch (hostKey) {
-    if (this.netTopicMatch) this.netNode.pubsub.unsubscribe(this.netTopicMatch)
-    if (!hostKey) {
-      this.netTopicMatch = ''
+  netUpdate () {
+    const { match } = this
+    if (this.state === 'reconnecting') {
+      this.requestReconnect()
       return
     }
-    this.netTopicMatch = netTopic + '-match-' + hostKey
-    this.netNode.pubsub.subscribe(this.netTopicMatch, (msg) => this.netHandleMsgMatch(msg))
+    if (this.state !== 'matchmaking' && (Date.now() - this.lastPingSelf) > timeoutThreshold) {
+      this.startReconnect()
+      return
+    }
+    if (this.isHost) this.publishGlobal({ type: 'ping-global', matchUid: this.matchUid })
+    else this.publishGlobal({ type: 'ping-global' })
+    if (this.state === 'matchmaking' || this.state === 'lobby') this.playersOnlineCount = this.checkMatchmakingTimeouts(this.playersOnline)
+    if (this.state === 'matchmaking') this.checkMatchmakingTimeouts(this.openMatches)
+    else if (this.state === 'lobby' || this.state === 'playing') {
+      const { netMatch, turnTimerHost } = this
+      const { playerSelf, players, gameOver, turn } = match
+
+      const { endTurn, completeTurn } = playerSelf
+      this.publishMatch({ type: 'ping-match', turn, endTurn, completeTurn })
+
+      if (gameOver) return
+
+      const now = Date.now()
+      for (const player of players) {
+        if (player === playerSelf) player.lastPingTimeout = false
+        else {
+          player.lastPingTimeout = (now - player.lastPing) > timeoutThreshold
+          if (player.lastPingTimeout) player.hostCandidates = undefined
+        }
+      }
+      if (this.isHost) {
+        if (!match.turnInProgress && netMatch.endTurnTimeLimit > 0 && turnTimerHost.running && turnTimerHost.elapsedTime >= netMatch.endTurnTimeLimit) {
+          console.log('turnTimerHost hostEndTurnPublish')
+          this.hostEndTurnPublish()
+        } else {
+          for (const player of players) {
+            if (player === playerSelf) continue // Superfluous
+            if (player.lastPingTimeout) {
+              // const endTurn = match.turnInProgress || !!player.bot.cardSlotsNext
+              const completeTurn = playerSelf.completeTurn
+              this.publishMatch({ type: 'timeout-player', playerId: player.id, completeTurn })
+            }
+          }
+        }
+      } else {
+        const { netKeyHost } = this
+        const player = match.getPlayerByNetKey(netKeyHost)
+        if (!player || (now - player.lastPing) > timeoutThreshold) {
+          const hostCandidates = players.filter(player => !player.lastPingTimeout).map(player => player.netKey)
+          this.match.playerSelf.hostCandidates = hostCandidates
+          this.publishMatch({ type: 'host-seems-dead', hostCandidates })
+        }
+      }
+    }
   }
 
-  host (netMatch, playerName) {
-    this.playerName = playerName
-    this.subscribeNetTopicMatch(this.hostKey)
+  storeReconnectData () { // NOTE This system obviously won't work well when mutltiple games are opened in the same browser.
+    if (this.state !== 'playing') return
+    const { matchUid, netKeyHost, match, netMatch } = this
+    if (match.gameOver) this.clearReconnectData()
+    if (!matchUid || !netKeyHost || !match.playerSelf) return
+    localStorage.setItem('reconnectData', JSON.stringify({ time: Date.now(), matchUid, netKeyHost, netKey: this.netKey, matchName: netMatch.matchName }))
+  }
+
+  clearReconnectData () {
+    this.reconnectData = undefined
+    localStorage.removeItem('reconnectData')
+    if (this.state === 'reconnecting') {
+      this.state = 'matchmaking'
+      this.subscribeGlobal()
+      this.unsubscribeMatch()
+      this.unsubscribeHost()
+    }
+  }
+
+  startReconnect () {
+    this.state = 'reconnecting'
+    this.lastPingSelf = Date.now()
+    const { netKeyHost, matchUid } = this.reconnectData
+    this.netKeyHost = netKeyHost
+    this.unsubscribeGlobal()
+    this.subscribeMatch(matchUid)
+    this.unsubscribeHost()
+    this.requestReconnect()
+  }
+
+  requestReconnect () {
+    const { matchUid, netKey } = this.reconnectData
+    this.publishHostNew(matchUid, { type: 'reconnect-request', netKey })
+  }
+
+  sendChatMessage (text) { if (this.match.playerSelf) this.publishMatch({ type: 'chat', text }) }
+
+  subHandleHosting (msgFromHost, openMatch, data) {
+    if (openMatch && !msgFromHost) return
+    Vue.set(this.openMatches, data.matchUid, data)
+  }
+
+  // netHandleDirect (data, pushable, peerInfo) {
+  //   peerInfo = this.getConnectedPeerByNetId(peerInfo.id.toB58String())
+  //   // const sendBack = (data) => pushable.push(Buffer.from(JSON.stringify(data)))
+  //   const dataStr = data
+  //   data = JSON.parse(data)
+  //   switch (data.type) {
+  //     case 'hosting':
+  //       this.subHandleHosting(data)
+  //       break
+  //     default:
+  //       console.warn('netHandleDirect - Got unknown message - Content:', dataStr)
+  //   }
+  // }
+
+  obainOpenMatch (msg, data) {
+    const { matchUid } = data
+    let openMatch = this.openMatches[matchUid]
+    const msgFromHost = openMatch && openMatch.netKeyHost === msg.from
+    return { matchUid, openMatch, msgFromHost }
+  }
+
+  netHandleGlobal (msg) {
+    const data = JSON.parse(msg.data)
+    const { matchUid, openMatch, msgFromHost } = this.obainOpenMatch(msg, data)
+    switch (data.type) {
+      case 'ping-global': {
+        const now = Date.now()
+        this.lastPingSelf = now
+        this.playersOnline[msg.from] = { lastPing: now }
+
+        if (msgFromHost) openMatch.lastPing = now
+        else this.publishHostOther(matchUid, { type: 'discover' })
+      } break
+      case 'hosting':
+        this.subHandleHosting(msgFromHost, openMatch, data)
+        break
+      case 'hosting-update':
+        if (!msgFromHost) return
+        if (data.playerCount > 0) openMatch.playerCount = data.playerCount
+        else Vue.delete(this.openMatches, matchUid)
+        break
+      case 'transfer-host-global':
+        if (!msgFromHost) return
+        openMatch.playerName = data.newHostName
+        openMatch.netKeyHost = data.netKeyHost
+        --openMatch.playerCount
+        if (openMatch.playerCount <= 0) Vue.delete(this.openMatches, matchUid) // Superfluous
+        break
+      case 'close-match':
+        if (!msgFromHost) return
+        if (this.netMatch !== openMatch) Vue.delete(this.openMatches, matchUid)
+        break
+      default:
+        this.gotUnknownMessage('netHandleGlobal', msg)
+    }
+  }
+
+  netHandleMatch (msg) {
+    const { match } = this
+    const { players, turnPlayers, playerSelf, turnInProgress } = match
+    const msgFromHost = msg.from === this.netKeyHost
+    const forClients = !this.isHost && msgFromHost
+    const data = JSON.parse(msg.data)
+    let player = match.getPlayerByNetKey(msg.from)
+    if (this.state === 'reconnecting') player = undefined
+    switch (data.type) {
+      case 'ping-match':
+        if (!player) return
+        this.lastPingSelf = Date.now()
+        player.lastPing = Date.now()
+        if (data.turn === match.turn) {
+          player.endTurn = data.endTurn
+          player.completeTurn = data.completeTurn
+          // if (data.endTurn) player.endTurn = true
+          // if (data.completeTurn) player.completeTurn = true
+        }
+        if (player.netKey === this.netKeyHost) {
+          for (const player of players) player.hostCandidates = undefined
+          // this.election = undefined
+        }
+        if (this.isHost && (Date.now() - this.lastPingHostCheck) > pingDelay) {
+          this.lastPingHostCheck = Date.now()
+          this.hostCheckTurnProgress()
+        }
+        break
+      case 'timeout-player': {
+        if (!msgFromHost) return
+        const player = match.getPlayerById(data.id)
+        if (!player) return // Shouldn't happen
+        player.endTurn = true // data.endTurn
+        player.completeTurn = data.completeTurn
+        this.hostCheckTurnProgress()
+      } break
+      case 'host-seems-dead': {
+        if (!player) return
+        if (!playerSelf.hostCandidates) return
+        // if (data.netKeyHost !== this.netKeyHost) return
+        player.hostCandidates = data.hostCandidates
+        let neededVotes = Math.max(1, match.players.reduce((rv, player) => rv + (player.lastPingTimeout ? 0 : 1), 0))
+        const votes = {}
+        let someoneHasEnoughVotes = false
+        for (const player of players) {
+          if (player.hostCandidates) {
+            neededVotes = Math.max(neededVotes, player.hostCandidates.length)
+            for (const hostCandidate of player.hostCandidates) {
+              votes[hostCandidate] = votes[hostCandidate] === undefined ? 1 : votes[hostCandidate] + 1
+              if (votes[hostCandidate] >= neededVotes) someoneHasEnoughVotes = true
+            }
+          }
+        }
+        if (!someoneHasEnoughVotes) return
+        const voteList = Object.entries(votes)
+        voteList.sort((a, b) => {
+          if (a[1] === b[1]) return a[0].localeCompare(b[0])
+          return a[1] - b[1]
+        })
+        const bestCandidate = voteList[0]
+        if (bestCandidate[1] < neededVotes) return // Superfluous
+        if (this.netKey === bestCandidate[0]) {
+          this.becomeHost()
+          this.publishMatch({ type: 'finish-host-election' })
+        }
+        // if (!this.election || this.election.netKeyHost !== bestCandidate[0]) this.election = { netKeyHost: bestCandidate[0], neededVotes, votes: [], votes2: [] }
+        // this.election.neededVotes = neededVotes
+        // this.publishMatch({ type: 'elect-host', netKeyHost: bestCandidate[0], votesConfirmed: this.election.votes })
+      } break
+      // case 'elect-host': {
+      //   if (!player) return
+      //   const { election } = this
+      //   if (!election) return
+      //   if (election.netKeyHost !== data.netKeyHost || !match.getPlayerByNetKey(data.netKeyHost)) {
+      //     this.election = undefined
+      //     this.publishMatch({ type: 'abort-host-election' })
+      //     return
+      //   }
+      //   if (!election.votes.includes(msg.from)) election.votes.push(msg.from)
+      //   for (const vote of data.votesConfirmed) ...
+      //   if (election.votes.length >= election.neededVotes) {
+      //     this.netKeyHost = election.netKeyHost
+      //     if (this.netKey === this.netKeyHost) {
+      //       this.becomeHost()
+      //       this.publishMatch({ type: 'finish-host-election' })
+      //     }
+      //   }
+      // } break
+      case 'finish-host-election':
+        if (!player) return
+        // if (!this.election) return
+        this.netKeyHost = msg.from
+        // this.election = undefined
+        for (const player of match.players) player.hostCandidate = undefined
+        break
+      // case 'abort-host-election':
+      //   if (!player) return
+      //   this.election = undefined
+      //   for (const player of match.players) player.hostCandidate = undefined
+      //   break
+      case 'kick':
+        if (!msgFromHost) return
+        if (data.netKey === this.netKey) {
+          if (!this.isHost) {
+            --this.netMatch.playerCount
+            this.leaveSub()
+          }
+        } else {
+          this.removePlayerByNetKey(data.netKey)
+          this.hostingUpdate()
+        }
+        break
+      case 'chat':
+        if (!player) return
+        const playerName = player.name || '[PLAYER NOT FOUND]'
+        this.chatMessages.unshift({ playerName, text: data.text })
+        if (!glos.rightDrawerOpen) this.newChatMessages = true
+        break
+      case 'player-reconnected':
+        if (!msgFromHost) return
+        player = match.getPlayerByNetKey(data.netKeyOld)
+        if (!player) return
+        player.netKey = data.netKey
+        player.endTurn = turnInProgress
+        player.completeTurn = false
+        break
+      case 'other-player-joined':
+        if (!forClients) return
+        if (data.player.id === playerSelf.id) return
+        initPlayer(this, data.player)
+        match.placeBots()
+        break
+      case 'other-player-left':
+        if (!msgFromHost) return
+        if (data.netKey === this.netKey) return // Superfluous
+        this.removePlayerByNetKey(data.netKey)
+        this.hostingUpdate()
+        break
+      case 'transfer-host-match':
+        if (!forClients) return
+        this.removePlayerByNetKey(this.netKeyHost)
+        this.netKeyHost = data.netKeyHost
+        this.netMatch.netKeyHost = data.netKeyHost
+        if (this.netKey === this.netKeyHost) this.becomeHost()
+        break
+      case 'start-match':
+        if (!msgFromHost) return
+        match.handSize = this.netMatch.handSize
+        match.checkpointCount = this.netMatch.checkpointCount
+        match.slotCount = this.netMatch.slotCount
+        match.placeBots()
+        this.matchHistory = [match.serialize()]
+        this.matchHistoryLast = this.matchHistory[0]
+        this.deserializeMatch(this.matchHistory[0])
+        // glos.cardSlots = playerSelf.bot.cardSlots
+        // glos.hand = playerSelf.hand
+        this.state = 'playing'
+        break
+      case 'end-turn-cosmetic': {
+        if (!player) return
+        if (data.turn < match.turn) return
+        player.bot.object3d.add(this.sfxf.cpasEndTurn())
+        player.endTurn = true
+        const doneCount = turnPlayers.reduce((rv, player) => rv + (player.endTurn ? 1 : 0), 0)
+        if (doneCount === 1 && this.netMatch.endTurnTimeLimit > 0) {
+          this.turnTimer.start()
+          if (this.isHost) this.turnTimerHost.start()
+        }
+      } break
+      case 'start-turn':
+        if (!msgFromHost) return
+        this.turnTimer.stop()
+        if (this.isHost) this.turnTimerHost.stop()
+        this.matchHistory.push(data.matchData)
+        this.matchHistoryLast = data.matchData
+        this.deserializeMatch(data.matchData)
+        this.startTurn()
+        break
+      case 'complete-turn-cosmetic':
+        if (!player) return
+        if (!match.turnInProgress) return
+        if (data.turn < match.turn) return
+        player.completeTurn = true
+        break
+      case 'complete-turn-all':
+        if (!msgFromHost) return
+        for (const player of players) {
+          player.endTurn = false
+          player.completeTurn = false
+        }
+        match.turnInProgress = false
+        this.matchHistoryLast = this.match.serialize()
+        break
+      default:
+        this.gotUnknownMessage('netHandleMatch', msg)
+    }
+  }
+
+  netHandleHost (msg) {
+    const { match, matchUid } = this
+    const { players, turnInProgress } = match
+    const data = JSON.parse(msg.data)
+    let player = match.getPlayerByNetKey(msg.from)
+    const sendBack = (data) => this.publishPlayerOther(msg.from, data)
+    // const sendBack = (data) => pushable.push(Buffer.from(JSON.stringify(data)))
+    switch (data.type) {
+      case 'reconnect-request': {
+        if (this.state !== 'playing') {
+          sendBack({ type: 'reconnect-refused', why: 'not-playing', data: this.state })
+          return
+        }
+        let incorrect = player && player.netKey !== data.netKey
+        if (!incorrect) {
+          player = match.getPlayerByNetKey(data.netKey)
+          incorrect = !player
+        }
+        if (incorrect) {
+          sendBack({ type: 'reconnect-refused', why: 'incorrect-player' })
+          return
+        }
+        if (!player.lastPingTimeout) return // Wait to ensure that the given player really had a time out (the requester should repeat the request eventually)
+        if (turnInProgress) return // Also don't allow joining during a turn because that probably still has unsolved issues
+        player.endTurn = turnInProgress
+        player.completeTurn = false
+        const matchData = this.matchHistoryLast
+        if (player.netKey !== msg.from) {
+          const netKeyOld = player.netKey
+          player.netKey = msg.from
+          matchData.players.find(playerData => playerData.netKey === netKeyOld).netKey = player.netKey
+          this.publishMatch({ type: 'player-reconnected', netKeyOld, netKey: player.netKey, turnInProgress })
+        }
+        sendBack({ type: 'reconnect-response', matchData, netMatch: this.netMatch, turnInProgress })
+      } break
+      case 'discover':
+        if (this.state !== 'lobby') return
+        sendBack(this.netMatch) // Currently netMatch can be sent directly without filtering
+        break
+      case 'try-join':
+        if (this.state !== 'lobby') {
+          sendBack({ type: 'join-result', matchUid, cantJoinReason: 'match-closed' })
+          return
+        }
+        if (this.password && data.password !== this.password) {
+          sendBack({ type: 'join-result', matchUid, cantJoinReason: 'wrong-password' })
+        } else {
+          let playerName = data.playerName
+          while (true) {
+            const player = players.find(player => player.name === playerName)
+            if (!player) break
+            const smr = player.name.match(/(.*?)(\d*)$/)
+            playerName = `${smr[1]}${smr[2] ? parseInt(smr[2]) + 1 : ' 2'}`
+          }
+
+          const player = initPlayer(this, playerName)
+          player.netKey = msg.from
+          this.match.placeBots()
+          // peerInfo.playerId = player.id
+          sendBack({ type: 'join-result', matchUid, players: players.map(player => player.serialize(false)), playerSelfId: player.id })
+          this.publishMatch({ type: 'other-player-joined', player: player.serialize(false) })
+          this.hostingUpdate()
+        }
+        break
+      case 'leave':
+        if (this.state !== 'lobby' || !player) return
+        // const { playerId } = peerInfo
+        // const player = match.removePlayerById(playerId)
+        this.publishMatch({ type: 'other-player-left', netKey: player.netKey })
+        break
+      case 'end-turn-host':
+        if (this.state !== 'playing' || !player || turnInProgress || data.turn < match.turn) return
+        player.endTurn = true
+        player.hand = data.hand.map(data => new Card().deserialize(data))
+        player.bot.cardSlots = data.cardSlots.map(data => new CardSlot().deserialize(data))
+        // player.bot.cardSlotsNext = data.cardSlots.map(data => new CardSlot().deserialize(data))
+        this.hostEndTurn()
+        break
+      case 'complete-turn-host':
+        if (this.state !== 'playing' || !player || !turnInProgress || data.turn < match.turn) return
+        player.completeTurn = true
+        this.hostCompleteTurn()
+        break
+      default:
+        this.gotUnknownMessage('netHandleHost', msg)
+    }
+  }
+
+  netHandlePlayerSelf (msg) {
+    const data = JSON.parse(msg.data)
+    const { openMatch, msgFromHost } = this.obainOpenMatch(msg, data)
+    switch (data.type) {
+      case 'hosting':
+        this.subHandleHosting(msgFromHost, openMatch, data)
+        break
+      case 'join-result':
+        if (!msgFromHost || data.matchUid !== this.isJoining) return
+        this.isJoining = false
+        if (data.cantJoinReason) this.joinFailed('rejected', data.cantJoinReason)
+        else this.joined(msg.from, this.openMatches[data.matchUid], data.players, data.playerSelfId)
+        break
+      case 'reconnect-refused':
+        if (this.state !== 'reconnecting') return
+        this.clearReconnectData()
+        glos.dialogData = data
+        break
+      case 'reconnect-response':
+        if (this.state !== 'reconnecting') return
+        this.state = 'playing'
+        this.clearReconnectData()
+        this.netMatch = data.netMatch
+        this.deserializeMatch(data.matchData)
+        this.regenerateMap(false)
+        this.match.prepareTurnPlayers()
+        this.matchHistory.push(data.matchData)
+        this.matchHistoryLast = data.matchData
+        if (data.turnInProgress) this.startTurn()
+        break
+      default:
+        this.gotUnknownMessage('netHandlePlayerSelf', msg)
+    }
+  }
+
+  gotUnknownMessage (where, msg) {
+    console.warn(where, '- Got unknown message from', msg.from, '- Content:', msg.data)
+  }
+
+  assembleTopic (topicKey, uid) {
+    return `${netTopic}/${topicKey}/${uid}`
+  }
+
+  setTopicDirect (topicKey, topicNew = '', handler = undefined) {
+    const netTopic = this.netTopics[topicKey]
+    const update = (netTopic.topic !== topicNew) || handler
+    if (netTopic.subscribed && update) {
+      this.netNode.pubsub.unsubscribe(netTopic.topic)
+      netTopic.subscribed = false
+    }
+    netTopic.topic = topicNew
+    if (handler) {
+      this.netNode.pubsub.subscribe(netTopic.topic, handler)
+      netTopic.subscribed = true
+    }
+  }
+
+  setTopic (topicKey, uid = '', handler = undefined) {
+    this.setTopicDirect(topicKey, this.assembleTopic(topicKey, uid), handler)
+  }
+
+  unsubscribeTopic (topicKey) {
+    const netTopic = this.netTopics[topicKey]
+    if (netTopic.subscribed) {
+      this.netNode.pubsub.unsubscribe(netTopic.topic)
+      netTopic.subscribed = false
+    }
+  }
+
+  publishTopicDirect (topic, data) {
+    if (topic) this.netNode.pubsub.publish(topic, Buffer.from(JSON.stringify(data)))
+  }
+
+  publishTopic (topicKey, data) {
+    const { topic } = this.netTopics[topicKey]
+    this.publishTopicDirect(topic, data)
+  }
+
+  subscribeGlobal () { this.setTopicDirect('global', netTopic, (msg) => this.netHandleGlobal(msg)) }
+  unsubscribeGlobal () { this.unsubscribeTopic('global') }
+  subscribePlayerSelf () { this.setTopic('player', this.netKey, (msg) => this.netHandlePlayerSelf(msg)) }
+  subscribeMatch (matchUid) { this.setTopic('match', matchUid || this.matchUid, (msg) => this.netHandleMatch(msg)) }
+  unsubscribeMatch () { this.unsubscribeTopic('match') }
+  subscribeHost () { this.setTopic('host', this.matchUid, (msg) => this.netHandleHost(msg)) }
+  unsubscribeHost () { this.unsubscribeTopic('host') }
+
+  publishGlobal (data) { this.publishTopic('global', data) }
+  publishMatch (data) { this.publishTopic('match', data) }
+  publishHost (data) { this.publishTopic('host', data) }
+  publishHostNew (uid, data) {
+    this.setTopic('host', uid)
+    this.publishHost(data)
+  }
+  publishHostOther (uid, data) { this.publishTopicDirect(this.assembleTopic('host', uid), data) }
+  publishPlayerOther (uid, data) { this.publishTopicDirect(this.assembleTopic('player', uid), data) }
+
+  deserializeMatch (matchData) {
+    glos.threejsControls.autoRotate = false
+
+    const { match } = this
+    match.deserialize(matchData)
+    match.enterBots()
+    match.playerSelf = match.getPlayerByNetKey(this.netKey)
+    glos.adjustPlayerSelf()
+
+    this.storeReconnectData()
+  }
+
+  removePlayerByNetKey (netKey) {
+    const { match, state, netMatch } = this
+    match.removePlayerByNetKey(netKey)
+    if (state === 'lobby') match.placeBots()
+    if (netMatch) netMatch.playerCount = match.players.length
+  }
+
+  host (netMatch) {
+    const matchUid = this.netKey + '-' + uuidv4()
+
+    const { match } = this
+    match.destroyPlayers()
+    match.playerSelf = initPlayer(this, netMatch.playerName)
+    glos.adjustPlayerSelf()
+    match.playerSelf.netKey = this.netKey
+    match.placeBots()
 
     this.password = netMatch.password
     netMatch.password = !!netMatch.password
-    netMatch.playerCount = 0
-    netMatch.hostKey = this.hostKey
-    netMatch.type = 'hosting'
-    Vue.set(this.openMatches, netMatch.hostKey, netMatch)
+    netMatch.playerCount = 1
+    netMatch.matchUid = matchUid
+    netMatch.netKeyHost = this.netKey
+    netMatch.type = 'hosting' // Used so that netMatch can be published directly as a message
+    Vue.set(this.openMatches, matchUid, netMatch)
     this.netMatch = netMatch
-    this.netPublish(netMatch)
-
-    this.join(netMatch.hostKey, playerName) // this.state = 'lobby'
-  }
-
-  callPeer (peerInfo, data, func, funcErr) {
-    this.netNode.dialProtocol(peerInfo, netDirectProtocol, (err, conn) => {
-      if (err) {
-        console.log('sendToPeer (data.type=', data.type, ') error:', err)
-        if (funcErr) funcErr(err)
-        return
-      }
-      const pushable = Pushable()
-      pull(pushable, conn)
-      if (func) pull(conn, pull.drain(func))
-      pushable.push(Buffer.from(JSON.stringify(data)))
-    })
-  }
-
-  tryJoin (hostKey, playerName, password) {
-    this.playerName = playerName
-    const peerInfo = this.getConnectedPeerByHostKey(hostKey)
-    if (!peerInfo) return
-
-    const netMatch = this.openMatches[hostKey]
-    if (netMatch.playerCount >= netMatch.maxPlayers) return
-    if (netMatch.password) {
-      if (!password) {
-        glos.wrongPassword = true
-        return
-      }
-      this.callPeer(peerInfo, { type: 'password-check', password }, (data) => {
-        data = JSON.parse(data)
-        if (data.type !== 'password-result') {
-          console.warn('tryJoin dialProtocol result type error:', data.type)
-          return
-        }
-        if (data.correct) this.join(hostKey, playerName)
-        else glos.wrongPassword = true
-      })
-    } else {
-      this.join(hostKey, playerName)
-    }
-  }
-
-  join (hostKey, playerName) {
-    this.subscribeNetTopicMatch(hostKey)
-
-    const netMatch = this.openMatches[hostKey]
-    this.netMatch = netMatch
-    this.netPublish({
-      type: 'join',
-      hostKey,
-      hostKeyPeer: this.hostKey,
-      playerName
-    })
-
+    this.becomeHost()
+    this.publishGlobal(netMatch)
     this.state = 'lobby'
-    this.lobbyPeers = [this.pseudoPeer]
-    this.regenerateMap()
   }
 
-  leaveSub () {
-    this.netMatch = undefined
-    this.lobbyPeers = []
-    this.subscribeNetTopicMatch(false)
-    this.state = 'matchmaking'
+  hostingUpdate (playerCount) {
+    if (!this.isHost) return
+    if (playerCount === undefined) playerCount = this.match.players.length
+    const { matchUid } = this
+    this.publishGlobal({ type: 'hosting-update', matchUid, playerCount })
+  }
 
+  becomeHost () {
+    this.unsubscribeGlobal()
+    this.subscribeMatch()
+    this.subscribeHost()
+    this.netKeyHost = this.netKey
+    this.isHost = true
+  }
+
+  // NOTE Deprecated because pubsub can afaik theoretically work without direct connections, thus this should not be used since it might not always be available.
+  // callPeer (peerInfo, data, func, funcError) {
+  //   if (funcError === true) funcError = (error) => func(undefined, error)
+  //   this.netNode.dialProtocol(peerInfo, netDirectProtocol, (error, conn) => {
+  //     if (error) {
+  //       if (funcError) funcError(error)
+  //       else console.warn('callPeer (data.type=', data.type, ') unhandled error:', error)
+  //       return
+  //     }
+  //     const pushable = Pushable()
+  //     pull(pushable, conn)
+  //     if (func) pull(conn, pull.drain(func))
+  //     pushable.push(Buffer.from(JSON.stringify(data)))
+  //   })
+  // }
+
+  tryJoin (matchUid, playerName, password) {
+    // const peerInfo = this.getConnectedPeerByNetKey(netKey)
+    // if (!peerInfo) return
+
+    this.password = password
+
+    const netMatch = this.openMatches[matchUid]
+    if (netMatch.playerCount >= netMatch.maxPlayers) return
+    if (!netMatch.password) password = undefined
+    else if (!password) {
+      this.joinFailed('empty-password')
+      return
+    }
+    this.isJoining = matchUid
+    this.isHost = false
+    // this.netKeyHost = netKey
+    // this.peerInfoHost = peerInfo
+
+    this.publishHostNew(matchUid, { type: 'try-join', playerName, password })
+
+    // this.callPeer(peerInfo, { type: 'join', playerName, password }, (data, error) => {
+    //   this.isJoining = false
+    //   if (error) {
+    //     failed('network-error', error)
+    //     return
+    //   }
+    //   data = JSON.parse(data)
+    //   if (data.type !== 'join-result') {
+    //     failed('protocol-error', data)
+    //     return
+    //   }
+    //   if (data.cantJoinReason) failed('rejected', data.cantJoinReason)
+    //   else this.joined(netMatch, data.players, data.playerSelfId)
+    // }, true)
+  }
+
+  joinFailed (why, data) {
+    glos.dialogData = { type: 'join-failure', why, data }
+    this.isJoining = false
+  }
+
+  joined (netKeyHost, netMatch, players, playerSelfId) {
+    if (!netMatch) return
+
+    const { match } = this
+
+    this.netKeyHost = netKeyHost
+    this.state = 'lobby'
+    this.netMatch = netMatch
+    match.destroyPlayers()
+    for (const playerData of players) initPlayer(this, playerData)
+    match.playerSelf = match.getPlayerById(playerSelfId)
+    glos.adjustPlayerSelf()
     this.regenerateMap()
+
+    this.unsubscribeGlobal()
+    this.subscribeMatch() // Join match topic
+    // this.publishGlobal({ type: 'joined', matchUid }) // Notify matchmaking
   }
 
   leave () {
     const { netMatch } = this
     if (!netMatch) return
-    this.netPublish({
-      type: 'leave',
-      hostKey: netMatch.hostKey,
-      hostKeyPeer: this.hostKey
-    })
+    if (this.isHost) {
+      this.subscribeGlobal()
+      this.unsubscribeHost()
+      const player = this.match.players.find(player => player.netKey !== this.netKey)
+      if (player) {
+        const { matchUid } = netMatch
+        this.publishGlobal({ type: 'transfer-host-global', matchUid, netKeyHost: player.netKey, newHostName: player.name })
+        this.publishMatch({ type: 'transfer-host-match', netKeyHost: player.netKey })
+      } else {
+        this.hostingUpdate(0)
+      }
+    } else this.publishHost({ type: 'leave' })
+    // this.callPeer(this.peerInfoHost, { type: 'leave' })
     this.leaveSub()
   }
 
-  kick (peerInfo) {
-    if (!this.pseudoPeer.isHost) return
-    if (peerInfo.isSelf) {
+  leaveSub () {
+    this.netMatch = undefined
+    this.unsubscribeMatch()
+    this.subscribeGlobal()
+    this.isHost = false
+    this.state = 'matchmaking'
+
+    this.regenerateMap()
+  }
+
+  kick (player) {
+    if (!this.isHost) return
+    if (player === this.match.playerSelf) {
       this.leave()
       return
     }
 
     const { netMatch } = this
     if (!netMatch) return
-    this.netPublish({
-      type: 'leave',
-      hostKey: netMatch.hostKey,
-      hostKeyPeer: peerInfo.hostKey
-    })
+    this.publishMatch({ type: 'kick', netKey: player.netKey })
+    this.hostingUpdate()
   }
 
   startMatch () {
-    if (!this.netMatch) return
-    this.netPublishMatch({ type: 'start' })
+    if (this.state !== 'lobby') return
+    const { netMatch } = this
+    if (!netMatch) return
+    this.publishGlobal({ type: 'close-match', matchUid: netMatch.matchUid })
+    this.publishMatch({ type: 'start-match' })
   }
 
   endTurn () {
     if (this.state !== 'playing') return
     const { match } = this
-    const { playerSelf } = match
+    const { playerSelf, turn } = match
     if (playerSelf.endTurn) return
+    // this.turnTimer.stop()
     playerSelf.endTurn = true
-    this.netPublishMatch({ type: 'endTurn', cardSlots: playerSelf.bot.cardSlots.map(cardSlot => cardSlot.serialize()) })
+    const hand = playerSelf.hand.map(card => card.serialize())
+    const cardSlots = playerSelf.bot.cardSlots.map(cardSlot => cardSlot.serialize())
+    this.publishHost({ type: 'end-turn-host', turn, hand, cardSlots })
+    this.publishMatch({ type: 'end-turn-cosmetic', turn })
+  }
+
+  startTurn () {
+    for (const player of this.match.players) {
+      player.endTurn = true
+      player.completeTurn = false
+    }
+    this.match.startTurn()
   }
 
   completeTurn () {
     if (this.state !== 'playing') return
     const { match } = this
-    const { playerSelf } = match
+    const { playerSelf, turn } = match
     if (playerSelf.completeTurn) return
     playerSelf.completeTurn = true
-    this.netPublishMatch({ type: 'completeTurn' })
+    this.publishHost({ type: 'complete-turn-host', turn })
+    this.publishMatch({ type: 'complete-turn-cosmetic', turn })
   }
 
-  recreatePlayers (placeBots = true) {
-    const game = this
-    const { match } = game
-    for (const peerInfo of this.lobbyPeers) peerInfo.player = undefined
-    match.destroyPlayers()
-    if (game.state === 'matchmaking') initPlayers(game, glos.hostMaxPlayers)
-    else initPlayers(game, undefined, game.lobbyPeers)
-    if (placeBots) match.placeBots()
+  hostEndTurn () {
+    const { match } = this
+    if (this.state !== 'playing' || !this.isHost || match.turnInProgress) return false
+    const allDone = this.match.turnPlayers.reduce((rv, player) => rv && (player.endTurn || player.lastPingTimeout), true)
+    if (allDone) {
+      this.hostEndTurnPublish()
+      return true
+    }
+    return false
+  }
+
+  hostEndTurnPublish () {
+    // for (const player of turnPlayers) player.bot.cardSlots = player.bot.cardSlotsNext
+    this.publishMatch({ type: 'start-turn', matchData: this.match.serialize() })
+  }
+
+  hostCheckTurnProgress () {
+    if (!this.isHost) return // Superfluous
+    if (!this.hostCompleteTurn()) this.hostEndTurn()
+  }
+
+  hostCompleteTurn () {
+    const { match } = this
+    if (this.state !== 'playing' || !this.isHost || !match.turnInProgress) return false
+    const allDone = match.turnPlayers.reduce((rv, player) => rv && (player.completeTurn || player.lastPingTimeout), true)
+    if (allDone) {
+      this.publishMatch({ type: 'complete-turn-all' }) // TODO maybe send match here too
+      return true
+    }
+    return false
   }
 
   regenerateMap (recreatePlayers = true) {
     const game = this
     const { match } = game
-    if (game.state === 'matchmaking') match.setRngSeedStr(glos.hostSeed)
-    else match.setRngSeedStr(game.netMatch.seed)
-    match.regenerateMap(false)
-    if (recreatePlayers) game.recreatePlayers(true)
-  }
-}
-
-function finishTankLoaderItem (loaderItem, game) {
-  const gltf = loaderItem.gltf
-  gltf.scene.traverseVisible(obj => {
-    if (obj.isMesh) {
-      // obj.material = material
-      obj.castShadow = true
-      obj.receiveShadow = true
+    if (game.state === 'matchmaking') {
+      match.setRngSeedStr(glos.hostSeed)
+      match.checkpointCount = glos.hostCheckpointCount
+    } else match.setRngSeedStr(game.netMatch.seed)
+    match.regenerateMap()
+    if (recreatePlayers) {
+      if (game.state === 'matchmaking') game.recreatePlayers()
+      else match.placeBots()
     }
-  })
-  game.models[loaderItem.name] = gltf.scene
+  }
+
+  recreatePlayers () {
+    const game = this
+    if (game.state !== 'matchmaking') return
+    const { match } = game
+    match.destroyPlayers()
+    initPlayers(game, glos.hostMaxPlayers)
+    match.playerSelf = match.players[0]
+    match.placeBots()
+  }
 }

@@ -1,1 +1,1 @@
-export { initTestGame, initPlayers } from './TestGame'
+export * from './TestGame'

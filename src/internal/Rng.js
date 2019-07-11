@@ -12,6 +12,14 @@ export class Rng extends Random {
   clone () {
     return new Rng(this.lowSeed, this.highSeed)
   }
+
+  serialize () {
+    return this.saveRngStates()
+  }
+
+  deserialize (data) {
+    this.loadRngStates(...data)
+  }
 }
 
 // function choose (size) {

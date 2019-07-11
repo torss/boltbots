@@ -6,33 +6,32 @@
     </template>
     </q-card> -->
 
-    <div class="card-slots">
-      <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
-        <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card flex flex-center column" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot, index === turnCardIndex)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="disableAct" @click="removeCard(cardSlot)">
-          <template v-if="cardSlot.card">
-            <span>{{ cardSlot.card.cardType.title }}</span>
-          </template>
-          <template v-else>
-            <span class="text-grey-8">Slot {{ index + 1 }}</span>
-          </template>
-        </q-btn>
-      </draggable>
-      <div class="flex flex-center column">
-        <q-btn push color="white" text-color="primary" round size="xl" @click="endTurn" :disable="disableAct">
-          <q-circular-progress
-            :value="timeSec"
-            :max="durationSec"
-            show-value
-            track-color="grey"
-            color="primary"
-            size="2.5em"
-            v-if="turnTimerRunning"
-          >
-            {{ timeSec.toFixed(0) }}s
-          </q-circular-progress>
-          <q-icon v-else name="arrow_right" />
-        </q-btn>
-      </div>
+    <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
+      <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot, index === turnCardIndex)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="disableAct" @click="removeCard(cardSlot)">
+        <template v-if="cardSlot.card">
+          <span>{{ cardSlot.card.cardType.title }}</span>
+        </template>
+        <template v-else>
+          <span class="text-grey-8">Slot {{ index + 1 }}</span>
+        </template>
+      </q-btn>
+    </draggable>
+    <div class="flex flex-center column">
+      <q-btn push color="white" text-color="primary" round size="xl" class="end-turn" @click="endTurn" :disable="disableAct">
+        <q-circular-progress
+          :value="timeSec"
+          :max="durationSec"
+          show-value
+          track-color="grey"
+          color="primary"
+          size="2.5em"
+          v-if="turnTimerRunning"
+        >
+          {{ timeSec.toFixed(0) }}s
+        </q-circular-progress>
+        <q-icon v-else name="arrow_right" />
+        <q-tooltip>End turn.</q-tooltip>
+      </q-btn>
     </div>
   </div>
 </template>
@@ -129,7 +128,7 @@ export default {
   },
   watch: {
     timeSec (newValue) {
-      if (newValue === 0 && this.turnTimerRunning && !this.disableAct) this.endTurn()
+      if (newValue <= 0 && this.turnTimerRunning && !this.disableAct) this.endTurn()
     }
   }
 }
@@ -137,19 +136,35 @@ export default {
 
 <style lang="stylus" scoped>
 .footer
-  position fixed
+  position absolute
   bottom 0
   width 100%
-  height 25vh
+  height 15em
   background-color rgba(64, 64, 64, 0.5)
-  overflow-y auto
+  overflow-x auto
+
+  display flex
+  flex-flow row nowrap
+
+  @media (max-width: 1100px)
+    height 10em
 
 .card
   background-color rgba(16, 16, 16, 0.75)
-  width 10em
-  margin 1em
+  margin-left 0.75em
+  margin-top 0.75em
+  margin-bottom 0.75em
+  width 9em
+
+  @media (max-width: 1100px)
+    width 6em
 
 .card-slots
   display flex
-  flex-wrap none
+  flex-flow row nowrap
+  flex 1 1 auto
+
+.end-turn
+  margin-left 0.75em
+  margin-right 0.75em
 </style>
