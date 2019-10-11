@@ -1,15 +1,16 @@
 // Based on the "libp2p-ipfs-browser" bundle from https://github.com/libp2p/js-libp2p#bundles in https://github.com/ipfs/js-ipfs/blob/master/src/core/runtime/libp2p-browser.js
+// Also see https://github.com/libp2p/js-libp2p/blob/master/examples/libp2p-in-the-browser/1/src/browser-bundle.js
 
-const WS = require('libp2p-websockets')
 const WebRTCStar = require('libp2p-webrtc-star')
-const WebSocketStarMulti = require('libp2p-websocket-star-multi')
+const WebSockets = require('libp2p-websockets')
+const WebSocketStar = require('libp2p-websocket-star')
 const Multiplex = require('pull-mplex')
 const SECIO = require('libp2p-secio')
 const Bootstrap = require('libp2p-bootstrap')
 const KadDHT = require('libp2p-kad-dht')
+const GossipSub = require('libp2p-gossipsub')
 const libp2p = require('libp2p')
 const mergeOptions = require('merge-options')
-const multiaddr = require('multiaddr')
 
 const bootstrapList = [
   // https://github.com/ipfs/js-ipfs/blob/master/src/core/runtime/config-browser.js
@@ -38,26 +39,21 @@ const bootstrapList = [
 
 export class NetNode extends libp2p {
   constructor (_options) {
-    const wrtcstar = new WebRTCStar({ id: _options.peerInfo.id })
-
-    // this can be replaced once optional listening is supported with the below code. ref: https://github.com/libp2p/interface-transport/issues/41
-    // const wsstar = new WebSocketStar({ id: _options.peerInfo.id })
-    const wsstarServers = _options.peerInfo.multiaddrs.toArray().map(String).filter(addr => addr.includes('p2p-websocket-star'))
-    _options.peerInfo.multiaddrs.replace(wsstarServers.map(multiaddr), '/p2p-websocket-star') // the ws-star-multi module will replace this with the chosen ws-star servers
-    const wsstar = new WebSocketStarMulti({ servers: wsstarServers, id: _options.peerInfo.id, ignore_no_online: !wsstarServers.length || _options.wsStarIgnoreErrors })
+    const wrtcStar = new WebRTCStar({ id: _options.peerInfo.id })
+    const wsstar = new WebSocketStar({ id: _options.peerInfo.id })
 
     const defaults = {
       switch: {
-        blacklistTTL: 2 * 60 * 1e3, // 2 minute base
-        blackListAttempts: 5, // back off 5 times
+        denyTTL: 2 * 60 * 1e3, // 2 minute base
+        denyAttempts: 5, // back off 5 times
         maxParallelDials: 100,
         maxColdCalls: 25,
         dialTimeout: 20e3
       },
       modules: {
         transport: [
-          WS,
-          wrtcstar,
+          wrtcStar,
+          WebSockets,
           wsstar
         ],
         streamMuxer: [
@@ -67,32 +63,41 @@ export class NetNode extends libp2p {
           SECIO
         ],
         peerDiscovery: [
-          wrtcstar.discovery,
+          wrtcStar.discovery,
           wsstar.discovery,
           Bootstrap
         ],
-        dht: KadDHT
+        dht: KadDHT,
+        pubsub: GossipSub
       },
       config: {
         peerDiscovery: {
           autoDial: true,
-          bootstrap: {
-            interval: 20e3,
-            enabled: true,
-            list: bootstrapList
-          },
           webRTCStar: {
             enabled: true
           },
           websocketStar: {
             enabled: true
+          },
+          bootstrap: {
+            interval: 20e3,
+            enabled: true,
+            list: bootstrapList
+          }
+        },
+        relay: {
+          enabled: true,
+          hop: {
+            enabled: false,
+            active: false
           }
         },
         dht: {
           enabled: false
         },
-        EXPERIMENTAL: {
-          pubsub: true
+        pubsub: {
+          enabled: true,
+          emitSelf: true
         }
       }
     }
@@ -110,9 +115,11 @@ export function createNetNode (callback) {
     }
 
     const peerIdStr = peerInfo.id.toB58String()
-    const ma = `/dns4/star-signal.cloud.ipfs.team/tcp/443/wss/p2p-webrtc-star/p2p/${peerIdStr}`
+    const webrtcAddr = `/dns4/star-signal.cloud.ipfs.team/tcp/443/wss/p2p-webrtc-star/p2p/${peerIdStr}`
+    const wsAddr = `/dns4/ws-star.discovery.libp2p.io/tcp/443/wss/p2p-websocket-star`
 
-    peerInfo.multiaddrs.add(ma)
+    peerInfo.multiaddrs.add(webrtcAddr)
+    peerInfo.multiaddrs.add(wsAddr)
 
     const netNode = new NetNode({
       peerInfo
