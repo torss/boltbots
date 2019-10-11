@@ -318,7 +318,10 @@ export class Match {
     if (rngMapGen !== undefined) this.rngMapGen.deserialize(rngMapGen)
     if (rngCosmetic !== undefined) this.rngCosmetic.deserialize(rngCosmetic)
     if (rngPlaceBots !== undefined) this.rngPlaceBots.deserialize(rngPlaceBots)
-    if (checkpoints !== undefined) this.checkpoints = checkpoints.map(data => Checkpoint.deserializeNew(this.game, data))
+    if (checkpoints !== undefined) {
+      for (const checkpoint of this.checkpoints) checkpoint.destroy()
+      this.checkpoints = checkpoints.map(data => Checkpoint.deserializeNew(this.game, data))
+    }
     if (players !== undefined) {
       this.destroyPlayers()
       const { game } = this
