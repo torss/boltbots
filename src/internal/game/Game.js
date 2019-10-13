@@ -368,7 +368,13 @@ export class Game {
       const { endTurn, completeTurn } = playerSelf
       this.publishMatch({ type: 'ping-match', turn, endTurn, completeTurn, hostVote: pnid })
 
-      if (gameOver) return
+      if (gameOver) {
+        for (const player of players) {
+          player.endTurn = false
+          player.completeTurn = false
+        }
+        return
+      }
 
       const now = Date.now()
       for (const player of players) {
