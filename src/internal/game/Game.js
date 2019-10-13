@@ -535,6 +535,7 @@ export class Game {
           sendBack({ type: 'pnid-request' })
           return
         }
+        if (player.left) return
         this.lastPingSelf = Date.now()
         player.lastPing = Date.now()
         player.lastPingTimeout = false
@@ -643,6 +644,12 @@ export class Game {
         this.netMatch.netKeyHost = data.netKeyHost
         if (this.netKey === this.netKeyHost) this.becomeHost()
         break
+      case 'leave-match':
+        if (!player) return
+        player.left = true
+        player.endTurn = true
+        player.completeTurn = true
+        break
       case 'start-match':
         if (!msgFromHost) return
         match.handSize = this.netMatch.handSize
@@ -685,8 +692,9 @@ export class Game {
       case 'complete-turn-all':
         if (!msgFromHost) return
         for (const player of players) {
-          player.endTurn = false
-          player.completeTurn = false
+          const newState = player.left
+          player.endTurn = newState
+          player.completeTurn = newState
         }
         match.endTurn = false
         match.turnInProgress = false
@@ -1027,26 +1035,30 @@ export class Game {
   }
 
   leave () {
-    const { netMatch } = this
-    if (!netMatch) return
-    if (this.isHost) {
-      this.subscribeGlobal()
-      this.unsubscribeHost()
-      const player = this.match.players.find(player => player.netKey !== this.netKey)
-      if (player) {
-        const { matchUid } = netMatch
-        this.publishGlobal({ type: 'transfer-host-global', matchUid, netKeyHost: player.netKey, newHostName: player.name })
-        this.publishMatch({ type: 'transfer-host-match', netKeyHost: player.netKey })
-      } else {
-        this.hostingUpdate(0)
-      }
-    } else this.publishHost({ type: 'leave' })
-    // this.callPeer(this.peerInfoHost, { type: 'leave' })
+    if (this.state === 'playing') {
+      this.publishMatch({ type: 'leave-match' })
+    } else {
+      const { netMatch } = this
+      if (!netMatch) return
+      if (this.isHost) {
+        this.subscribeGlobal()
+        this.unsubscribeHost()
+        const player = this.match.players.find(player => player.netKey !== this.netKey)
+        if (player) {
+          const { matchUid } = netMatch
+          this.publishGlobal({ type: 'transfer-host-global', matchUid, netKeyHost: player.netKey, newHostName: player.name })
+          this.publishMatch({ type: 'transfer-host-match', netKeyHost: player.netKey })
+        } else {
+          this.hostingUpdate(0)
+        }
+      } else this.publishHost({ type: 'leave' })
+    }
     this.leaveSub()
   }
 
   leaveSub () {
     this.netMatch = undefined
+    this.unsubscribeHost()
     this.unsubscribeMatch()
     this.subscribeGlobal()
     this.isHost = false

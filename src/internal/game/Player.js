@@ -15,6 +15,7 @@ export class Player {
     this.netKey = ''
     this.pnid = ''
     // this.peerInfo = undefined
+    this.left = false
     this.endTurn = false
     this.completeTurn = false
     this.lastPingTimeout = false
@@ -64,8 +65,8 @@ export class Player {
   }
 
   serialize (playing = false) {
-    const { id, name, netKey, pnid, hand, bot, killedInTurn, killedBy, completedCheckpoints, lastPing, cryptoKeySvPublicEx } = this
-    let result = { id, name, netKey, pnid, cryptoKeySvPublicEx }
+    const { id, name, netKey, pnid, hand, bot, killedInTurn, killedBy, completedCheckpoints, lastPing, cryptoKeySvPublicEx, left } = this
+    let result = { id, name, netKey, pnid, cryptoKeySvPublicEx, left }
     if (playing) {
       result.hand = hand.map(card => card.serialize())
       result.bot = bot.serialize()
@@ -76,11 +77,12 @@ export class Player {
   }
 
   deserialize (playerData) {
-    const { id, name, netKey, pnid, hand, bot, killedInTurn, completedCheckpoints, lastPing, cryptoKeySvPublicEx } = playerData
+    const { id, name, netKey, pnid, left, hand, bot, killedInTurn, completedCheckpoints, lastPing, cryptoKeySvPublicEx } = playerData
     if (id !== undefined) this.id = id
     if (name !== undefined) this.name = name
     if (netKey !== undefined) this.netKey = netKey
     if (pnid !== undefined) this.pnid = pnid
+    if (left !== undefined) this.left = left
     if (hand !== undefined) this.hand = hand.map(cardData => new Card(cardData).deserialize(cardData))
     if (bot !== undefined) this.bot.deserialize(bot)
     if (killedInTurn !== undefined) {

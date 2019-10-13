@@ -9,6 +9,14 @@
           <q-tooltip>Running on Quasar v{{ $q.version }}</q-tooltip>
         </q-toolbar-title>
 
+        <HoldBtn  v-if="game.state === 'playing' && !this.match.gameOver" class="hold-btn" @trigger="leaveMatch" :incrementMs="3000" color="negative">
+          <q-icon name="mdi-exit-run" />
+          <q-tooltip>
+            Click and hold this button to irreversibly leave the match.<br>
+            Hold <kbd>Shift</kbd> to accelerate the invocation.
+          </q-tooltip>
+        </HoldBtn>
+
         <q-btn :icon="glos.muteAudio ? 'mdi-volume-off' : 'mdi-volume-high'" flat round @click="toggleAudio">
           <q-tooltip>Toggle audio mute</q-tooltip>
         </q-btn>
@@ -271,6 +279,7 @@ import { openURL, debounce } from 'quasar'
 import draggable from 'vuedraggable'
 import PlayerListItem from '../components/PlayerListItem'
 import MatchmakingTooltip from '../components/MatchmakingTooltip'
+import HoldBtn from '../components/HoldBtn'
 import { glos } from '../internal/Glos'
 
 export default {
@@ -278,7 +287,8 @@ export default {
   components: {
     draggable,
     PlayerListItem,
-    MatchmakingTooltip
+    MatchmakingTooltip,
+    HoldBtn
   },
   data () {
     this.regenerateMapDebounced = debounce(() => this.regenerateMap(), 1000)
@@ -601,4 +611,10 @@ export default {
   img
     width 1em
     margin-right 0.5em
+
+.hold-btn
+  margin-right 0.1em
+  font-size 3em
+  user-select none
+  cursor pointer
 </style>
