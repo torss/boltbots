@@ -36,6 +36,7 @@ export class Match {
     this.controlTower = new ControlTower()
     this.checkpoints = []
     this.actionType = 'lazor'
+    this.endTurn = false
     this.rng = new Rng(0, 0) // Primary rng
     this.rngMapGen = new Rng(0, 0) // MapGen rng
     this.rngCosmetic = new Rng(0, 0) // Unimportant rng
@@ -294,11 +295,12 @@ export class Match {
   removePlayerByNetKey (netKey) { this.removePlayerByFunc(player => player.netKey === netKey) }
   getPlayerById (playerId) { return this.players.find(player => player.id === playerId) }
   getPlayerByNetKey (netKey) { return this.players.find(player => player.netKey === netKey) }
+  getPlayerByPnid (pnid) { return this.players.find(player => player.pnid === pnid) }
 
   serialize () {
-    const { turn, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, handSize, checkpointCount, slotCount, checkpoints } = this
+    const { turn, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, handSize, checkpointCount, slotCount, endTurn, checkpoints } = this
     return {
-      ...{ turn, handSize, checkpointCount, slotCount },
+      ...{ turn, handSize, checkpointCount, slotCount, endTurn },
       rng: rng.serialize(),
       rngMapGen: rngMapGen.serialize(),
       rngCosmetic: rngCosmetic.serialize(),
@@ -309,11 +311,12 @@ export class Match {
   }
 
   deserialize (matchData) {
-    const { turn, checkpointCount, handSize, slotCount, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, checkpoints } = matchData
+    const { turn, checkpointCount, handSize, slotCount, endTurn, rng, rngMapGen, rngCosmetic, rngPlaceBots, players, checkpoints } = matchData
     if (turn !== undefined) this.turn = turn
     if (checkpointCount !== undefined) this.checkpointCount = checkpointCount
     if (handSize !== undefined) this.handSize = handSize
     if (slotCount !== undefined) this.slotCount = slotCount
+    if (endTurn !== undefined) this.endTurn = endTurn
     if (rng !== undefined) this.rng.deserialize(rng)
     if (rngMapGen !== undefined) this.rngMapGen.deserialize(rngMapGen)
     if (rngCosmetic !== undefined) this.rngCosmetic.deserialize(rngCosmetic)

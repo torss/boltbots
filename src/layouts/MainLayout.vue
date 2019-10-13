@@ -9,7 +9,7 @@
           <q-tooltip>Running on Quasar v{{ $q.version }}</q-tooltip>
         </q-toolbar-title>
 
-        <q-btn :icon="glos.muteAudio ? 'mdi-volume-off' : 'mdi-volume-high'" flat round @click="glos.muteAudio = !glos.muteAudio">
+        <q-btn :icon="glos.muteAudio ? 'mdi-volume-off' : 'mdi-volume-high'" flat round @click="toggleAudio">
           <q-tooltip>Toggle audio mute</q-tooltip>
         </q-btn>
         <span class="volume-slider">
@@ -399,6 +399,10 @@ export default {
     },
     onMouseup () {
       if (glos.threejsControls) glos.threejsControls.enabled = true
+    },
+    toggleAudio () {
+      glos.muteAudio = !glos.muteAudio
+      if (glos.muteAudio) glos.game.audioListener.context.resume()
     }
   },
   computed: {
@@ -462,7 +466,7 @@ export default {
       const { dialogData } = this.glos
       if (!dialogData) return ''
       const options = {
-        'reconnect-refused': 'Couldn\'t reconnect',
+        // 'reconnect-refused': 'Couldn\'t reconnect',
         'join-failure': 'Couldn\'t join match'
       }
       return options[dialogData.type] || 'Dialog'
@@ -471,18 +475,18 @@ export default {
       const { dialogData } = this.glos
       if (!dialogData) return ''
       const options = {
-        'reconnect-refused': {
-          'incorrect-player': 'Your internal player identifier is incorrect, you cannot reconnect.',
-          'not-playing': () => {
-            const options = {
-              'matchmaking': 'The match does no longer exist.',
-              'lobby': 'The match is back at the lobby state. That\'s weird.',
-              'playing': '...for no apparent reason, this must be a bug.',
-              'reconnecting': 'Apparently the host has weird network problems. This shouldn\'t happen.'
-            }
-            return options[dialogData.data]
-          }
-        },
+        // 'reconnect-refused': {
+        //   'incorrect-player': 'Your internal player identifier is incorrect, you cannot reconnect.',
+        //   'not-playing': () => {
+        //     const options = {
+        //       'matchmaking': 'The match does no longer exist.',
+        //       'lobby': 'The match is back at the lobby state. That\'s weird.',
+        //       'playing': '...for no apparent reason, this must be a bug.',
+        //       'reconnecting': 'Apparently the host has weird network problems. This shouldn\'t happen.'
+        //     }
+        //     return options[dialogData.data]
+        //   }
+        // },
         'join-failure': {
           'empty-password': 'You need to enter a password to join this match.',
           'rejected': () => {
