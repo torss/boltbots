@@ -413,7 +413,7 @@ export class Game {
       return
     }
     if (!matchUid || !netKeyHost || !match.playerSelf) return
-    localStorage.setItem('reconnectData', JSON.stringify({ time: Date.now(), matchUid, pnid, netKeyHost, netMatch, cryptoKeySvPublicEx, cryptoKeySvPrivateEx, matchData: match.serialize }))
+    localStorage.setItem('reconnectData', JSON.stringify({ time: Date.now(), matchUid, pnid, netKeyHost, netMatch, cryptoKeySvPublicEx, cryptoKeySvPrivateEx, matchData: match.serialize() }))
   }
 
   clearReconnectData () {
