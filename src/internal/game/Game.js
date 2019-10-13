@@ -20,8 +20,9 @@ import * as base64js from 'base64-js'
 
 const netTopic = 'boltbots-20191013'
 // const netDirectProtocol = '/boltbots/1.0.0'
-const pingDelay = 5000
-const timeoutThreshold = 2 * pingDelay
+const pingDelay = 1000
+const pingDelayGlobal = 5000
+const timeoutThreshold = 5 * pingDelay
 const reconnectThreshold = 600000 // 10min
 
 const saveListenerEnabled = true
@@ -67,6 +68,7 @@ export class Game {
       host: { topic: '', subscribed: false }
     }
     this.playersOnline = {}
+    this.lastPingGlobal = Date.now()
     this.lastPingHostCheck = Date.now()
     this.matchHistory = []
     this.matchHistoryLast = undefined
@@ -357,8 +359,11 @@ export class Game {
 
   netUpdate () {
     const { match } = this
-    if (this.isHost) this.publishGlobal({ type: 'ping-global', matchUid: this.matchUid })
-    else this.publishGlobal({ type: 'ping-global' })
+    const now = Date.now()
+    if ((now - this.lastPingGlobal) > pingDelayGlobal) {
+      if (this.isHost && this.state === 'matchmaking') this.publishGlobal({ type: 'ping-global', matchUid: this.matchUid })
+      else this.publishGlobal({ type: 'ping-global' })
+    }
     if (this.state === 'matchmaking' || this.state === 'lobby') this.playersOnlineCount = this.checkMatchmakingTimeouts(this.playersOnline)
     if (this.state === 'matchmaking') this.checkMatchmakingTimeouts(this.openMatches)
     else if (this.state === 'lobby' || this.state === 'playing') {
@@ -376,7 +381,6 @@ export class Game {
         return
       }
 
-      const now = Date.now()
       for (const player of players) {
         if (player === playerSelf) player.lastPingTimeout = false
         else player.lastPingTimeout = (now - player.lastPing) > timeoutThreshold
