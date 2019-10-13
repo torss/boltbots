@@ -51,6 +51,7 @@
                 <q-tooltip>Drag these cards onto the slots at the bottom to program your bot.</q-tooltip>
                 <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
                   <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @click="useCard(card)" @dragstart="dragCard(card)" @dragend="dragCardStop" :disable="disableAct">
+                    <img :src="`statics/cards/${card.cardType.key}.svg`" />
                     <span>{{ card.cardType.title }}</span>
                   </q-btn>
                 </draggable>
@@ -595,4 +596,9 @@ export default {
   flex-flow column
   flex 1 1 auto
   overflow-y auto
+
+.card
+  img
+    width 1em
+    margin-right 0.5em
 </style>
