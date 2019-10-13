@@ -361,7 +361,8 @@ export class Game {
     const { match } = this
     const now = Date.now()
     if ((now - this.lastPingGlobal) > pingDelayGlobal) {
-      if (this.isHost && this.state === 'matchmaking') this.publishGlobal({ type: 'ping-global', matchUid: this.matchUid })
+      this.lastPingGlobal = now
+      if (this.isHost && this.state === 'lobby') this.publishGlobal({ type: 'ping-global', matchUid: this.matchUid })
       else this.publishGlobal({ type: 'ping-global' })
     }
     if (this.state === 'matchmaking' || this.state === 'lobby') this.playersOnlineCount = this.checkMatchmakingTimeouts(this.playersOnline)
@@ -371,7 +372,8 @@ export class Game {
       const { playerSelf, players, gameOver, turn } = match
 
       const { endTurn, completeTurn } = playerSelf
-      this.publishMatch({ type: 'ping-match', turn, endTurn, completeTurn, hostVote: pnid })
+      const playerHost = match.getPlayerByNetKey(this.netKeyHost)
+      this.publishMatch({ type: 'ping-match', turn, endTurn, completeTurn, hostVote: playerHost === undefined || playerHost.lastPingTimeout ? pnid : playerHost.pnid })
 
       if (gameOver) {
         for (const player of players) {
@@ -480,14 +482,17 @@ export class Game {
   netHandleGlobal (msg) {
     const data = JSON.parse(msg.data)
     const { matchUid, openMatch, msgFromOpenMatchHost } = this.obtainOpenMatch(msg, data)
+    const msgFromSelf = msg.from === this.netKey
     switch (data.type) {
       case 'ping-global': {
         const now = Date.now()
         this.lastPingSelf = now
         this.playersOnline[msg.from] = { lastPing: now }
 
-        if (msgFromOpenMatchHost) openMatch.lastPing = now
-        else this.publishHostOther(matchUid, { type: 'discover' })
+        if (!msgFromSelf) {
+          if (msgFromOpenMatchHost) openMatch.lastPing = now
+          else this.publishHostOther(matchUid, { type: 'discover' })
+        }
       } break
       case 'hosting':
         this.subHandleHosting(msgFromOpenMatchHost, openMatch, data)
@@ -567,18 +572,20 @@ export class Game {
             console.log(`Game.netHandleMatch ping-match: Host uncertainty. hostVotes.size=${hostVotes.size} totalVoteCount=${totalVoteCount} requiredVoteCount=${requiredVoteCount}`)
           }
 
-          if (data.turn === match.turn && (match.endTurn === false || data.endTurn === match.endTurn)) {
-            player.endTurn = data.endTurn
-            player.completeTurn = data.completeTurn
-          } else if (this.isHost && !msgFromSelf) {
-            if (match.endTurn) {
-              player.endTurn = true
-            } else {
-              player.endTurn = false
-              player.completeTurn = false
+          if (!match.gameOver) {
+            if (data.turn === match.turn && (match.endTurn === false || data.endTurn === match.endTurn)) {
+              player.endTurn = data.endTurn
+              player.completeTurn = data.completeTurn
+            } else if (this.isHost && !msgFromSelf) {
+              if (match.endTurn) {
+                player.endTurn = true
+              } else {
+                player.endTurn = false
+                player.completeTurn = false
+              }
+              sendBack({ type: 'match-rectify', match: this.match.serialize() })
+              console.log(`Game.netHandleMatch ping-match: Send match-rectify to ${player.pnid} aka ${player.name}`)
             }
-            sendBack({ type: 'match-rectify', match: this.match.serialize() })
-            console.log(`Game.netHandleMatch ping-match: Send match-rectify to ${player.pnid} aka ${player.name}`)
           }
 
           if (this.isHost && (Date.now() - this.lastPingHostCheck) > pingDelay) {
