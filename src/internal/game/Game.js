@@ -373,7 +373,7 @@ export class Game {
 
       const { endTurn, completeTurn } = playerSelf
       const playerHost = match.getPlayerByNetKey(this.netKeyHost)
-      this.publishMatch({ type: 'ping-match', turn, endTurn, completeTurn, hostVote: playerHost === undefined || playerHost.lastPingTimeout ? pnid : playerHost.pnid })
+      this.publishMatch({ type: 'ping-match', turn, endTurn, completeTurn, hostVote: playerHost === undefined || playerHost.lastPingTimeout || playerHost.left ? pnid : playerHost.pnid })
 
       if (gameOver) {
         for (const player of players) {
