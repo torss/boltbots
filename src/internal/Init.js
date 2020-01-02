@@ -143,7 +143,8 @@ export function init (vueInstance) {
   passFinal.needsSwap = true
 
   let composerFinal
-  glos.changeAntialiasMode = (antialiasMode) => {
+  glos.changeAntialiasMode = () => {
+    const { antialiasMode, ssaaSampleLevel } = glos
     composerFinal = new EffectComposer(renderer)
     composerFinal.addPass(passScene)
     switch (antialiasMode) {
@@ -151,6 +152,7 @@ export function init (vueInstance) {
         composerFinal.addPass(passFxaa)
         break
       case 'ssaa':
+        passSsaa.sampleLevel = ssaaSampleLevel
         composerFinal.addPass(passSsaa)
         break
       // case 'taa':
@@ -164,7 +166,7 @@ export function init (vueInstance) {
         break
     }
   }
-  glos.changeAntialiasMode(glos.antialiasMode)
+  glos.changeAntialiasMode()
 
   const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' })
   // - //
