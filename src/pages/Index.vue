@@ -1,7 +1,7 @@
 <template>
   <q-page class="page flex column">
     <div class="canvas-container">
-      <q-resize-observer @resize="onResize" />
+      <q-resize-observer @resize="onResize" ref="resizeObserver" />
       <canvas ref="canvas" class="canvas" @mousemove="onMousemove" @mousedown="onMousedown" />
     </div>
     <CentralCover v-if="gameOver" />
@@ -37,6 +37,7 @@ export default {
     glos.init(this)
     document.addEventListener('wheel', this.onWheel, true)
     document.addEventListener('keydown', this.onKeydown)
+    this.onResize(this.$refs.resizeObserver.size)
   },
   beforeDestroy () {
     document.removeEventListener('wheel', this.onWheel, true)
