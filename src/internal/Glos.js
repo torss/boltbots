@@ -34,9 +34,11 @@ class Glos {
     this.hostHandSize = getLsOrDefault('hostHandSize', 8, parseInt)
     this.hostSlotCount = getLsOrDefault('hostSlotCount', 5, parseInt)
     this.antialiasMode = getLsOrDefault('antialiasMode', 'none')
+    this.ssaaSampleLevel = getLsOrDefault('ssaaSampleLevel', 2, parseInt)
     this.changeAntialiasMode = undefined
     this.dialogData = undefined
 
+    this.ssaaSampleLevel = Math.max(0, Math.min(5, this.ssaaSampleLevel))
     switch (this.antialiasMode) {
       case 'none':
       case 'smaa':

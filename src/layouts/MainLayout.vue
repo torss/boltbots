@@ -246,6 +246,10 @@
             />
             <q-tooltip>Anti-aliasing mode.</q-tooltip>
           </div>
+          <q-item dense v-if="antialiasMode === 'ssaa'">
+            <q-item-section avatar>SSAA level: {{ ssaaSampleLevel }} </q-item-section>
+            <q-item-section><q-slider v-model="ssaaSampleLevel" :min="0" :max="5" label /></q-item-section>
+          </q-item>
 
           <q-item-label header class="text-center text-bold">
             Network info
@@ -533,7 +537,7 @@ export default {
       if (typeof result === 'function') result = result()
       return result || ''
     },
-    ...['leftDrawerOpen', 'rightDrawerOpen', 'playerName', 'hostMatchName', 'hostMaxPlayers', 'hostSeed', 'darkMode', 'hostExpanded', 'joinExpanded', 'hostEndTurnTimeLimit', 'hostCheckpointCount', 'hostHandSize', 'hostSlotCount', 'antialiasMode'].reduce((obj, key) => {
+    ...['leftDrawerOpen', 'rightDrawerOpen', 'playerName', 'hostMatchName', 'hostMaxPlayers', 'hostSeed', 'darkMode', 'hostExpanded', 'joinExpanded', 'hostEndTurnTimeLimit', 'hostCheckpointCount', 'hostHandSize', 'hostSlotCount', 'antialiasMode', 'ssaaSampleLevel'].reduce((obj, key) => {
       obj[key] = {
         get () { return glos[key] },
         set (newValue) {
@@ -554,7 +558,10 @@ export default {
       glos.adjustAudioVolume()
     },
     'glos.antialiasMode' (newValue) {
-      glos.changeAntialiasMode(newValue)
+      glos.changeAntialiasMode()
+    },
+    'glos.ssaaSampleLevel' (newValue) {
+      glos.changeAntialiasMode()
     },
     hostSeed (newValue) {
       this.regenerateMapDebounced()
