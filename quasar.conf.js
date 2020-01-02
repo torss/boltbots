@@ -26,6 +26,7 @@ module.exports = function (ctx) {
       // all: true, // --- includes everything; for dev only!
 
       components: [
+        'QBtnToggle',
         'QCircularProgress',
         'QDialog',
         'QInput',

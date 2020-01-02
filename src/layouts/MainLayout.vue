@@ -101,7 +101,7 @@
                 <q-item-section side><q-btn dense icon="mdi-dice-multiple" flat no-caps @click="randomizeSeed"><q-tooltip>Randomize the seed & regenerate the map.</q-tooltip></q-btn></q-item-section>
                 <!-- <q-item-section side><q-btn dense label="Show" flat no-caps @click="regenerateMap"><q-tooltip>Regenerate the map using the seed.</q-tooltip></q-btn></!-->
               </q-item>
-              <q-item><q-item-section><q-btn label="Host" flat no-caps @click="hostMatch" :disable="!canHost"><q-tooltip>Host with the given settings.</q-tooltip></q-btn></q-item-section></q-item>
+              <q-item><q-item-section class="flex-center"><q-btn label="Host" flat no-caps @click="hostMatch" :disable="!canHost"><q-tooltip>Host with the given settings.</q-tooltip></q-btn></q-item-section></q-item>
             </q-expansion-item>
             <q-expansion-item group="matchmaking" label="Join" :dark="darkMode" v-model="joinExpanded">
                 <q-item dense><q-item-section><q-input dense :dark="darkMode" label="Password" v-model="joinPassword" :error="!joinPasswordValid" :disable="!!game.isJoining"/></q-item-section></q-item>
@@ -126,8 +126,8 @@
               <q-item-section>{{ value.name }}</q-item-section>
               <q-item-section side v-if="game.isHost && value !== match.playerSelf"><q-btn flat icon="mdi-exit-run" @click="kick(value)"><q-tooltip>Kick player from lobby.</q-tooltip></q-btn></q-item-section>
             </q-item>
-            <q-item><q-item-section><q-btn label="Leave" flat no-caps @click="leaveMatch"><q-tooltip>Leave the match.</q-tooltip></q-btn></q-item-section></q-item>
-            <q-item v-if="game.isHost"><q-item-section><q-btn label="Start match" flat no-caps @click="startMatch" :disable="!canStartMatch"><q-tooltip>Start the match!</q-tooltip></q-btn></q-item-section></q-item>
+            <q-item><q-item-section class="flex-center"><q-btn label="Leave" flat no-caps @click="leaveMatch"><q-tooltip>Leave the match.</q-tooltip></q-btn></q-item-section></q-item>
+            <q-item v-if="game.isHost"><q-item-section class="flex-center"><q-btn label="Start match" flat no-caps @click="startMatch" :disable="!canStartMatch"><q-tooltip>Start the match!</q-tooltip></q-btn></q-item-section></q-item>
           </template>
 
           <template v-else-if="game.state === 'reconnecting'">
@@ -229,6 +229,23 @@
               You can find the MPL-2.0 licensed source code repository on <a href="https://github.com/torss/boltbots">GitHub</a>.
             </div>
           </q-item-section></q-item>
+
+          <q-item-label header class="text-center text-bold">
+            Graphics settings
+          </q-item-label>
+          <div class="toggle-btn-wrapper">
+            <q-btn-toggle no-caps dense outline class="toggle-btn"
+              v-model="antialiasMode"
+              :options="[
+                {label: 'None', value: 'none'},
+                {label: 'SMAA', value: 'smaa'},
+                {label: 'FXAA', value: 'fxaa'},
+                {label: 'SSAA', value: 'ssaa'},
+                // {label: 'TAA', value: 'taa'}
+              ]"
+            />
+            <q-tooltip>Anti-aliasing mode.</q-tooltip>
+          </div>
 
           <q-item-label header class="text-center text-bold">
             Network info
@@ -516,7 +533,7 @@ export default {
       if (typeof result === 'function') result = result()
       return result || ''
     },
-    ...['leftDrawerOpen', 'rightDrawerOpen', 'playerName', 'hostMatchName', 'hostMaxPlayers', 'hostSeed', 'darkMode', 'hostExpanded', 'joinExpanded', 'hostEndTurnTimeLimit', 'hostCheckpointCount', 'hostHandSize', 'hostSlotCount'].reduce((obj, key) => {
+    ...['leftDrawerOpen', 'rightDrawerOpen', 'playerName', 'hostMatchName', 'hostMaxPlayers', 'hostSeed', 'darkMode', 'hostExpanded', 'joinExpanded', 'hostEndTurnTimeLimit', 'hostCheckpointCount', 'hostHandSize', 'hostSlotCount', 'antialiasMode'].reduce((obj, key) => {
       obj[key] = {
         get () { return glos[key] },
         set (newValue) {
@@ -535,6 +552,9 @@ export default {
     'glos.masterVolume' (newValue) {
       localStorage.setItem('masterVolume', newValue)
       glos.adjustAudioVolume()
+    },
+    'glos.antialiasMode' (newValue) {
+      glos.changeAntialiasMode(newValue)
     },
     hostSeed (newValue) {
       this.regenerateMapDebounced()
@@ -617,4 +637,11 @@ export default {
   font-size 3em
   user-select none
   cursor pointer
+
+.toggle-btn-wrapper
+  display flex
+
+.toggle-btn
+  margin-left auto
+  margin-right auto
 </style>

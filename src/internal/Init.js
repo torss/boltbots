@@ -7,6 +7,10 @@ import { glos } from './Glos'
 import Stats from 'stats.js'
 import { RenderPass, UnrealBloomPass, EffectComposer, ShaderPass } from './postprocessing'
 import { BloomFinalShader } from './shaders'
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js'
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js'
+import { SSAARenderPass } from 'three/examples/jsm/postprocessing/SSAARenderPass.js'
+// import { TAARenderPass } from 'three/examples/jsm/postprocessing/TAARenderPass.js'
 // import {trackTest} from './TrackTest'
 // import {extrudeTest} from './ExtrudeTest'
 // import {moctreeTest} from './moctree/MoctreeTest'
@@ -105,7 +109,7 @@ export function init (vueInstance) {
   // moctreeTest(vueInstance, scene, camera, material)
 
   const context = canvas.getContext('webgl2')
-  const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: true })
+  const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: false })
   renderer.autoClear = false
   renderer.shadowMap.enabled = true
   renderer.setSize(width, height)
@@ -114,15 +118,19 @@ export function init (vueInstance) {
   // renderer.toneMapping = THREE.ReinhardToneMapping
   renderer.toneMappingExposure = Math.pow(1.1, 4.0)
 
-  const scenePass = new RenderPass(scene, camera)
-  const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 10.0, 0.0, 0.0)
+  const passScene = new RenderPass(scene, camera)
+  const passSmaa = new SMAAPass(window.innerWidth * renderer.getPixelRatio(), window.innerHeight * renderer.getPixelRatio())
+  const passFxaa = new ShaderPass(FXAAShader)
+  const passSsaa = new SSAARenderPass(scene, camera)
+  // const passTaa = new TAARenderPass(scene, camera)
+  const passBloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 10.0, 0.0, 0.0)
 
   const composerBloom = new EffectComposer(renderer)
   composerBloom.renderToScreen = false
-  composerBloom.addPass(scenePass)
-  composerBloom.addPass(bloomPass)
+  composerBloom.addPass(passScene)
+  composerBloom.addPass(passBloom)
 
-  const finalPass = new ShaderPass(
+  const passFinal = new ShaderPass(
     new THREE.ShaderMaterial({
       uniforms: {
         baseTexture: { value: null },
@@ -132,11 +140,31 @@ export function init (vueInstance) {
       fragmentShader: BloomFinalShader.fragmentShader
     }), 'baseTexture'
   )
-  finalPass.needsSwap = true
+  passFinal.needsSwap = true
 
-  const composerFinal = new EffectComposer(renderer)
-  composerFinal.addPass(scenePass)
-  composerFinal.addPass(finalPass)
+  let composerFinal
+  glos.changeAntialiasMode = (antialiasMode) => {
+    composerFinal = new EffectComposer(renderer)
+    composerFinal.addPass(passScene)
+    switch (antialiasMode) {
+      case 'fxaa':
+        composerFinal.addPass(passFxaa)
+        break
+      case 'ssaa':
+        composerFinal.addPass(passSsaa)
+        break
+      // case 'taa':
+      //   composerFinal.addPass(passTaa)
+      //   break
+    }
+    composerFinal.addPass(passFinal)
+    switch (antialiasMode) {
+      case 'smaa':
+        composerFinal.addPass(passSmaa)
+        break
+    }
+  }
+  glos.changeAntialiasMode(glos.antialiasMode)
 
   const darkMaterial = new THREE.MeshBasicMaterial({ color: 'black' })
   // - //
