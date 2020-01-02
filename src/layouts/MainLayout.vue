@@ -5,7 +5,7 @@
         <q-btn flat dense round @click="leftDrawerOpen = !leftDrawerOpen" aria-label="Menu" icon="menu" />
 
         <q-toolbar-title>
-          Bolt Bots
+          Bolt Bots v{{ version }}
           <q-tooltip>Running on Quasar v{{ $q.version }}</q-tooltip>
         </q-toolbar-title>
 
@@ -296,6 +296,7 @@
 </template>
 
 <script>
+import { version } from '../../package.json'
 import { openURL, debounce } from 'quasar'
 import draggable from 'vuedraggable'
 import PlayerListItem from '../components/PlayerListItem'
@@ -318,6 +319,7 @@ export default {
       // leftDrawerOpen: this.$q.platform.is.desktop,
       // rightDrawerOpen: false,
 
+      version,
       bgClassDark: 'bg-blue-grey-10',
       glos,
       hostPassword: '',
