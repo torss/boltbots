@@ -9,6 +9,7 @@
     <draggable class="card-slots" :list="cardSlots" group="bot-card-slots" :move="checkCardMove" @end="onMouseup">
       <q-btn v-for="(cardSlot, index) in cardSlots" :key="index" class="card" :push="!!cardSlot.card" :color="cardSlotToColor(cardSlot, index === turnCardIndex)" rounded no-caps @dragstart="dragCard(cardSlot)" @dragend="dragCardStop" @drop="dropCard(cardSlot)" :disable="disableAct" @click="removeCard(cardSlot)">
         <template v-if="cardSlot.card">
+          <img :src="`statics/cards/${cardSlot.card.cardType.key}.svg`" />
           <span>{{ cardSlot.card.cardType.title }}</span>
         </template>
         <template v-else>
@@ -155,6 +156,8 @@ export default {
   margin-top 0.75em
   margin-bottom 0.75em
   width 9em
+  img
+    width 90%
 
   @media (max-width: 1100px)
     width 6em

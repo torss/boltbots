@@ -114,7 +114,7 @@ export default {
     },
     className () {
       return {
-        'player-name-dead': !this.player.alive,
+        'player-name-dead': this.player.left || !this.player.alive,
         'player-name-done': this.endTurn
       }
     },

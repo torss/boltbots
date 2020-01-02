@@ -9,7 +9,15 @@
           <q-tooltip>Running on Quasar v{{ $q.version }}</q-tooltip>
         </q-toolbar-title>
 
-        <q-btn :icon="glos.muteAudio ? 'mdi-volume-off' : 'mdi-volume-high'" flat round @click="glos.muteAudio = !glos.muteAudio">
+        <HoldBtn  v-if="game.state === 'playing' && !this.match.gameOver" class="hold-btn" @trigger="leaveMatch" :incrementMs="3000" color="negative">
+          <q-icon name="mdi-exit-run" />
+          <q-tooltip>
+            Click and hold this button to irreversibly leave the match.<br>
+            Hold <kbd>Shift</kbd> to accelerate the invocation.
+          </q-tooltip>
+        </HoldBtn>
+
+        <q-btn :icon="glos.muteAudio ? 'mdi-volume-off' : 'mdi-volume-high'" flat round @click="toggleAudio">
           <q-tooltip>Toggle audio mute</q-tooltip>
         </q-btn>
         <span class="volume-slider">
@@ -51,6 +59,7 @@
                 <q-tooltip>Drag these cards onto the slots at the bottom to program your bot.</q-tooltip>
                 <draggable class="card-slots q-gutter-sm justify-center row" :list="hand" group="hand" @end="onMouseup">
                   <q-btn v-for="(card, index) in hand" :key="index" class="card" push color="primary" no-caps draggable="true" @click="useCard(card)" @dragstart="dragCard(card)" @dragend="dragCardStop" :disable="disableAct">
+                    <img :src="`statics/cards/${card.cardType.key}.svg`" />
                     <span>{{ card.cardType.title }}</span>
                   </q-btn>
                 </draggable>
@@ -270,6 +279,7 @@ import { openURL, debounce } from 'quasar'
 import draggable from 'vuedraggable'
 import PlayerListItem from '../components/PlayerListItem'
 import MatchmakingTooltip from '../components/MatchmakingTooltip'
+import HoldBtn from '../components/HoldBtn'
 import { glos } from '../internal/Glos'
 
 export default {
@@ -277,7 +287,8 @@ export default {
   components: {
     draggable,
     PlayerListItem,
-    MatchmakingTooltip
+    MatchmakingTooltip,
+    HoldBtn
   },
   data () {
     this.regenerateMapDebounced = debounce(() => this.regenerateMap(), 1000)
@@ -399,6 +410,10 @@ export default {
     },
     onMouseup () {
       if (glos.threejsControls) glos.threejsControls.enabled = true
+    },
+    toggleAudio () {
+      glos.muteAudio = !glos.muteAudio
+      if (glos.muteAudio) glos.game.audioListener.context.resume()
     }
   },
   computed: {
@@ -462,7 +477,7 @@ export default {
       const { dialogData } = this.glos
       if (!dialogData) return ''
       const options = {
-        'reconnect-refused': 'Couldn\'t reconnect',
+        // 'reconnect-refused': 'Couldn\'t reconnect',
         'join-failure': 'Couldn\'t join match'
       }
       return options[dialogData.type] || 'Dialog'
@@ -471,18 +486,18 @@ export default {
       const { dialogData } = this.glos
       if (!dialogData) return ''
       const options = {
-        'reconnect-refused': {
-          'incorrect-player': 'Your internal player identifier is incorrect, you cannot reconnect.',
-          'not-playing': () => {
-            const options = {
-              'matchmaking': 'The match does no longer exist.',
-              'lobby': 'The match is back at the lobby state. That\'s weird.',
-              'playing': '...for no apparent reason, this must be a bug.',
-              'reconnecting': 'Apparently the host has weird network problems. This shouldn\'t happen.'
-            }
-            return options[dialogData.data]
-          }
-        },
+        // 'reconnect-refused': {
+        //   'incorrect-player': 'Your internal player identifier is incorrect, you cannot reconnect.',
+        //   'not-playing': () => {
+        //     const options = {
+        //       'matchmaking': 'The match does no longer exist.',
+        //       'lobby': 'The match is back at the lobby state. That\'s weird.',
+        //       'playing': '...for no apparent reason, this must be a bug.',
+        //       'reconnecting': 'Apparently the host has weird network problems. This shouldn\'t happen.'
+        //     }
+        //     return options[dialogData.data]
+        //   }
+        // },
         'join-failure': {
           'empty-password': 'You need to enter a password to join this match.',
           'rejected': () => {
@@ -591,4 +606,15 @@ export default {
   flex-flow column
   flex 1 1 auto
   overflow-y auto
+
+.card
+  img
+    width 1em
+    margin-right 0.5em
+
+.hold-btn
+  margin-right 0.1em
+  font-size 3em
+  user-select none
+  cursor pointer
 </style>
