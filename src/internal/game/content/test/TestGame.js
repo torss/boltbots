@@ -34,7 +34,7 @@ export function initPlayers (game, count) {
   match.turnPlayers = [...match.players]
 }
 
-export function initPlayer (game, playerData) {
+export function initPlayer (game, playerData, cryptoKeySvPublicEx) {
   const playerIcons = ['robot', 'robot-industrial', 'tank', 'settings', 'face-agent', 'alien', 'laptop', 'desktop-classic', 'account-badge', 'account-card-details', 'pirate', 'target', 'target', 'target-variant', 'emoticon-devil']
 
   const { match, netMatch } = game
@@ -72,6 +72,7 @@ export function initPlayer (game, playerData) {
   players.sort((a, b) => a.id - b.id)
 
   if (netMatch) netMatch.playerCount = players.length
+  if (cryptoKeySvPublicEx !== undefined) player.cryptoKeySvPublicLoad(cryptoKeySvPublicEx)
   return player
 }
 

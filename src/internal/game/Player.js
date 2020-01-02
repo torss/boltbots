@@ -1,6 +1,7 @@
 import { assignNewVueObserver } from '../Dereactivate'
 import { Bot } from './Bot'
 import { Card } from './Card'
+import { cryptoAlgoKeySv } from './Crypto'
 
 export class Player {
   constructor (game, id, name) {
@@ -12,7 +13,9 @@ export class Player {
     this.icon = 'robot'
     this.completedCheckpoints = 0
     this.netKey = ''
+    this.pnid = ''
     // this.peerInfo = undefined
+    this.left = false
     this.endTurn = false
     this.completeTurn = false
     this.lastPingTimeout = false
@@ -22,8 +25,15 @@ export class Player {
     this.hand = [] // Cards
     this.bot = new Bot(game, this)
     this.lastPing = Date.now()
-    this.hostCandidates = undefined
+    this.hostVote = undefined
     // this.tieBreaker = 0
+    this.cryptoKeySvPublicEx = undefined
+    this.cryptoKeySvPublic = undefined
+  }
+
+  async cryptoKeySvPublicLoad (cryptoKeySvPublicEx) {
+    this.cryptoKeySvPublicEx = cryptoKeySvPublicEx
+    this.cryptoKeySvPublic = await crypto.subtle.importKey('jwk', cryptoKeySvPublicEx, cryptoAlgoKeySv, false, ['verify'])
   }
 
   markAsDead (killer) {
@@ -55,8 +65,8 @@ export class Player {
   }
 
   serialize (playing = false) {
-    const { id, name, netKey, hand, bot, killedInTurn, killedBy, completedCheckpoints, lastPing } = this
-    let result = { id, name, netKey }
+    const { id, name, netKey, pnid, hand, bot, killedInTurn, killedBy, completedCheckpoints, lastPing, cryptoKeySvPublicEx, left } = this
+    let result = { id, name, netKey, pnid, cryptoKeySvPublicEx, left }
     if (playing) {
       result.hand = hand.map(card => card.serialize())
       result.bot = bot.serialize()
@@ -67,10 +77,12 @@ export class Player {
   }
 
   deserialize (playerData) {
-    const { id, name, netKey, hand, bot, killedInTurn, completedCheckpoints, lastPing } = playerData
+    const { id, name, netKey, pnid, left, hand, bot, killedInTurn, completedCheckpoints, lastPing, cryptoKeySvPublicEx } = playerData
     if (id !== undefined) this.id = id
     if (name !== undefined) this.name = name
-    if (netKey !== undefined) this.netKey = netKey // Not used atm
+    if (netKey !== undefined) this.netKey = netKey
+    if (pnid !== undefined) this.pnid = pnid
+    if (left !== undefined) this.left = left
     if (hand !== undefined) this.hand = hand.map(cardData => new Card(cardData).deserialize(cardData))
     if (bot !== undefined) this.bot.deserialize(bot)
     if (killedInTurn !== undefined) {
@@ -80,5 +92,6 @@ export class Player {
     }
     if (completedCheckpoints !== undefined) this.completedCheckpoints = completedCheckpoints
     if (lastPing !== undefined) this.lastPing = lastPing
+    if (cryptoKeySvPublicEx !== undefined) this.cryptoKeySvPublicLoad(cryptoKeySvPublicEx)
   }
 }

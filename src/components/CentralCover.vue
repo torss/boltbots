@@ -1,6 +1,7 @@
 <template>
   <div class="cover">
     <span class="game-over">GAME OVER</span>
+    <q-btn color="accent" label="Return to lobby" push @click="returnToLobby" /><!-- NOTE Maybe this and the associated functions should be renamed, since they don't return to the "lobby" but the "matchmaking" state. -->
     <template v-if="gameOver === 'draw'">
       <span class="game-over-type">D R A W</span>
       <span class="desc">{{ selectQuip(drawQuips) }}</span>
@@ -36,6 +37,9 @@ export default {
   methods: {
     selectQuip (array) {
       return array[Math.floor(this.match.gameOverQuip * array.length)]
+    },
+    returnToLobby () {
+      this.glos.game.returnToLobby()
     }
   },
   computed: {

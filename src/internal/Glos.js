@@ -33,7 +33,21 @@ class Glos {
     this.hostCheckpointCount = getLsOrDefault('hostCheckpointCount', 3, parseInt)
     this.hostHandSize = getLsOrDefault('hostHandSize', 8, parseInt)
     this.hostSlotCount = getLsOrDefault('hostSlotCount', 5, parseInt)
+    this.antialiasMode = getLsOrDefault('antialiasMode', 'none')
+    this.changeAntialiasMode = undefined
     this.dialogData = undefined
+
+    switch (this.antialiasMode) {
+      case 'none':
+      case 'smaa':
+      case 'fxaa':
+      case 'ssaa':
+      // case 'taa':
+        break
+      default:
+        this.antialiasMode = 'none'
+        break
+    }
 
     this.game = new Game()
     this.cardSlots = []
@@ -81,7 +95,7 @@ class Glos {
 
 export const glos = new Glos()
 
-// NOTE prototype only
+// NOTE prototype only (i.e. maybe remove that eventually)
 window.glos = glos
 window.game = glos.game
 window.THREE = THREE

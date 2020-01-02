@@ -15,12 +15,17 @@ export class Checkpoint {
       geometry,
       new THREE.MeshBasicMaterial({ color: new THREE.Color(0.03, 0.03, 1.0) })
     )
-    new TWEEN.Tween(text.material.color).to(new THREE.Color(0.1, 0.1, 1.0), 1000).delay((number - 1) * 250).repeatDelay(game.match.checkpointCount * 250).easing(TWEEN.Easing.Quartic.Out).repeat(Infinity).yoyo(true).start()
+    this.tween = new TWEEN.Tween(text.material.color).to(new THREE.Color(0.1, 0.1, 1.0), 1000).delay((number - 1) * 250).repeatDelay(game.match.checkpointCount * 250).easing(TWEEN.Easing.Quartic.Out).repeat(Infinity).yoyo(true).start()
     text.rotateX(-0.5 * Math.PI)
     text.bloom = true
     this.object3d = text
     this.setPosition(pos)
     game.scene.add(text)
+  }
+
+  destroy () {
+    this.tween.stop()
+    this.object3d.removeSelf()
   }
 
   setPosition (pos) {
