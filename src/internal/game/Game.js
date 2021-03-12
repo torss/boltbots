@@ -22,7 +22,7 @@ const netTopic = 'boltbots-20191013'
 // const netDirectProtocol = '/boltbots/1.0.0'
 const pingDelay = 1000
 const pingDelayGlobal = 5000
-const timeoutThreshold = 5 * pingDelay
+const timeoutThreshold = 10 * pingDelay
 const reconnectThreshold = 600000 // 10min
 
 const saveListenerEnabled = true
@@ -273,72 +273,65 @@ export class Game {
     return obj
   }
 
-  initNetNode () {
-    createNetNodeSingleton((error, netNode) => {
-      if (error) return console.error('createNetNode failed, check if your browser has WebRTC Support', error)
-      this.netNode = netNode
+  async initNetNode () {
+    const netNode = await createNetNodeSingleton()
+    this.netNode = netNode
 
-      // netNode.handle(netDirectProtocol, (protocol, conn) => {
-      //   conn.getPeerInfo((error, peerInfo) => {
-      //     if (error) {
-      //       console.error('netDirectProtocol handle getPeerInfo error:', error)
-      //       return
-      //     }
-      //     const pushable = Pushable()
-      //     pull(pushable, conn)
-      //     pull(conn, pull.drain((data) => this.netHandleDirect(data, pushable, peerInfo)))
-      //   })
-      // })
+    // netNode.handle(netDirectProtocol, (protocol, conn) => {
+    //   conn.getPeerInfo((error, peerInfo) => {
+    //     if (error) {
+    //       console.error('netDirectProtocol handle getPeerInfo error:', error)
+    //       return
+    //     }
+    //     const pushable = Pushable()
+    //     pull(pushable, conn)
+    //     pull(conn, pull.drain((data) => this.netHandleDirect(data, pushable, peerInfo)))
+    //   })
+    // })
 
-      netNode.on('peer:discovery', (peerInfo) => {
-        // console.log('Discovered a peer:', peerInfo.id.toB58String())
-        ++this.discoveredPeerCount
-      })
-
-      netNode.on('peer:connect', (peerInfo) => {
-        // const idStr = peerInfo.id.toB58String()
-        // console.log('Got connection to: ' + idStr)
-
-        peerInfo.idStr = peerInfo.id.toB58String()
-        this.connectedPeers.push(peerInfo)
-      })
-
-      netNode.on('peer:disconnect', (peerInfo) => {
-        let index = this.connectedPeers.indexOf(peerInfo)
-        if (index >= 0) {
-          this.connectedPeers.splice(index, 1)
-        } else {
-          // const idStr = peerInfo.id.toB58String()
-          // console.warn('Tried to remove non-existant peer:', idStr)
-        }
-
-        // peerInfo.disconnected = true
-        // if (this.state === 'lobby' && this.pseudoPeer.isHost && this.lobbyPeers.includes(peerInfo)) {
-        //   this.kick(peerInfo)
-        // }
-        // index = this.lobbyPeers.indexOf(peerInfo)
-        // if (index >= 0) {
-        //   const peerInfo = this.lobbyPeers[index]
-        //   this.lobbyPeers.splice(index, 1)
-        //   peerInfo.disconnected = true
-        // }
-      })
-
-      netNode.once('peer:connect', async (peerInfo) => {
-        await this.cryptoPnidMsgInit()
-
-        this.subscribeGlobal()
-        this.subscribePlayerSelf()
-        new TWEEN.Tween({}).to({}, 1).repeatDelay(pingDelay).repeat(Infinity).onRepeat(() => this.netUpdate()).start()
-        if (this.reconnectData) this.startReconnect()
-      })
-
-      netNode.start((error) => {
-        if (error) return console.error('netNode.start failed:', error)
-        const idStr = netNode.peerInfo.id.toB58String()
-        this.netNodeIdStr = idStr
-      })
+    netNode.on('peer:discovery', (connection) => {
+      // console.log('Discovered a peer:', peerInfo.id.toB58String())
+      ++this.discoveredPeerCount
     })
+
+    netNode.connectionManager.on('peer:connect', (connection) => {
+      // const idStr = peerInfo.id.toB58String()
+      // console.log('Got connection to: ' + idStr)
+
+      // peerInfo.idStr = peerInfo.id.toB58String()
+      this.connectedPeers.push(connection.remotePeer)
+    })
+
+    netNode.connectionManager.on('peer:disconnect', (connection) => {
+      let index = this.connectedPeers.indexOf(connection.remotePeer)
+      if (index >= 0) {
+        this.connectedPeers.splice(index, 1)
+      } else {
+        // const idStr = peerInfo.id.toB58String()
+        // console.warn('Tried to remove non-existant peer:', idStr)
+      }
+
+      // peerInfo.disconnected = true
+      // if (this.state === 'lobby' && this.pseudoPeer.isHost && this.lobbyPeers.includes(peerInfo)) {
+      //   this.kick(peerInfo)
+      // }
+      // index = this.lobbyPeers.indexOf(peerInfo)
+      // if (index >= 0) {
+      //   const peerInfo = this.lobbyPeers[index]
+      //   this.lobbyPeers.splice(index, 1)
+      //   peerInfo.disconnected = true
+      // }
+    })
+
+    await netNode.start()
+    const idStr = netNode.peerId.toB58String()
+    this.netNodeIdStr = idStr
+
+    await this.cryptoPnidMsgInit()
+    this.subscribeGlobal()
+    this.subscribePlayerSelf()
+    new TWEEN.Tween({}).to({}, 1).repeatDelay(pingDelay).repeat(Infinity).onRepeat(() => this.netUpdate()).start()
+    if (this.reconnectData) this.startReconnect()
   }
 
   checkMatchmakingTimeouts (obj) {
@@ -839,7 +832,8 @@ export class Game {
     }
     netTopic.topic = topicNew
     if (handler) {
-      this.netNode.pubsub.subscribe(netTopic.topic, handler)
+      this.netNode.pubsub.on(netTopic.topic, handler)
+      this.netNode.pubsub.subscribe(netTopic.topic)
       netTopic.subscribed = true
     }
   }
